@@ -27,13 +27,13 @@ jobs:
         run: uv pip install --system -e .[dev]
 
       - name: Lint with ruff
-        run: uv run ruff check src
+        run: uv run ruff check .
 
       - name: Check formatting with black
-        run: uv run black --check src
+        run: uv run black --check .
 
       - name: Run mypy for type checking
-        run: uv run mypy src
+        run: uv run mypy .
 
       - name: Build package to check for errors
         run: |
