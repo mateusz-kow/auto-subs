@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  quality-checks:
-    name: Lint, Format & Type Check
+  quality_checks:
+    name: Lint, Type Check & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,15 +20,30 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install uv and nox
-        run: pip install uv nox
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
 
-      - name: Run quality checks
-        run: nox -s lint format typecheck
+      - name: Install dependencies
+        run: uv pip install --system -e .[dev]
 
-  test-suite:
+      - name: Lint with ruff
+        run: uv run ruff check .
+
+      - name: Check formatting with black
+        run: uv run black --check .
+
+      - name: Run Pyright for type checking
+        run: uv run pyright
+
+      - name: Build package to check for errors
+        run: |
+          uv pip install --system build twine
+          python -m build
+          twine check dist/*
+
+  test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
-    needs: quality-checks
+    needs: quality_checks
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -45,14 +60,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install uv and nox
-        run: pip install uv nox
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
 
-      - name: Install dependencies and run tests
-        run: nox -s tests
+      - name: Install dependencies
+        run: uv pip install --system -e .[dev]
+
+      - name: Run pytest with coverage
+        run: uv run pytest --cov=auto_subs --cov-report=xml
         continue-on-error: ${{ matrix.experimental || false }}
 
-      - name: Store coverage report
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml-${{ matrix.os }}-${{ matrix.python-version }}
@@ -61,7 +79,7 @@ jobs:
 
   coverage-report:
     name: Coverage Report
-    needs: test-suite
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -71,25 +89,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: coverage-xml-*
-          path: coverage-reports
+          path: coverage-reports/
           merge-multiple: true
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install coverage tools
-        run: pip install coverage[toml]
-
-      - name: Combine coverage reports
-        run: |
-          coverage combine coverage-reports
-          coverage xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
+          directory: ./coverage-reports/
           fail_ci_if_error: true
