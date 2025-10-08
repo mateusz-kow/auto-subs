@@ -38,7 +38,7 @@ def segment_words(
     if not all_words:
         return []
 
-    lines = []
+    lines: list[dict[str, Any]] = []
     current_line_words: list[dict[str, Any]] = []
 
     for word_data in all_words:

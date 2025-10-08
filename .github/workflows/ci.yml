@@ -32,8 +32,8 @@ jobs:
       - name: Check formatting with black
         run: uv run black --check .
 
-      - name: Run mypy for type checking
-        run: uv run mypy .
+      - name: Run Pyright for type checking
+        run: uv run pyright
 
       - name: Build package to check for errors
         run: |

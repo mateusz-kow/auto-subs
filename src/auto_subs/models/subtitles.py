@@ -1,3 +1,6 @@
+# pyright: reportUnknownVariableType=false
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -17,7 +20,7 @@ class SubtitleWord:
         self.text = self.text.strip()
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SubtitleWord":
+    def from_dict(cls, data: dict[str, Any]) -> SubtitleWord:
         """Creates a SubtitleWord instance from a dictionary."""
         return cls(text=data["text"], start=data["start"], end=data["end"])
 
@@ -59,7 +62,7 @@ class Subtitles:
         self.segments.sort(key=lambda s: s.start)
 
     @classmethod
-    def from_transcription(cls, transcription: dict[str, Any], **kwargs: Any) -> "Subtitles":
+    def from_transcription(cls, transcription: dict[str, Any], **kwargs: Any) -> Subtitles:
         """Creates a Subtitles instance from a transcription dictionary.
 
         Args:
@@ -69,7 +72,7 @@ class Subtitles:
         """
         dict_segments = segment_words(transcription, **kwargs)
         segments = [
-            SubtitleSegment([SubtitleWord.from_dict(w) for w in dict_segment["words"]])
+            SubtitleSegment([SubtitleWord.from_dict(w) for w in dict_segment.get("words", [])])
             for dict_segment in dict_segments
         ]
         return cls(segments)

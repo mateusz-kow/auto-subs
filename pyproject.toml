@@ -34,8 +34,9 @@ auto-subs = "auto_subs.cli:main"
 dev = [
     "ruff~=0.14.0",
     "black~=25.9.0",
-    "mypy~=1.18.2",
+    "pyright~=1.1.406",
     "pytest~=8.4.2",
+    "pre-commit~=4.3.0",
 ]
 
 [build-system]
@@ -84,6 +85,11 @@ convention = "google"
 line-length = 120
 target-version = ['py311']
 
-[tool.mypy]
-python_version = "3.11"
-strict = true
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["**/__pycache__"]
+pythonVersion = "3.11"
+pythonPlatform = "All"
+typeCheckingMode = "strict"
+reportMissingImports = "warning"
+reportUnknownMemberType = "warning"

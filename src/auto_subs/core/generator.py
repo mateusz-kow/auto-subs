@@ -8,9 +8,6 @@ logger = getLogger(__name__)
 HIGHLIGHT_END = r"{\\r}"
 
 
-# --- Helper Functions (remain the same) ---
-
-
 def _format_srt_timestamp(seconds: float) -> str:
     """Formats seconds to SRT timestamp format (hh:mm:ss,ms)."""
     hrs = int(seconds // 3600)
@@ -31,7 +28,7 @@ def _format_ass_timestamp(seconds: float) -> str:
 
 def _build_ass_highlight_tag(style: AssStyleSettings) -> str:
     """Builds ASS highlight tags from a style object."""
-    tag_parts = []
+    tag_parts: list[str] = []
     if style.text_color:
         tag_parts.append(rf"\1c{style.text_color}")
     if style.border_color:
@@ -41,12 +38,9 @@ def _build_ass_highlight_tag(style: AssStyleSettings) -> str:
     return f"{{{''.join(tag_parts)}}}"
 
 
-# --- Public API Functions (no longer in a class) ---
-
-
 def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
     """Generate the content for an ASS subtitle file."""
-    lines = [settings.to_ass_header()]
+    lines: list[str] = [settings.to_ass_header()]
 
     if settings.highlight_style:
         highlight_tag = _build_ass_highlight_tag(settings.highlight_style)
@@ -74,7 +68,7 @@ def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
 
 def to_srt(subtitles: Subtitles) -> str:
     """Generate the content for an SRT subtitle file."""
-    srt_blocks = []
+    srt_blocks: list[str] = []
     for i, segment in enumerate(subtitles.segments, 1):
         start_time = _format_srt_timestamp(segment.start)
         end_time = _format_srt_timestamp(segment.end)
