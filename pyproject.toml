@@ -37,6 +37,8 @@ dev = [
     "pyright~=1.1.406",
     "pytest~=8.4.2",
     "pre-commit~=4.3.0",
+    "nox~=2025.5.1",
+    "pytest~=cov-7.0.0"
 ]
 
 [build-system]

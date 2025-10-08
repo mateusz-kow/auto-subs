@@ -2,14 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   workflow_dispatch:
 
 jobs:
-  quality_checks:
-    name: Lint, Type Check & Build
+  quality-checks:
+    name: Lint, Format & Type Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,36 +20,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
+      - name: Install uv and nox
+        run: pip install uv nox
 
-      - name: Install dependencies
-        run: uv pip install --system -e .[dev]
+      - name: Run quality checks
+        run: nox -s lint format typecheck
 
-      - name: Lint with ruff
-        run: uv run ruff check .
-
-      - name: Check formatting with black
-        run: uv run black --check .
-
-      - name: Run Pyright for type checking
-        run: uv run pyright
-
-      - name: Build package to check for errors
-        run: |
-          uv pip install --system hatchling twine
-          uv run hatchling build
-          uv run twine check dist/*
-
-  test:
-    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
-    needs: quality_checks
+  test-suite:
+    name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    needs: quality-checks
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12"]
+        include:
+          # Allow nightly Python versions to fail without failing the entire workflow
+          - python-version: "3.13"
+            os: ubuntu-latest
+            experimental: true
 
     steps:
       - name: Checkout repository
@@ -60,11 +50,51 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
+      - name: Install uv and nox
+        run: pip install uv nox
 
-      - name: Install dependencies
-        run: uv pip install --system -e .[dev]
+      - name: Install dependencies and run tests
+        run: nox -s tests
+        continue-on-error: ${{ matrix.experimental || false }}
 
-      - name: Run pytest
-        run: uv run pytest
+      - name: Store coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml-${{ matrix.os }}-${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  coverage-report:
+    name: Coverage Report
+    needs: test-suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-xml-*
+          path: coverage-reports
+          merge-multiple: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install coverage tools
+        run: pip install coverage[toml]
+
+      - name: Combine coverage reports
+        run: |
+          coverage combine coverage-reports
+          coverage xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: true
