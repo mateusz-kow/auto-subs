@@ -18,6 +18,7 @@ class SubtitleWord:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SubtitleWord":
+        """Creates a SubtitleWord instance from a dictionary."""
         return cls(text=data["text"], start=data["start"], end=data["end"])
 
 
@@ -54,10 +55,11 @@ class Subtitles:
     segments: list[SubtitleSegment] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        """Sorts segments by their start time after initialization."""
         self.segments.sort(key=lambda s: s.start)
 
     @classmethod
-    def from_transcription(cls, transcription: dict[str, Any], **kwargs) -> "Subtitles":
+    def from_transcription(cls, transcription: dict[str, Any], **kwargs: Any) -> "Subtitles":
         """Creates a Subtitles instance from a transcription dictionary.
 
         Args:

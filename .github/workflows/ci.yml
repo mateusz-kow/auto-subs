@@ -1,26 +1,21 @@
-name: Publish to PyPI
+name: CI
 
 on:
-  # This workflow is triggered when the "CI" workflow completes successfully on the master branch.
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [master]
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+  workflow_dispatch:
 
 jobs:
-  build-and-publish:
-    name: Build and publish to PyPI
-    # CRITICAL: This condition ensures that this job only runs if the triggering CI workflow was successful.
-    if: github.event.workflow_run.conclusion == 'success'
+  quality_checks:
+    name: Lint, Type Check & Build
     runs-on: ubuntu-latest
-    permissions:
-      # This permission is required for trusted publishing with PyPI
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -28,16 +23,48 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v1
 
-      - name: Install build and publish tools
-        run: uv pip install --system hatchling twine
+      - name: Install dependencies
+        run: uv pip install --system -e .[dev]
 
-      - name: Build package
-        run: uv run hatchling build
+      - name: Lint with ruff
+        run: uv run ruff check src
 
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Check formatting with black
+        run: uv run black --check src
+
+      - name: Run mypy for type checking
+        run: uv run mypy src
+
+      - name: Build package to check for errors
+        run: |
+          uv pip install --system hatchling twine
+          uv run hatchling build
+          uv run twine check dist/*
+
+  test:
+    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    needs: quality_checks
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          # Using the official PyPA action is the recommended and most secure way to publish.
-          # It handles trusted publishing and avoids manual token management in scripts.
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Install dependencies
+        run: uv pip install --system -e .[dev]
+
+      - name: Run pytest
+        run: uv run pytest

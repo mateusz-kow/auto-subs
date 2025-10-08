@@ -71,6 +71,9 @@ lint.ignore = [
     "D200"    # One-line docstring should fit on one line with quotes (conflicts with black)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
 
