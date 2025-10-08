@@ -1,0 +1,43 @@
+name: Publish to PyPI
+
+on:
+  # This workflow is triggered when the "CI" workflow completes successfully on the master branch.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master]
+
+jobs:
+  build-and-publish:
+    name: Build and publish to PyPI
+    # CRITICAL: This condition ensures that this job only runs if the triggering CI workflow was successful.
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      # This permission is required for trusted publishing with PyPI
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Install build and publish tools
+        run: uv pip install --system hatchling twine
+
+      - name: Build package
+        run: uv run hatchling build
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Using the official PyPA action is the recommended and most secure way to publish.
+          # It handles trusted publishing and avoids manual token management in scripts.
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

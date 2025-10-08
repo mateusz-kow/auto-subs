@@ -1,0 +1,86 @@
+[project]
+name = "auto-subs"
+version = "0.0.1"
+description = "A powerful, local-first library and CLI for video transcription and subtitle generation using Whisper."
+authors = [
+    { name = "Mateusz Kowalski", email = "kowalski.mateusz.1lo1@gmail.com" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing",
+]
+
+dependencies = [
+    "typer~=0.19.2",
+    "pydantic~=2.12.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/mateusz-kow/auto-subs"
+Repository = "https://github.com/mateusz-kow/auto-subs"
+
+[project.scripts]
+auto-subs = "auto_subs.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "ruff~=0.14.0",
+    "black~=25.9.0",
+    "mypy~=1.18.2",
+    "pytest~=8.4.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# --- Tool Configurations ---
+
+[tool.ruff]
+fix = true
+line-length = 120
+lint.select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "D",   # pydocstyle
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PLW", # pylint warnings
+    "N",   # pep8-naming
+    "ISC", # flake8-implicit-str-concat
+    "TID", # flake8-tidy-imports
+]
+lint.ignore = [
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "D205",   # 1 blank line required between summary line and description
+    "ISC001", # Implicitly concatenated string on one line (conflicts with ruff format)
+    "N802",   # Function name should be lowercase (for Qt method overrides like `closeEvent`)
+    "D200"    # One-line docstring should fit on one line with quotes (conflicts with black)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
