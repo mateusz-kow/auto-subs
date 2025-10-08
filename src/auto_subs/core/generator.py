@@ -10,6 +10,7 @@ HIGHLIGHT_END = r"{\\r}"
 
 # --- Helper Functions (remain the same) ---
 
+
 def _format_srt_timestamp(seconds: float) -> str:
     """Formats seconds to SRT timestamp format (hh:mm:ss,ms)."""
     hrs = int(seconds // 3600)
@@ -41,6 +42,7 @@ def _build_ass_highlight_tag(style: AssStyleSettings) -> str:
 
 
 # --- Public API Functions (no longer in a class) ---
+
 
 def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
     """Generate the content for an ASS subtitle file."""

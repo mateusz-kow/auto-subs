@@ -1,19 +1,20 @@
-name: Publish to TestPyPI
+name: Publish to PyPI
 
 on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [master]
+    branches: [main]
 
 jobs:
   build-and-publish:
     name: Build and publish to PyPI
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -22,7 +23,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v1
 
       - name: Install build and publish tools
         run: uv pip install --system hatchling twine
@@ -31,7 +32,7 @@ jobs:
         run: uv run hatchling build
 
       - name: Publish package to PyPI
-        run: uv run twine upload dist/* --verbose
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
