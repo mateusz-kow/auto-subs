@@ -1,5 +1,3 @@
-"""A simple test to ensure the package is importable and has a version."""
-
 import auto_subs
 
 
@@ -9,8 +7,6 @@ def test_package_is_importable() -> None:
 
 
 def test_version_is_present() -> None:
-    """Verify that the __version__ attribute is set."""
+    """Verify that the __version__ attribute is set and matches the expected version."""
     assert hasattr(auto_subs, "__version__")
-    assert isinstance(auto_subs.__version__, str)
-    # Możesz dodać bardziej rygorystyczne sprawdzenie formatu wersji, np. z wyrażeniem regularnym
-    assert len(auto_subs.__version__) > 0
+    assert auto_subs.__version__ == "0.1.0"

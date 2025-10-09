@@ -28,3 +28,4 @@ repos:
         additional_dependencies:
           - "typer~=0.19.2"
           - "pydantic~=2.12.0"
+          - "pytest~=8.4.2"

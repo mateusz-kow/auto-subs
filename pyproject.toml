@@ -1,6 +1,6 @@
 [project]
 name = "auto-subs"
-version = "0.0.1"
+version = "0.1.0"
 description = "A powerful, local-first library and CLI for video transcription and subtitle generation using Whisper."
 authors = [
     { name = "Mateusz Kowalski", email = "kowalski.mateusz.1lo1@gmail.com" },
@@ -28,7 +28,7 @@ Homepage = "https://github.com/mateusz-kow/auto-subs"
 Repository = "https://github.com/mateusz-kow/auto-subs"
 
 [project.scripts]
-auto-subs = "auto_subs.cli:main"
+auto-subs = "auto_subs.cli:app"
 
 [project.optional-dependencies]
 dev = [
@@ -48,7 +48,9 @@ build-backend = "hatchling.build"
 [tool.ruff]
 fix = true
 line-length = 120
-lint.select = [
+
+[tool.ruff.lint]
+select = [
     "E",   # pycodestyle errors
     "F",   # pyflakes
     "W",   # pycodestyle warnings
@@ -63,27 +65,22 @@ lint.select = [
     "ISC", # flake8-implicit-str-concat
     "TID", # flake8-tidy-imports
 ]
-lint.ignore = [
+ignore = [
     "D100",   # Missing docstring in public module
     "D104",   # Missing docstring in public package
     "D205",   # 1 blank line required between summary line and description
     "ISC001", # Implicitly concatenated string on one line (conflicts with ruff format)
-    "N802",   # Function name should be lowercase (for Qt method overrides like `closeEvent`)
-    "D200"    # One-line docstring should fit on one line with quotes (conflicts with black)
+    "D200",   # One-line docstring should fit on one line with quotes (conflicts with ruff format)
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["src"]
+known-first-party = ["auto_subs"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.black]
-line-length = 120
-target-version = ['py311']
 
 [tool.pyright]
 include = ["src", "tests"]

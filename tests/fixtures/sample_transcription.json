@@ -1,0 +1,64 @@
+{
+  "text": "This is a test transcription for the auto-subs library. It includes punctuation! And a final line.",
+  "segments": [
+    {
+      "id": 0,
+      "seek": 0,
+      "start": 0.0,
+      "end": 5.0,
+      "text": " This is a test transcription for the auto-subs library.",
+      "tokens": [],
+      "temperature": 0.0,
+      "avg_logprob": -0.5,
+      "compression_ratio": 1.5,
+      "no_speech_prob": 0.0,
+      "words": [
+        { "word": "This", "start": 0.1, "end": 0.3 },
+        { "word": "is", "start": 0.4, "end": 0.5 },
+        { "word": "a", "start": 0.6, "end": 0.7 },
+        { "word": "test", "start": 0.8, "end": 1.2 },
+        { "word": "transcription", "start": 1.3, "end": 2.1 },
+        { "word": "for", "start": 2.2, "end": 2.4 },
+        { "word": "the", "start": 2.5, "end": 2.6 },
+        { "word": "auto-subs", "start": 2.7, "end": 3.5 },
+        { "word": "library.", "start": 3.6, "end": 4.2 }
+      ]
+    },
+    {
+      "id": 1,
+      "seek": 500,
+      "start": 5.0,
+      "end": 7.0,
+      "text": " It includes punctuation!",
+      "tokens": [],
+      "temperature": 0.0,
+      "avg_logprob": -0.5,
+      "compression_ratio": 1.5,
+      "no_speech_prob": 0.0,
+      "words": [
+        { "word": "It", "start": 5.1, "end": 5.3 },
+        { "word": "includes", "start": 5.4, "end": 6.0 },
+        { "word": "punctuation!", "start": 6.1, "end": 6.8 }
+      ]
+    },
+    {
+      "id": 2,
+      "seek": 700,
+      "start": 7.5,
+      "end": 9.0,
+      "text": " And a final line.",
+      "tokens": [],
+      "temperature": 0.0,
+      "avg_logprob": -0.5,
+      "compression_ratio": 1.5,
+      "no_speech_prob": 0.0,
+      "words": [
+        { "word": "And", "start": 7.6, "end": 7.8 },
+        { "word": "a", "start": 7.9, "end": 8.0 },
+        { "word": "final", "start": 8.1, "end": 8.5 },
+        { "word": "line.", "start": 8.6, "end": 9.0 }
+      ]
+    }
+  ],
+  "language": "en"
+}
