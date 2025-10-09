@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
         run: uv pip install --system -e .[dev]
@@ -32,8 +32,8 @@ jobs:
       - name: Check formatting with ruff
         run: uv run ruff format .
 
-#      - name: Run Pyright for type checking
-#        run: uv run pyright
+      - name: Run Pyright for type checking
+        run: uv run pyright
 
       - name: Build package to check for errors
         run: |
