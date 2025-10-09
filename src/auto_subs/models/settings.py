@@ -76,5 +76,5 @@ class AssSettings(BaseModel):
             f"{style_format}\n"
             f"{style_values}\n"
             "\n[Events]\n"
-            f"{events_format}\n"
+            f"{events_format}"
         )

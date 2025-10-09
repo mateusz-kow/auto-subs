@@ -14,7 +14,7 @@ def _format_srt_timestamp(seconds: float) -> str:
     hrs = int(seconds // 3600)
     mins = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
-    millis = int((seconds - int(seconds)) * 1000)
+    millis = int(round((seconds - int(seconds)) * 1000))
     return f"{hrs:02}:{mins:02}:{secs:02},{millis:03}"
 
 
@@ -30,7 +30,8 @@ def _format_ass_timestamp(seconds: float) -> str:
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)
-    cs = int((seconds - int(seconds)) * 100)
+    # Correctly round 0.5 up instead of to the nearest even number.
+    cs = int((seconds - s - m * 60 - h * 3600) * 100 + 0.5)
     return f"{h}:{m:02}:{s:02}.{cs:02}"
 
 
@@ -51,7 +52,8 @@ def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
         end = _format_ass_timestamp(segment.end)
         lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment}")
 
-    return "\n".join(lines)
+    result = "\n".join(lines)
+    return f"{result}\n" if subtitles.segments else result
 
 
 def to_srt(subtitles: Subtitles) -> str:
@@ -67,8 +69,12 @@ def to_srt(subtitles: Subtitles) -> str:
     for i, segment in enumerate(subtitles.segments, 1):
         start_time = _format_srt_timestamp(segment.start)
         end_time = _format_srt_timestamp(segment.end)
-        srt_blocks.append(f"{i}\n{start_time} --> {end_time}\n{segment}\n")
-    return "\n".join(srt_blocks)
+        srt_blocks.append(f"{i}\n{start_time} --> {end_time}\n{segment}")
+
+    if not srt_blocks:
+        return ""
+
+    return "\n\n".join(srt_blocks) + "\n\n"
 
 
 def to_txt(subtitles: Subtitles) -> str:

@@ -18,19 +18,22 @@ def sample_transcription() -> Transcription:
 def test_segment_words_default(sample_transcription: Transcription) -> None:
     """Test segmentation with default character limit."""
     segments = segment_words(sample_transcription, max_chars=35)
-    assert len(segments) == 3
-    assert segments[0]["text"] == "This is a test transcription for the auto-subs"
-    assert segments[1]["text"] == "library. It includes punctuation!"
-    assert segments[2]["text"] == "And a final line."
+    assert len(segments) == 4
+    # The line should break *before* exceeding max_chars.
+    assert segments[0]["text"] == "This is a test transcription for"
+    assert segments[1]["text"] == "the auto-subs library."
+    assert segments[2]["text"] == "It includes punctuation!"
+    assert segments[3]["text"] == "And a final line."
 
 
 def test_segment_words_short_lines(sample_transcription: Transcription) -> None:
     """Test segmentation with a very short character limit."""
-    segments = segment_words(sample_transcription, max_chars=15)
-    assert len(segments) == 7
+    segments = segment_words(sample_transcription, max_chars=16)
+    assert len(segments) == 9
     assert segments[0]["text"] == "This is a test"
-    assert segments[1]["text"] == "transcription for"
-    assert segments[6]["text"] == "final line."
+    assert segments[1]["text"] == "transcription"
+    assert segments[2]["text"] == "for the"
+    assert segments[8]["text"] == "line."
 
 
 def test_segment_words_break_chars(sample_transcription: Transcription) -> None:

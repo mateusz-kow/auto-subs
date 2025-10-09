@@ -57,18 +57,29 @@ def segment_words(
         if not word_text:
             continue
 
-        current_line_words.append(word_data)
         current_text = " ".join(w["word"].strip() for w in current_line_words)
-
-        is_too_long = len(current_text) >= max_chars
-        ends_with_break_char = word_text.endswith(break_chars)
-
-        if is_too_long or ends_with_break_char:
+        # The +1 is for the space character.
+        if current_line_words and len(current_text) + 1 + len(word_text) > max_chars:
             lines.append(
                 {
                     "start": current_line_words[0]["start"],
                     "end": current_line_words[-1]["end"],
                     "text": current_text,
+                    "words": current_line_words.copy(),
+                }
+            )
+            current_line_words = []  # Reset for a new line
+
+        # Add the word to the (potentially new) line.
+        current_line_words.append(word_data)
+
+        # If the newly added word ends with a break character, this line is done.
+        if word_text.endswith(break_chars):
+            lines.append(
+                {
+                    "start": current_line_words[0]["start"],
+                    "end": current_line_words[-1]["end"],
+                    "text": " ".join(w["word"].strip() for w in current_line_words),
                     "words": current_line_words.copy(),
                 }
             )

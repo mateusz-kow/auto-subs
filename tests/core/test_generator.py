@@ -1,4 +1,3 @@
-# type: ignore[reportPrivateUsage]
 import pytest
 
 from auto_subs.core import generator
@@ -48,22 +47,22 @@ def test_to_ass(sample_subtitles: Subtitles) -> None:
     settings = AssSettings()
     header = settings.to_ass_header()
     expected_ass = (
-        f"{header}"
+        f"{header}\n"  # Add newline to match the join behavior in the function
         "Dialogue: 0,0:00:00.50,0:00:01.50,Default,,0,0,0,,Hello world.\n"
-        "Dialogue: 0,0:00:02.00,0:00:03.00,Default,,0,0,0,,This is a test."
+        "Dialogue: 0,0:00:02.00,0:00:03.00,Default,,0,0,0,,This is a test.\n"
     )
     assert generator.to_ass(sample_subtitles, settings) == expected_ass
 
 
 def test_format_srt_timestamp() -> None:
     """Test SRT timestamp formatting."""
-    assert generator._format_srt_timestamp(0) == "00:00:00,000"
-    assert generator._format_srt_timestamp(61.525) == "00:01:01,525"
-    assert generator._format_srt_timestamp(3661.0) == "01:01:01,000"
+    assert generator._format_srt_timestamp(0) == "00:00:00,000"  # type: ignore[reportPrivateUsage]
+    assert generator._format_srt_timestamp(61.525) == "00:01:01,525"  # type: ignore[reportPrivateUsage]
+    assert generator._format_srt_timestamp(3661.0) == "01:01:01,000"  # type: ignore[reportPrivateUsage]
 
 
 def test_format_ass_timestamp() -> None:
     """Test ASS timestamp formatting."""
-    assert generator._format_ass_timestamp(0) == "0:00:00.00"
-    assert generator._format_ass_timestamp(61.525) == "0:01:01.52"
-    assert generator._format_ass_timestamp(3661.0) == "1:01:01.00"
+    assert generator._format_ass_timestamp(0) == "0:00:00.00"  # type: ignore[reportPrivateUsage]
+    assert generator._format_ass_timestamp(61.525) == "0:01:01.52"  # type: ignore[reportPrivateUsage]
+    assert generator._format_ass_timestamp(3661.0) == "1:01:01.00"  # type: ignore[reportPrivateUsage]
