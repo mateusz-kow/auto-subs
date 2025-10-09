@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class WordDict(TypedDict):
@@ -17,12 +17,12 @@ class SegmentDict(TypedDict):
     end: float
     text: str
     words: list[WordDict]
-    seek: int | None
-    tokens: list[int] | None
-    temperature: float | None
-    avg_logprob: float | None
-    compression_ratio: float | None
-    no_speech_prob: float | None
+    seek: NotRequired[int]
+    tokens: NotRequired[list[int]]
+    temperature: NotRequired[float]
+    avg_logprob: NotRequired[float]
+    compression_ratio: NotRequired[float]
+    no_speech_prob: NotRequired[float]
 
 
 class Transcription(TypedDict):

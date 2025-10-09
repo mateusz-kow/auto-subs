@@ -5,6 +5,7 @@ from typing import Any
 
 from auto_subs.core.word_segmenter import segment_words
 from auto_subs.models.transcription import TranscriptionModel
+from auto_subs.typing.transcription import WordDict
 
 
 @dataclass(frozen=True)
@@ -16,7 +17,7 @@ class SubtitleWord:
     end: float
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> SubtitleWord:
+    def from_dict(cls, data: WordDict) -> SubtitleWord:
         """Creates a SubtitleWord instance from a dictionary.
 
         Args:
