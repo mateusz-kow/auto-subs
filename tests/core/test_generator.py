@@ -23,6 +23,12 @@ def sample_subtitles() -> Subtitles:
     return Subtitles([segment1, segment2])
 
 
+@pytest.fixture
+def empty_subtitles() -> Subtitles:
+    """Provides an empty Subtitles object for testing."""
+    return Subtitles([])
+
+
 def test_to_srt(sample_subtitles: Subtitles) -> None:
     """Test SRT generation."""
     expected_srt = (
@@ -36,10 +42,22 @@ def test_to_srt(sample_subtitles: Subtitles) -> None:
     assert generator.to_srt(sample_subtitles) == expected_srt
 
 
+def test_to_srt_empty(empty_subtitles: Subtitles) -> None:
+    """Test SRT generation with empty subtitles."""
+    expected_srt = ""
+    assert generator.to_srt(empty_subtitles) == expected_srt
+
+
 def test_to_txt(sample_subtitles: Subtitles) -> None:
     """Test TXT generation."""
     expected_txt = "Hello world.\nThis is a test."
     assert generator.to_txt(sample_subtitles) == expected_txt
+
+
+def test_to_txt_empty(empty_subtitles: Subtitles) -> None:
+    """Test TXT generation with empty subtitles."""
+    expected_txt = ""
+    assert generator.to_txt(empty_subtitles) == expected_txt
 
 
 def test_to_ass(sample_subtitles: Subtitles) -> None:
@@ -52,6 +70,14 @@ def test_to_ass(sample_subtitles: Subtitles) -> None:
         "Dialogue: 0,0:00:02.00,0:00:03.00,Default,,0,0,0,,This is a test.\n"
     )
     assert generator.to_ass(sample_subtitles, settings) == expected_ass
+
+
+def test_to_ass_empty(empty_subtitles: Subtitles) -> None:
+    """Test empty ASS generation."""
+    settings = AssSettings()
+    header = settings.to_ass_header()
+    expected_ass = f"{header}"  # Add newline to match the join behavior in the function
+    assert generator.to_ass(empty_subtitles, settings) == expected_ass
 
 
 def test_format_srt_timestamp() -> None:
