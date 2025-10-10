@@ -18,7 +18,7 @@ def run_transcription(media_path: Path, model_name: str) -> dict[str, Any]:
         ImportError: If the 'whisper' package is not installed.
     """
     try:
-        import whisper  # type: ignore[import-untyped]
+        import whisper  # type: ignore
     except ImportError as e:
         raise ImportError(
             "Whisper is not installed. Please install it with: pip install 'auto-subs[transcribe]'"
