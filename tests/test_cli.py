@@ -161,3 +161,57 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: TranscriptionDict
 
     assert result.exit_code == 1
     assert f"Error writing to file {target_output_file}" in result.stdout
+
+
+@patch("auto_subs.cli.auto_subs.generate", return_value="[Script Info]\nDialogue: Test")
+def test_cli_generate_karaoke_with_ass(mock_generate, tmp_path: Path, sample_transcription) -> None:
+    """Test --karaoke flag correctly applies ASS karaoke style."""
+    input_file = tmp_path / "input.json"
+    input_file.write_text(json.dumps(sample_transcription))
+
+    result = runner.invoke(
+        app,
+        [
+            "generate",
+            str(input_file),
+            "-f",
+            "ass",
+            "--karaoke",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Generating subtitles in ASS format" in result.stdout
+    # Karaoke flag should not trigger a warning here
+    assert "Warning" not in result.stdout
+    # Ensure the generator was called once
+    mock_generate.assert_called_once()
+    # Karaoke ASS settings should be applied (highlight_style should exist)
+    _, kwargs = mock_generate.call_args
+    assert hasattr(kwargs["ass_settings"], "highlight_style")
+    assert kwargs["ass_settings"].highlight_style is not None
+
+
+@patch("auto_subs.cli.auto_subs.generate", return_value="1\n00:00:00,000 --> 00:00:02,000\nHello")
+def test_cli_generate_karaoke_non_ass(mock_generate, tmp_path: Path, sample_transcription) -> None:
+    """Test --karaoke flag with non-ASS format shows a warning and still generates output."""
+    input_file = tmp_path / "input.json"
+    input_file.write_text(json.dumps(sample_transcription))
+
+    result = runner.invoke(
+        app,
+        [
+            "generate",
+            str(input_file),
+            "-f",
+            "srt",
+            "--karaoke",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Warning: --karaoke flag is only applicable for ASS format." in result.stdout
+    assert "Successfully saved subtitles" in result.stdout
+    # The karaoke highlight_style should NOT be applied for SRT
+    _, kwargs = mock_generate.call_args
+    assert not hasattr(kwargs["ass_settings"], "highlight_style") or kwargs["ass_settings"].highlight_style is None

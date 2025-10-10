@@ -75,6 +75,22 @@ def test_to_ass_empty(empty_subtitles: Subtitles) -> None:
     assert generator.to_ass(empty_subtitles, settings) == expected_ass
 
 
+def test_to_vtt(sample_subtitles: Subtitles) -> None:
+    """Test VTT generation."""
+    vtt_subtitles = generator.to_vtt(sample_subtitles)
+    expected_subtitles = (
+        "WEBVTT\n\n00:00:00.500 --> 00:00:01.500\nHello world.\n\n00:00:02.000 --> 00:00:03.000\nThis is a test.\n"
+    )
+    assert vtt_subtitles.strip() == expected_subtitles.strip()
+
+
+def test_to_vtt_empty(empty_subtitles: Subtitles) -> None:
+    """Test VTT generation with empty subtitles."""
+    vtt_subtitles = generator.to_vtt(empty_subtitles)
+    assert "WEBVTT" in vtt_subtitles
+    assert vtt_subtitles == "WEBVTT\n"
+
+
 def test_format_srt_timestamp() -> None:
     """Test SRT timestamp formatting."""
     assert generator._format_srt_timestamp(0) == "00:00:00,000"

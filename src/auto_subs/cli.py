@@ -98,6 +98,7 @@ def generate(
     karaoke: Annotated[bool, typer.Option(help="Enable karaoke-style word highlighting for ASS format.")] = False,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
+    typer.echo(f"Generating subtitles in {output_format.upper()} format...")
     ass_settings = AssSettings()
     if karaoke:
         if output_format != SubtitleFormat.ASS:
