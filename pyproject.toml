@@ -32,7 +32,7 @@ auto-subs = "auto_subs.cli:app"
 
 [project.optional-dependencies]
 transcribe = [
-    "openai-whisper~=20250625"
+    "openai-whisper"
 ]
 dev = [
     "ruff~=0.14.0",
