@@ -1,6 +1,6 @@
 import json
 import logging
-from enum import StrEnum
+from enum import StrEnum, auto
 from pathlib import Path
 from typing import Annotated
 
