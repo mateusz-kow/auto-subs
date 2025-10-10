@@ -79,7 +79,7 @@ def generate(
 
         content = auto_subs.generate(
             raw_data,
-            output_format=output_format.value,
+            output_format=output_format,
             max_chars=max_chars,
             ass_settings=AssSettings(),
         )

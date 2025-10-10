@@ -50,13 +50,14 @@ def test_cli_generate_ass_default_output(tmp_path: Path, sample_transcription: T
 
 def test_cli_file_not_found() -> None:
     """Test error handling for a non-existent input file."""
-    result = runner.invoke(app, ["generate", "non_existent_file.json"])
+    # Use an environment that disables rich formatting for predictable, plain-text errors.
+    env = {"TERM": "dumb", "NO_COLOR": "1"}
+    result = runner.invoke(app, ["generate", "non_existent_file.json"], env=env)
     assert result.exit_code == 2  # typer's exit code for bad parameters
 
-    # The following words are separated by different white / decorative signs
-    assert "does" in result.stderr
-    assert "not" in result.stderr
-    assert "exist" in result.stderr
+    # In a plain-text environment, the error message is simple and predictable.
+    assert "Invalid value" in result.stderr
+    assert "non_existent_file.json" in result.stderr
 
 
 def test_cli_invalid_json(tmp_path: Path) -> None:
@@ -78,3 +79,18 @@ def test_cli_validation_error(tmp_path: Path) -> None:
     result = runner.invoke(app, ["generate", str(input_file)])
     assert result.exit_code == 1
     assert "Input file validation error" in result.stdout
+
+
+def test_cli_write_error(tmp_path: Path, sample_transcription: TranscriptionDict) -> None:
+    """Test error handling for an OSError during file writing."""
+    input_file = tmp_path / "input.json"
+    input_file.write_text(json.dumps(sample_transcription))
+
+    # Create a directory where the output file should be, to cause a write error
+    output_path_as_dir = tmp_path / "output.srt"
+    output_path_as_dir.mkdir()
+
+    result = runner.invoke(app, ["generate", str(input_file), "-o", str(output_path_as_dir)])
+
+    assert result.exit_code == 1
+    assert f"Error writing to file {output_path_as_dir}" in result.stdout
