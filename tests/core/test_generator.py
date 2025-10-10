@@ -32,12 +32,7 @@ def empty_subtitles() -> Subtitles:
 def test_to_srt(sample_subtitles: Subtitles) -> None:
     """Test SRT generation."""
     expected_srt = (
-        "1\n"
-        "00:00:00,500 --> 00:00:01,500\n"
-        "Hello world.\n\n"
-        "2\n"
-        "00:00:02,000 --> 00:00:03,000\n"
-        "This is a test.\n\n"
+        "1\n00:00:00,500 --> 00:00:01,500\nHello world.\n\n2\n00:00:02,000 --> 00:00:03,000\nThis is a test.\n\n"
     )
     assert generator.to_srt(sample_subtitles) == expected_srt
 

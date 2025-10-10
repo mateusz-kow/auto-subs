@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         run: uv pip install --system -e .[dev]
@@ -30,7 +30,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Check formatting with ruff
-        run: uv run ruff format .
+        run: uv run ruff format --check .
 
 #      - name: Run Pyright for type checking
 #        run: uv run pyright
@@ -61,7 +61,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         run: uv pip install --system -e .[dev]

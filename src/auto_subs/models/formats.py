@@ -7,3 +7,4 @@ class SubtitleFormat(StrEnum):
     ASS = auto()
     SRT = auto()
     TXT = auto()
+    VTT = auto()

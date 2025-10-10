@@ -18,6 +18,22 @@ def _format_srt_timestamp(seconds: float) -> str:
     return f"{hrs:02}:{mins:02}:{secs:02},{millis:03}"
 
 
+def _format_vtt_timestamp(seconds: float) -> str:
+    """Formats seconds to VTT timestamp format (hh:mm:ss.ms).
+
+    Args:
+        seconds: The time in seconds.
+
+    Returns:
+        The formatted timestamp string.
+    """
+    hrs = int(seconds // 3600)
+    mins = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int(round((seconds - int(seconds)) * 1000))
+    return f"{hrs:02}:{mins:02}:{secs:02}.{millis:03}"
+
+
 def _format_ass_timestamp(seconds: float) -> str:
     """Formats seconds to ASS timestamp format (h:mm:ss.cs).
 
@@ -47,10 +63,19 @@ def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
     """
     lines: list[str] = [settings.to_ass_header()]
 
-    for segment in subtitles.segments:
-        start = _format_ass_timestamp(segment.start)
-        end = _format_ass_timestamp(segment.end)
-        lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment}")
+    if settings.highlight_style:
+        for segment in subtitles.segments:
+            start = _format_ass_timestamp(segment.start)
+            end = _format_ass_timestamp(segment.end)
+            karaoke_text = "".join(
+                f"{{\\k{int(round((word.end - word.start) * 100))}}}{word.text} " for word in segment.words
+            ).rstrip()
+            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{karaoke_text}")
+    else:
+        for segment in subtitles.segments:
+            start = _format_ass_timestamp(segment.start)
+            end = _format_ass_timestamp(segment.end)
+            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment}")
 
     result = "\n".join(lines)
     return f"{result}\n" if subtitles.segments else result
@@ -87,3 +112,24 @@ def to_txt(subtitles: Subtitles) -> str:
         The full transcription as a single string.
     """
     return str(subtitles)
+
+
+def to_vtt(subtitles: Subtitles) -> str:
+    """Generate the content for a VTT subtitle file.
+
+    Args:
+        subtitles: The Subtitles object containing the segments.
+
+    Returns:
+        The full content of the .vtt file as a string.
+    """
+    if not subtitles.segments:
+        return "WEBVTT\n"
+
+    vtt_blocks: list[str] = ["WEBVTT"]
+    for segment in subtitles.segments:
+        start_time = _format_vtt_timestamp(segment.start)
+        end_time = _format_vtt_timestamp(segment.end)
+        vtt_blocks.append(f"{start_time} --> {end_time}\n{segment}")
+
+    return "\n\n".join(vtt_blocks) + "\n\n"
