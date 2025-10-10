@@ -1,28 +1,39 @@
 from collections.abc import Generator
 from logging import getLogger
-from typing import Any
+from typing import cast
+
+from auto_subs.typing.transcription import SegmentDict, TranscriptionDict, WordDict
 
 logger = getLogger(__name__)
 
 
-def _extract_words(transcription: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
-    """A generator that flattens and yields valid word dictionaries from a transcription."""
+def _extract_words(transcription: TranscriptionDict) -> Generator[WordDict, None, None]:
+    """A generator that flattens and yields valid word dictionaries from a transcription.
+
+    Args:
+        transcription: The raw transcription dictionary.
+
+    Yields:
+        Individual word dictionaries.
+
+    Raises:
+        ValueError: If the transcription data has an invalid structure.
+    """
     try:
         for segment in transcription["segments"]:
-            if "words" in segment and isinstance(segment["words"], list):
-                for word in segment["words"]:
-                    if isinstance(word, dict) and "word" in word and "start" in word and "end" in word:
-                        yield word
+            for word in segment["words"]:
+                if "word" in word and "start" in word and "end" in word:
+                    yield word
     except (KeyError, TypeError) as e:
         logger.error(f"Invalid transcription format: {e}")
         raise ValueError("Transcription data is missing 'segments' or has invalid structure.") from e
 
 
 def segment_words(
-    transcription: dict[str, Any],
-    max_chars: int = 25,
+    transcription: TranscriptionDict,
+    max_chars: int = 35,
     break_chars: tuple[str, ...] = (".", ",", "!", "?"),
-) -> list[dict[str, Any]]:
+) -> list[SegmentDict]:
     """Segments word-level transcription data into subtitle lines.
 
     Args:
@@ -38,41 +49,62 @@ def segment_words(
     if not all_words:
         return []
 
-    lines = []
-    current_line_words: list[dict[str, Any]] = []
+    lines: list[SegmentDict] = []
+    current_line_words: list[WordDict] = []
 
     for word_data in all_words:
         word_text = word_data.get("word", "").strip()
         if not word_text:
             continue
 
-        current_line_words.append(word_data)
         current_text = " ".join(w["word"].strip() for w in current_line_words)
+        # The +1 is for the space character.
+        if current_line_words and len(current_text) + 1 + len(word_text) > max_chars:
+            cast(
+                SegmentDict,
+                lines.append(
+                    cast(
+                        SegmentDict,
+                        {
+                            "start": current_line_words[0]["start"],
+                            "end": current_line_words[-1]["end"],
+                            "text": current_text,
+                            "words": current_line_words.copy(),
+                        },
+                    )
+                ),
+            )
+            current_line_words = []  # Reset for a new line
 
-        # A line break is needed if the line is too long or ends with punctuation.
-        is_too_long = len(current_text) >= max_chars
-        ends_with_break_char = word_text.endswith(break_chars)
+        # Add the word to the (potentially new) line.
+        current_line_words.append(word_data)
 
-        if is_too_long or ends_with_break_char:
+        # If the newly added word ends with a break character, this line is done.
+        if word_text.endswith(break_chars):
             lines.append(
-                {
-                    "start": current_line_words[0]["start"],
-                    "end": current_line_words[-1]["end"],
-                    "text": current_text,
-                    "words": current_line_words,
-                }
+                cast(
+                    SegmentDict,
+                    {
+                        "start": current_line_words[0]["start"],
+                        "end": current_line_words[-1]["end"],
+                        "text": " ".join(w["word"].strip() for w in current_line_words),
+                        "words": current_line_words.copy(),
+                    },
+                )
             )
             current_line_words = []
 
-    # Add any remaining words as the final line.
     if current_line_words:
         lines.append(
-            {
-                "start": current_line_words[0]["start"],
-                "end": current_line_words[-1]["end"],
-                "text": " ".join(w["word"].strip() for w in current_line_words),
-                "words": current_line_words,
-            }
+            cast(
+                SegmentDict,
+                {
+                    "start": current_line_words[0]["start"],
+                    "end": current_line_words[-1]["end"],
+                    "text": " ".join(w["word"].strip() for w in current_line_words),
+                    "words": current_line_words.copy(),
+                },
+            )
         )
 
     logger.info(f"Segmentation complete: {len(lines)} subtitle lines created.")

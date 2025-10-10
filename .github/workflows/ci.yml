@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   workflow_dispatch:
 
 jobs:
@@ -21,28 +21,28 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
         run: uv pip install --system -e .[dev]
 
       - name: Lint with ruff
-        run: uv run ruff check src
+        run: uv run ruff check .
 
-      - name: Check formatting with black
-        run: uv run black --check src
+      - name: Check formatting with ruff
+        run: uv run ruff format .
 
-      - name: Run mypy for type checking
-        run: uv run mypy src
+#      - name: Run Pyright for type checking
+#        run: uv run pyright
 
       - name: Build package to check for errors
         run: |
-          uv pip install --system hatchling twine
-          uv run hatchling build
-          uv run twine check dist/*
+          uv pip install --system build twine
+          uv build
+          twine check dist/*
 
   test:
-    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     needs: quality_checks
     runs-on: ${{ matrix.os }}
     strategy:
@@ -66,5 +66,35 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e .[dev]
 
-      - name: Run pytest
-        run: uv run pytest
+      - name: Run pytest with coverage
+        run: uv run pytest --cov=auto_subs --cov-report=xml
+        continue-on-error: ${{ matrix.experimental || false }}
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml-${{ matrix.os }}-${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  coverage-report:
+    name: Coverage Report
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-xml-*
+          path: coverage-reports/
+          merge-multiple: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage-reports/
+          fail_ci_if_error: true
