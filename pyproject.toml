@@ -48,6 +48,7 @@ build-backend = "hatchling.build"
 [tool.ruff]
 fix = true
 line-length = 120
+required-version = "0.14.0"
 
 [tool.ruff.lint]
 select = [
@@ -83,6 +84,7 @@ known-first-party = ["auto_subs"]
 convention = "google"
 
 [tool.pyright]
+required-version = "1.1.406"
 include = ["src", "tests"]
 exclude = ["**/__pycache__"]
 pythonVersion = "3.11"

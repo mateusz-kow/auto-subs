@@ -31,6 +31,6 @@ def test_version_is_consistent() -> None:
     pyproject_version = pyproject_data.get("project", {}).get("version")
     assert pyproject_version is not None, "Version not found in pyproject.toml under [project.version]."
 
-    assert (
-        package_version == pyproject_version
-    ), f"Version mismatch: __init__.py has '{package_version}', pyproject.toml has '{pyproject_version}'."
+    assert package_version == pyproject_version, (
+        f"Version mismatch: __init__.py has '{package_version}', pyproject.toml has '{pyproject_version}'."
+    )
