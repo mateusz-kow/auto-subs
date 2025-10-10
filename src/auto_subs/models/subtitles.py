@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import ValidationError
+
 from auto_subs.core.word_segmenter import segment_words
 from auto_subs.models.transcription import TranscriptionModel
 from auto_subs.typing.transcription import WordDict
@@ -60,16 +62,24 @@ class Subtitles:
         self.segments.sort(key=lambda s: s.start)
 
     @classmethod
-    def from_transcription(cls, transcription: TranscriptionModel, **kwargs: Any) -> Subtitles:
-        """Creates a Subtitles instance from a validated transcription model.
+    def from_dict(cls, transcription_dict: dict[str, Any], **kwargs: Any) -> Subtitles:
+        """Creates a Subtitles instance from a transcription dictionary.
 
         Args:
-            transcription: The validated Pydantic model of the transcription data.
+            transcription_dict: The raw transcription dictionary.
             **kwargs: Additional arguments for the word segmenter (e.g., max_chars).
 
         Returns:
             A new Subtitles instance.
+
+        Raises:
+            ValueError: If the transcription data fails validation.
         """
+        try:
+            transcription = TranscriptionModel.model_validate(transcription_dict)
+        except ValidationError as e:
+            raise ValueError("Transcription data failed validation.") from e
+
         dict_segments = segment_words(transcription.to_dict(), **kwargs)
         segments: list[SubtitleSegment] = []
         for dict_segment in dict_segments:

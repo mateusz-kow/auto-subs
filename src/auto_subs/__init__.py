@@ -1,3 +1,7 @@
 """Auto-Subs: A powerful, local-first library for video transcription and subtitle generation."""
 
-__version__ = "0.1.0"
+from auto_subs.api import generate
+
+__version__ = "0.1.1"
+
+__all__ = ["__version__", "generate"]

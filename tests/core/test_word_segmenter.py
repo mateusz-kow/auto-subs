@@ -1,26 +1,7 @@
-import json
-from pathlib import Path
-
 import pytest
 
 from auto_subs.core.word_segmenter import segment_words
 from auto_subs.typing.transcription import SegmentDict, TranscriptionDict
-
-
-@pytest.fixture
-def sample_transcription() -> TranscriptionDict:
-    """Load a sample transcription from a fixture file."""
-    path = Path(__file__).parent.parent / "fixtures" / "sample_transcription.json"
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def empty_transcription() -> TranscriptionDict:
-    """Load an empty transcription from a fixture file."""
-    path = Path(__file__).parent.parent / "fixtures" / "empty_transcription.json"
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
 
 
 def test_segment_words_default(sample_transcription: TranscriptionDict, empty_transcription: TranscriptionDict) -> None:
@@ -63,6 +44,20 @@ def test_segment_words_break_chars(
 
     empty_segments = segment_words(empty_transcription, max_chars=100)
     assert empty_segments == []
+
+
+def test_segment_words_with_long_word(sample_transcription: TranscriptionDict) -> None:
+    """Test segmentation handles a single word longer than max_chars."""
+    long_word = "Supercalifragilisticexpialidocious"
+    # Prepend a very long word to the transcription
+    sample_transcription["segments"][0]["words"].insert(0, {"word": long_word, "start": 0.0, "end": 0.1})
+
+    segments = segment_words(sample_transcription, max_chars=20)
+
+    # The long word should be on its own line
+    assert segments[0]["text"] == long_word
+    # The next line should start with the original first word
+    assert segments[1]["text"] == "This is a test"
 
 
 def test_empty_transcription(empty_transcription: TranscriptionDict) -> None:

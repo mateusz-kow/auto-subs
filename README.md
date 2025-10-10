@@ -33,6 +33,34 @@ Example with options:
 auto-subs generate input.json -o subtitles.ass -f ass --max-chars 40
 ```
 
+## Usage (Library)
+
+You can also use `auto-subs` directly in your Python code. The main entry point is the `generate` function, which takes a transcription dictionary and returns the subtitle content as a string.
+
+```python
+import json
+from auto_subs import generate
+
+# 1. Load your Whisper-compatible transcription data (as a dict)
+with open("path/to/transcription.json", "r", encoding="utf-8") as f:
+    transcription_data = json.load(f)
+
+try:
+    # 2. Generate SRT content
+    srt_content = generate(transcription_data, "srt", max_chars=40)
+
+    # 3. Save the content to a file
+    with open("output.srt", "w", encoding="utf-8") as f:
+        f.write(srt_content)
+
+    print("Successfully generated subtitles!")
+
+except ValueError as e:
+    # Handle validation errors
+    print(f"Error: {e}")
+
+```
+
 ### Outputs
 
 The CLI can generate subtitles in the following formats:
