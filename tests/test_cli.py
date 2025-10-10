@@ -164,7 +164,9 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: TranscriptionDict
 
 
 @patch("auto_subs.cli.auto_subs.generate", return_value="[Script Info]\nDialogue: Test")
-def test_cli_generate_karaoke_with_ass(mock_generate, tmp_path: Path, sample_transcription) -> None:
+def test_cli_generate_karaoke_with_ass(
+    mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
+) -> None:
     """Test --karaoke flag correctly applies ASS karaoke style."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
@@ -193,7 +195,9 @@ def test_cli_generate_karaoke_with_ass(mock_generate, tmp_path: Path, sample_tra
 
 
 @patch("auto_subs.cli.auto_subs.generate", return_value="1\n00:00:00,000 --> 00:00:02,000\nHello")
-def test_cli_generate_karaoke_non_ass(mock_generate, tmp_path: Path, sample_transcription) -> None:
+def test_cli_generate_karaoke_non_ass(
+    mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
+) -> None:
     """Test --karaoke flag with non-ASS format shows a warning and still generates output."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
