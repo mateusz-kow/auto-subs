@@ -2,11 +2,11 @@ from pydantic import BaseModel, Field
 
 
 class AssStyleSettings(BaseModel):
-    """Defines styling for highlighted words in ASS subtitles."""
+    """Defines styling for highlighted words in ASS subtitles.
 
-    text_color: str = "&H00FFFFFF&"  # Default: White
-    border_color: str | None = None
-    fade: bool = False
+    Note: In this version, the presence of this model enables karaoke timing,
+    but custom colors are not yet implemented.
+    """
 
 
 class AssSettings(BaseModel):

@@ -8,7 +8,7 @@ import typer
 import auto_subs
 from auto_subs import __version__
 from auto_subs.models.formats import SubtitleFormat
-from auto_subs.models.settings import AssSettings
+from auto_subs.models.settings import AssSettings, AssStyleSettings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -69,9 +69,17 @@ def generate(
         typer.Option("--format", "-f", case_sensitive=False, help="Format for the output subtitles."),
     ] = SubtitleFormat.SRT,
     max_chars: Annotated[int, typer.Option(help="Maximum characters per subtitle line.")] = 35,
+    karaoke: Annotated[bool, typer.Option(help="Enable karaoke-style word highlighting for ASS format.")] = False,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
     typer.echo(f"Loading transcription from: {input_file}")
+
+    ass_settings = AssSettings()
+    if karaoke:
+        if output_format != SubtitleFormat.ASS:
+            typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+        else:
+            ass_settings.highlight_style = AssStyleSettings()
 
     try:
         with input_file.open("r", encoding="utf-8") as f:
@@ -81,7 +89,7 @@ def generate(
             raw_data,
             output_format=output_format,
             max_chars=max_chars,
-            ass_settings=AssSettings(),
+            ass_settings=ass_settings,
         )
 
     except (OSError, json.JSONDecodeError) as e:
