@@ -26,9 +26,9 @@ app = typer.Typer(
 class SubtitleFormat(StrEnum):
     """Enumeration for the supported subtitle output formats."""
 
-    SRT = "srt"
-    ASS = "ass"
-    TXT = "txt"
+    ASS = auto()
+    SRT = auto()
+    TXT = auto()
 
 
 def version_callback(value: bool) -> None:
