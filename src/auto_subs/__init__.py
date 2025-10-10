@@ -2,6 +2,6 @@
 
 from auto_subs.api import generate
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = ["__version__", "generate"]
