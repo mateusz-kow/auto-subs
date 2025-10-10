@@ -68,7 +68,7 @@ def test_cli_generate_batch(tmp_path: Path, sample_transcription: TranscriptionD
     assert (output_dir / "test2.vtt").exists()
 
 
-@patch("auto_subs.cli.transcribe")
+@patch("auto_subs.cli.transcribe_api")
 def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file: Path) -> None:
     """Test successful transcription of a single media file."""
     mock_api_transcribe.return_value = "WEBVTT\n\n00:00:00.100 --> 00:00:01.200\nHello world"
@@ -87,7 +87,7 @@ def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file:
     assert "Successfully saved subtitles" in result.stdout
 
 
-@patch("auto_subs.cli.transcribe")
+@patch("auto_subs.cli.transcribe_api")
 def test_cli_transcribe_batch(mock_api_transcribe: MagicMock, tmp_path: Path) -> None:
     """Test successful transcription of a directory of media files."""
     input_dir = tmp_path / "input"

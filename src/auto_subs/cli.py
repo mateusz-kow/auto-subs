@@ -12,7 +12,7 @@ from auto_subs.models.formats import SubtitleFormat
 from auto_subs.models.settings import AssSettings, AssStyleSettings
 from auto_subs.models.whisper import WhisperModel
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# The logger is configured in the main() callback based on CLI flags.
 logger = logging.getLogger(__name__)
 
 app = typer.Typer(
@@ -37,15 +37,37 @@ def main(
         bool,
         typer.Option(
             "--version",
-            "-v",
+            "-V",
             callback=version_callback,
             is_eager=True,
             help="Show the application's version and exit.",
         ),
     ] = False,
+    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Suppress all output except for errors.")] = False,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Enable verbose logging. Use -vv for more detail.",
+            count=True,
+            is_eager=True,  # Process this before other options
+        ),
+    ] = 0,
 ) -> None:
-    """Manage the CLI application."""
-    pass
+    """Configure logging and manage the CLI application."""
+    if quiet and verbose > 0:
+        raise typer.BadParameter("--quiet and --verbose options cannot be used together.")
+
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    elif verbose >= 1:
+        log_level = logging.DEBUG
+
+    # Configure the root logger
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(message)s")
+    logger.debug(f"Verbose logging enabled. Level set to: {logging.getLevelName(log_level)}")
 
 
 @app.command()
@@ -191,7 +213,7 @@ def transcribe(
 
     has_errors = False
     for file in files_to_process:
-        typer.echo(f"Transcribing: {file.name} (using '{model.value}' model)")
+        typer.echo(f"Transcribing: {file.name} (using '{model}' model)")
         try:
             content = transcribe_api(
                 file,
@@ -203,7 +225,8 @@ def transcribe(
         except (ImportError, FileNotFoundError) as e:
             typer.secho(f"Error: {e}", fg=typer.colors.RED)
             typer.secho(
-                "Please ensure 'auto-subs[transcribe]' is installed and ffmpeg is in your PATH.", fg=typer.colors.YELLOW
+                "Please ensure 'auto-subs[transcribe]' is installed and ffmpeg is in your PATH.",
+                fg=typer.colors.YELLOW,
             )
             raise typer.Exit(code=1) from e
         except Exception as e:

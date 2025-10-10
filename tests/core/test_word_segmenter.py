@@ -69,10 +69,10 @@ def test_empty_transcription(empty_transcription: TranscriptionDict) -> None:
 def test_invalid_transcription_format() -> None:
     """Test that invalid transcription formats raise a ValueError."""
     with pytest.raises(ValueError):
-        segment_words({"no_segments_key": []})  # type: ignore[reportArgumentType]
+        segment_words({"no_segments_key": []})  # type: ignore[typeddict-item]
 
     with pytest.raises(ValueError):
-        segment_words({"segments": [{"no_words_key": []}]})  # type: ignore[reportArgumentType]
+        segment_words({"segments": [{"no_words_key": []}]})  # type: ignore[typeddict-item]
 
 
 def test_segment_words_returns_empty_for_no_words() -> None:

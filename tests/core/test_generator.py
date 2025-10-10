@@ -77,13 +77,13 @@ def test_to_ass_empty(empty_subtitles: Subtitles) -> None:
 
 def test_format_srt_timestamp() -> None:
     """Test SRT timestamp formatting."""
-    assert generator._format_srt_timestamp(0) == "00:00:00,000"  # type: ignore[reportPrivateUsage]
-    assert generator._format_srt_timestamp(61.525) == "00:01:01,525"  # type: ignore[reportPrivateUsage]
-    assert generator._format_srt_timestamp(3661.0) == "01:01:01,000"  # type: ignore[reportPrivateUsage]
+    assert generator._format_srt_timestamp(0) == "00:00:00,000"
+    assert generator._format_srt_timestamp(61.525) == "00:01:01,525"
+    assert generator._format_srt_timestamp(3661.0) == "01:01:01,000"
 
 
 def test_format_ass_timestamp() -> None:
     """Test ASS timestamp formatting."""
-    assert generator._format_ass_timestamp(0) == "0:00:00.00"  # type: ignore[reportPrivateUsage]
-    assert generator._format_ass_timestamp(61.525) == "0:01:01.52"  # type: ignore[reportPrivateUsage]
-    assert generator._format_ass_timestamp(3661.0) == "1:01:01.00"  # type: ignore[reportPrivateUsage]
+    assert generator._format_ass_timestamp(0) == "0:00:00.00"
+    assert generator._format_ass_timestamp(61.525) == "0:01:01.52"
+    assert generator._format_ass_timestamp(3661.0) == "1:01:01.00"
