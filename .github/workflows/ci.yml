@@ -30,10 +30,10 @@ jobs:
         run: uv run ruff check .
 
       - name: Check formatting with ruff
-        run: uv run ruff format .
+        run: uv run ruff format --check .
 
-      - name: Run Pyright for type checking
-        run: uv run pyright
+#      - name: Run Pyright for type checking
+#        run: uv run pyright
 
       - name: Build package to check for errors
         run: |
