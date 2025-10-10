@@ -2,7 +2,7 @@ from typing import cast
 
 from pydantic import BaseModel, Field
 
-from auto_subs.typing.transcription import Transcription
+from auto_subs.typing.transcription import TranscriptionDict
 
 
 class WordModel(BaseModel):
@@ -47,7 +47,7 @@ class TranscriptionModel(BaseModel):
     segments: list[SegmentModel]
     language: str
 
-    def to_dict(self) -> Transcription:
+    def to_dict(self) -> TranscriptionDict:
         """Converts the Pydantic model back to a dictionary.
 
         This is useful for compatibility with functions that still expect dicts.
@@ -55,4 +55,4 @@ class TranscriptionModel(BaseModel):
         Returns:
             The model's data as a dictionary.
         """
-        return cast(Transcription, self.model_dump(by_alias=True))
+        return cast(TranscriptionDict, self.model_dump(by_alias=True))

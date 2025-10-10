@@ -4,11 +4,11 @@ from pathlib import Path
 import pytest
 
 from auto_subs.core.word_segmenter import segment_words
-from auto_subs.typing.transcription import SegmentDict, Transcription
+from auto_subs.typing.transcription import SegmentDict, TranscriptionDict
 
 
 @pytest.fixture
-def sample_transcription() -> Transcription:
+def sample_transcription() -> TranscriptionDict:
     """Load a sample transcription from a fixture file."""
     path = Path(__file__).parent.parent / "fixtures" / "sample_transcription.json"
     with path.open("r", encoding="utf-8") as f:
@@ -16,14 +16,14 @@ def sample_transcription() -> Transcription:
 
 
 @pytest.fixture
-def empty_transcription() -> Transcription:
+def empty_transcription() -> TranscriptionDict:
     """Load an empty transcription from a fixture file."""
     path = Path(__file__).parent.parent / "fixtures" / "empty_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def test_segment_words_default(sample_transcription: Transcription, empty_transcription: Transcription) -> None:
+def test_segment_words_default(sample_transcription: TranscriptionDict, empty_transcription: TranscriptionDict) -> None:
     """Test segmentation with the default character limit."""
     segments = segment_words(sample_transcription, max_chars=35)
     assert len(segments) == 4
@@ -36,7 +36,9 @@ def test_segment_words_default(sample_transcription: Transcription, empty_transc
     assert empty_segments == []
 
 
-def test_segment_words_short_lines(sample_transcription: Transcription, empty_transcription: Transcription) -> None:
+def test_segment_words_short_lines(
+    sample_transcription: TranscriptionDict, empty_transcription: TranscriptionDict
+) -> None:
     """Test segmentation with a very short character limit."""
     segments = segment_words(sample_transcription, max_chars=16)
     assert len(segments) == 9
@@ -49,7 +51,9 @@ def test_segment_words_short_lines(sample_transcription: Transcription, empty_tr
     assert empty_segments == []
 
 
-def test_segment_words_break_chars(sample_transcription: Transcription, empty_transcription: Transcription) -> None:
+def test_segment_words_break_chars(
+    sample_transcription: TranscriptionDict, empty_transcription: TranscriptionDict
+) -> None:
     """Test that break characters force a new line regardless of length."""
     segments = segment_words(sample_transcription, max_chars=100)
     assert len(segments) == 3
@@ -61,7 +65,7 @@ def test_segment_words_break_chars(sample_transcription: Transcription, empty_tr
     assert empty_segments == []
 
 
-def test_empty_transcription(empty_transcription: Transcription) -> None:
+def test_empty_transcription(empty_transcription: TranscriptionDict) -> None:
     """Test segmentation with empty transcription data."""
     segments = segment_words(empty_transcription)
     assert segments == []
@@ -85,7 +89,7 @@ def test_segment_words_returns_empty_for_no_words() -> None:
         "text": "",
         "words": [],
     }
-    empty_transcription: Transcription = {"segments": [segment], "text": "", "language": "en"}
+    empty_transcription: TranscriptionDict = {"segments": [segment], "text": "", "language": "en"}
     segments = segment_words(empty_transcription)
     assert segments == []
 
@@ -102,7 +106,7 @@ def test_segment_words_creates_line_from_current_line_words() -> None:
             {"word": "world", "start": 0.5, "end": 1.0},
         ],
     }
-    transcription: Transcription = {
+    transcription: TranscriptionDict = {
         "text": "Hello world",
         "segments": [segment],
         "language": "en",

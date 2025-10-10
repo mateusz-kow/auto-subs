@@ -25,7 +25,7 @@ class SegmentDict(TypedDict):
     no_speech_prob: NotRequired[float]
 
 
-class Transcription(TypedDict):
+class TranscriptionDict(TypedDict):
     """TypedDict representing a full Whisper transcription output."""
 
     text: str

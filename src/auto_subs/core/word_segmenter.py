@@ -2,12 +2,12 @@ from collections.abc import Generator
 from logging import getLogger
 from typing import cast
 
-from auto_subs.typing.transcription import SegmentDict, Transcription, WordDict
+from auto_subs.typing.transcription import SegmentDict, TranscriptionDict, WordDict
 
 logger = getLogger(__name__)
 
 
-def _extract_words(transcription: Transcription) -> Generator[WordDict, None, None]:
+def _extract_words(transcription: TranscriptionDict) -> Generator[WordDict, None, None]:
     """A generator that flattens and yields valid word dictionaries from a transcription.
 
     Args:
@@ -30,7 +30,7 @@ def _extract_words(transcription: Transcription) -> Generator[WordDict, None, No
 
 
 def segment_words(
-    transcription: Transcription,
+    transcription: TranscriptionDict,
     max_chars: int = 35,
     break_chars: tuple[str, ...] = (".", ",", "!", "?"),
 ) -> list[SegmentDict]:
