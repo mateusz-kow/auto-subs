@@ -29,3 +29,11 @@ def inverted_timestamps_transcription() -> dict[str, Any]:
     path = Path(__file__).parent / "fixtures" / "inverted_timestamps_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
+
+
+@pytest.fixture
+def fake_media_file(tmp_path: Path) -> Path:
+    """Create a dummy media file for testing transcription paths."""
+    media_file = tmp_path / "test.mp4"
+    media_file.touch()
+    return media_file

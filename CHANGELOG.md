@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-05-22
+
+### Added
+
+-   **Direct Audio/Video Transcription**: Added a new `transcribe` command to the CLI and an `auto_subs.transcribe()` function to the API. This allows for end-to-end subtitle generation directly from media files by integrating `openai-whisper`.
+-   **Whisper Model Selection**: Users can now choose the Whisper model size (e.g., `tiny`, `base`, `small`) via the `--model` flag in the CLI or the `model_name` parameter in the API.
+-   **Batch Processing**: Both the `generate` and `transcribe` CLI commands now support processing entire directories of files at once.
+-   A new `[transcribe]` optional dependency was added to keep the core library lightweight for users who only need to generate subtitles from existing JSON files.
+
 ## [0.2.0] - 2024-05-21
 
 ### Added
