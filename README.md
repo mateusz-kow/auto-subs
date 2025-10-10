@@ -61,6 +61,18 @@ except ValueError as e:
 
 ```
 
+## API Design Philosophy
+
+### Simplicity for the User: Dictionaries as Input
+
+The public API of `auto-subs` is designed to be as simple and accessible as possible. All functions that process transcription data, like `auto_subs.generate()`, accept a standard Python dictionary (`dict`).
+
+This approach was chosen intentionally to:
+- **Reduce friction:** You can directly use the JSON output from Whisper or other tools after loading it into a dictionary, without needing to import and instantiate custom Pydantic models.
+- **Decouple your code:** Your project doesn't need to depend on the internal data structures of `auto-subs`. This makes the library easier to integrate and your code more resilient to future updates.
+
+While the input is a simple dictionary, `auto-subs` performs robust internal validation using Pydantic to ensure the data is well-formed before processing it. This gives you the best of both worlds: a simple, clean API and the safety of strong data validation.
+
 ### Outputs
 
 The CLI can generate subtitles in the following formats:
