@@ -75,17 +75,7 @@ def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file:
     output_file = fake_media_file.with_suffix(".vtt")
 
     result = runner.invoke(
-        app,
-        [
-            "transcribe",
-            str(fake_media_file),
-            "-f",
-            "vtt",
-            "--model",
-            "tiny",
-            "-o",
-            str(output_file),
-        ],
+        app, ["transcribe", str(fake_media_file), "-f", "vtt", "--model", "tiny", "-o", str(output_file)]
     )
 
     assert result.exit_code == 0
@@ -120,6 +110,65 @@ def test_cli_transcribe_batch(mock_api_transcribe: MagicMock, tmp_path: Path) ->
     assert "ignored.txt" not in result.stdout
     assert (output_dir / "test1.srt").exists()
     assert (output_dir / "test2.srt").exists()
+
+
+def test_cli_convert_success(tmp_srt_file: Path) -> None:
+    """Test successful conversion of a single subtitle file."""
+    output_file = tmp_srt_file.with_suffix(".vtt")
+    result = runner.invoke(app, ["convert", str(tmp_srt_file), "-o", str(output_file), "-f", "vtt"])
+
+    assert result.exit_code == 0
+    assert "Successfully saved converted subtitles" in result.stdout
+    assert output_file.exists()
+    content = output_file.read_text()
+    assert "WEBVTT" in content
+    assert "00:00:00.500 --> 00:00:01.500" in content
+
+
+def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Path, sample_ass_content: str) -> None:
+    """Test successful conversion of a directory of subtitle files."""
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+
+    # Move the fixture files into the input directory
+    tmp_srt_file.rename(input_dir / tmp_srt_file.name)
+    tmp_vtt_file.rename(input_dir / tmp_vtt_file.name)
+    (input_dir / "test3.ass").write_text(sample_ass_content)
+
+    result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_dir), "-f", "txt"])
+
+    assert result.exit_code == 0
+    assert "Processing: test.srt" in result.stdout
+    assert "Processing: test.vtt" in result.stdout
+    assert "Processing: test3.ass" in result.stdout
+    assert (output_dir / "test.txt").exists()
+    assert (output_dir / "test.txt").read_text().strip() == "Hello world.\nThis is a test."
+    assert (output_dir / "test.txt").exists()
+    assert (output_dir / "test3.txt").exists()
+
+
+def test_cli_convert_unsupported_input(tmp_path: Path) -> None:
+    """Test that `convert` fails for an unsupported input file type."""
+    input_file = tmp_path / "test.txt"
+    input_file.touch()
+
+    result = runner.invoke(app, ["convert", str(input_file), "-f", "srt"])
+    assert result.exit_code == 1
+    assert "Error: Unsupported input file format: .txt" in result.stdout
+
+
+def test_cli_convert_input_dir_output_file_error(tmp_path: Path) -> None:
+    """Test that `convert` fails if input is a directory and output is a file."""
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_file = tmp_path / "output.srt"
+    output_file.touch()
+
+    result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_file)])
+    assert result.exit_code == 1
+    assert "Error: If input is a directory, output must also be a directory." in result.stdout
 
 
 def test_cli_file_not_found() -> None:
@@ -204,10 +253,7 @@ def test_cli_generate_karaoke_with_ass(
     assert kwargs["ass_settings"].highlight_style is not None
 
 
-@patch(
-    "auto_subs.cli.auto_subs.generate",
-    return_value="1\n00:00:00,000 --> 00:00:02,000\nHello",
-)
+@patch("auto_subs.cli.auto_subs.generate", return_value="1\n00:00:00,000 --> 00:00:02,000\nHello")
 def test_cli_generate_karaoke_non_ass(
     mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
 ) -> None:
