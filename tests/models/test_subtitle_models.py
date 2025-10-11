@@ -54,7 +54,10 @@ def test_subtitles_from_dict_creates_segments() -> None:
         }
     ]
 
-    with patch("auto_subs.models.subtitles.segment_words", return_value=mock_segments_from_word_segmenter) as mock_sw:
+    with patch(
+        "auto_subs.models.subtitles.segment_words",
+        return_value=mock_segments_from_word_segmenter,
+    ) as mock_sw:
         subtitles = Subtitles.from_dict(mock_dict)
         mock_sw.assert_called_once()
 

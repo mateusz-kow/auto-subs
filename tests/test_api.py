@@ -5,9 +5,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import auto_subs
-from auto_subs.api import generate, transcribe
+from auto_subs.api import generate, load, transcribe
 from auto_subs.models.formats import SubtitleFormat
 from auto_subs.models.settings import AssSettings, AssStyleSettings
+from auto_subs.models.subtitles import Subtitles
 
 
 def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
@@ -87,3 +88,27 @@ def test_transcribe_api_whisper_not_installed(fake_media_file: Path) -> None:
     """Test that transcribe API raises ImportError if whisper is not installed."""
     with pytest.raises(ImportError, match="Whisper is not installed"):
         auto_subs.core.transcriber.run_transcription(fake_media_file, "base")
+
+
+def test_load_api_success(tmp_srt_file: Path, tmp_vtt_file: Path, tmp_ass_file: Path) -> None:
+    """Test that `load` successfully parses supported subtitle formats."""
+    for file_path in [tmp_srt_file, tmp_vtt_file, tmp_ass_file]:
+        subtitles = load(file_path)
+        assert isinstance(subtitles, Subtitles)
+        assert len(subtitles.segments) > 0
+        assert "Hello world" in str(subtitles)
+
+
+def test_load_api_file_not_found() -> None:
+    """Test that `load` raises FileNotFoundError for non-existent files."""
+    non_existent_file = Path("non_existent_file.srt")
+    with pytest.raises(FileNotFoundError):
+        load(non_existent_file)
+
+
+def test_load_api_unsupported_format(tmp_path: Path) -> None:
+    """Test that `load` raises ValueError for unsupported file formats."""
+    unsupported_file = tmp_path / "test.txt"
+    unsupported_file.touch()
+    with pytest.raises(ValueError, match="Unsupported subtitle format"):
+        load(unsupported_file)

@@ -36,7 +36,9 @@ def sample_transcription_model() -> TranscriptionModel:
     )
 
 
-def test_transcription_model_to_dict(sample_transcription_model: TranscriptionModel) -> None:
+def test_transcription_model_to_dict(
+    sample_transcription_model: TranscriptionModel,
+) -> None:
     """Test that TranscriptionModel.to_dict returns a correct dictionary."""
     transcription_dict = sample_transcription_model.to_dict()
 

@@ -84,7 +84,11 @@ def test_segment_words_returns_empty_for_no_words() -> None:
         "text": "",
         "words": [],
     }
-    empty_transcription: TranscriptionDict = {"segments": [segment], "text": "", "language": "en"}
+    empty_transcription: TranscriptionDict = {
+        "segments": [segment],
+        "text": "",
+        "language": "en",
+    }
     segments = segment_words(empty_transcription)
     assert segments == []
 
