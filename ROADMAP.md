@@ -61,6 +61,8 @@ This release will focus on giving users more fine-grained control over the subti
         -   Expose key `AssSettings` parameters as CLI options.
         -   Examples: `--ass-font "Comic Sans"`, `--ass-font-size 42`, `--ass-primary-color "&H0000FFFF&"`.
         -   This allows for extensive customization without writing Python code.
+        -   Possible configuration file that will set the ASS style to the on defined in the file provided by the user
+        -   Example `--style funny.json`, `--style modest.json`
     -   **Enhanced Segmentation Logic**:
         -   Introduce a `--min-words-per-line` option to prevent single-word subtitle lines, which can be visually jarring.
         -   Add a `--max-lines` option (defaulting to 2) to control how many lines a single subtitle entry can have.
