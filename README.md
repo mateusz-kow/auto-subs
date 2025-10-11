@@ -1,5 +1,11 @@
 <div align="center">
-  <img src="https://github.com/mateusz-kow/auto-subs/blob/assets/assets/logo.png?raw=true" alt="Auto-Subs Logo" width="150">
+  <p>
+    <a href="README.md"><strong>README</strong></a> &nbsp;&middot;&nbsp;
+    <a href="CONTRIBUTING.md"><strong>Contributing</strong></a> &nbsp;&middot;&nbsp;
+    <a href="LICENSE"><strong>License</strong></a>
+  </p>
+  <br>
+  <img src="https://raw.githubusercontent.com/mateusz-kow/auto-subs/refs/heads/assets/assets/logo.png" alt="Auto-Subs Logo" width="150">
   <h1>Auto-Subs</h1>
   <strong>Effortless Subtitle Generation from Whisper Transcriptions.</strong>
   <p>A powerful, local-first library and CLI for generating subtitles with precise, word-level accuracy.</p>
