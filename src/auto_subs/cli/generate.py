@@ -49,7 +49,10 @@ def generate(
     ass_settings = AssSettings()
     if karaoke:
         if output_format != SubtitleFormat.ASS:
-            typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+            typer.secho(
+                "Warning: --karaoke flag is only applicable for ASS format.",
+                fg=typer.colors.YELLOW,
+            )
         else:
             ass_settings.highlight_style = AssStyleSettings()
 
@@ -75,10 +78,16 @@ def generate(
             typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
 
         except (OSError, json.JSONDecodeError) as e:
-            typer.secho(f"Error reading or parsing input file {in_file.name}: {e}", fg=typer.colors.RED)
+            typer.secho(
+                f"Error reading or parsing input file {in_file.name}: {e}",
+                fg=typer.colors.RED,
+            )
             has_errors = True
         except ValueError as e:
-            typer.secho(f"Input file validation error for {in_file.name}: {e}", fg=typer.colors.RED)
+            typer.secho(
+                f"Input file validation error for {in_file.name}: {e}",
+                fg=typer.colors.RED,
+            )
             has_errors = True
 
     if has_errors:

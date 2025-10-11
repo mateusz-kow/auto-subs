@@ -78,13 +78,25 @@ def test_parse_srt_success(sample_srt_content: str) -> None:
     assert str(segments[1]) == "This is a test."
 
 
-def test_parse_srt_malformed(sample_srt_content: str) -> None:
-    """Test that the SRT parser handles malformed blocks."""
-    malformed_content = "1\n00:00:00,500 --> 00:00:01,500\nHello\n\nNot a real block\n\n" + sample_srt_content
-    segments = parser.parse_srt(malformed_content)
-    # It should skip the bad block and parse the good ones.
-    assert len(segments) == 3
-    assert str(segments[0]) == "Hello"
+def test_parse_srt_skips_block_without_arrow() -> None:
+    """Test that an SRT block is skipped if the timestamp line lacks '-->'."""
+    content = "1\n00:00:00,500 00:00:01,500\nNo arrow\n\n2\n00:00:02,000 --> 00:00:03,000\nGood block"
+    segments = parser.parse_srt(content)
+    assert len(segments) == 1
+    assert str(segments[0]) == "Good block"
+
+
+def test_parse_srt_handles_malformed_timestamps_and_continues() -> None:
+    """Test that the SRT parser skips blocks with bad timestamps and continues."""
+    content = (
+        "1\n00:00:00,500 --> 00:00:01,500\nFirst good block\n\n"
+        "2\n00:00:02.000 --> 00:00:03.000\nBad timestamp format\n\n"
+        "3\n00:00:04,000 --> 00:00:05,000\nSecond good block"
+    )
+    segments = parser.parse_srt(content)
+    assert len(segments) == 2
+    assert str(segments[0]) == "First good block"
+    assert str(segments[1]) == "Second good block"
 
 
 def test_parse_vtt_success(sample_vtt_content: str) -> None:
@@ -107,6 +119,20 @@ def test_parse_vtt_with_metadata(sample_vtt_content: str) -> None:
     assert str(segments[0]) == "Hello world."
 
 
+def test_parse_vtt_handles_malformed_blocks_and_continues() -> None:
+    """Test that the VTT parser skips blocks with bad timestamps and continues."""
+    content = (
+        "WEBVTT\n\n"
+        "00:00:00.500 --> 00:00:01.500\nFirst good block\n\n"
+        "00:00:02,000 --> 00:00:03,000\nBad timestamp format\n\n"
+        "00:00:04.000 --> 00:00:05.000\nSecond good block"
+    )
+    segments = parser.parse_vtt(content)
+    assert len(segments) == 2
+    assert str(segments[0]) == "First good block"
+    assert str(segments[1]) == "Second good block"
+
+
 def test_parse_ass_success(sample_ass_content: str) -> None:
     """Test successful parsing of a valid ASS file."""
     segments = parser.parse_ass(sample_ass_content)
@@ -124,8 +150,35 @@ def test_parse_ass_success(sample_ass_content: str) -> None:
     assert str(segments[2]) == r"And a\nnew line."
 
 
-def test_parse_ass_no_format_line() -> None:
-    """Test that parsing an ASS file without a Format line fails gracefully."""
-    content = "[Events]\nDialogue: 0,0:00:00.50,0:00:01.50,Default,,0,0,0,,Hello world."
+def test_parse_ass_stops_at_new_section() -> None:
+    """Test that the ASS parser stops reading events at a new section."""
+    content = (
+        "[Events]\nFormat: Start, End, Text\n"
+        "Dialogue: 0:00:01.00,0:00:02.00,First line\n"
+        "[Fonts]\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Should be ignored"
+    )
     segments = parser.parse_ass(content)
-    assert len(segments) == 0  # Should skip dialogue line
+    assert len(segments) == 1
+    assert str(segments[0]) == "First line"
+
+
+def test_parse_ass_raises_on_missing_required_format_fields() -> None:
+    """Test that ASS parser raises ValueError if Format line is missing key fields."""
+    content = "[Events]\nFormat: Layer, Style, Effect\nDialogue: 0,Default,,"
+    with pytest.raises(ValueError, match="ASS 'Format' line is missing required fields"):
+        parser.parse_ass(content)
+
+
+def test_parse_ass_skips_malformed_dialogue_line() -> None:
+    """Test that the ASS parser skips a malformed Dialogue line and continues."""
+    content = (
+        "[Events]\nFormat: Start, End, Text\n"
+        "Dialogue: 0:00:01.00,0:00:02.00,First line\n"
+        "Dialogue: 0:00:03.00,bad-timestamp,Malformed line\n"
+        "Dialogue: 0:00:05.00,0:00:06.00,Third line\n"
+    )
+    segments = parser.parse_ass(content)
+    assert len(segments) == 2
+    assert str(segments[0]) == "First line"
+    assert str(segments[1]) == "Third line"

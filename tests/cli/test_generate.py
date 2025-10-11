@@ -114,7 +114,10 @@ def test_cli_generate_karaoke_with_ass(
     assert kwargs["ass_settings"].highlight_style is not None
 
 
-@patch("auto_subs.cli.generate.generate_api", return_value="1\n00:00:00,000 --> 00:00:02,000\nHello")
+@patch(
+    "auto_subs.cli.generate.generate_api",
+    return_value="1\n00:00:00,000 --> 00:00:02,000\nHello",
+)
 def test_cli_generate_karaoke_non_ass(
     mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
 ) -> None:

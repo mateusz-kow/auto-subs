@@ -19,7 +19,11 @@ def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
 @pytest.mark.parametrize("output_format", ["srt", "vtt", "ass"])
 def test_generate_valid_formats(output_format: str, sample_transcription: dict[str, Any]) -> None:
     """Test generation for all supported subtitle formats with default settings."""
-    result = generate(transcription_dict=sample_transcription, output_format=output_format, max_chars=200)
+    result = generate(
+        transcription_dict=sample_transcription,
+        output_format=output_format,
+        max_chars=200,
+    )
 
     assert isinstance(result, str)
     assert "This is a test transcription" in result

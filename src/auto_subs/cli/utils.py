@@ -23,7 +23,12 @@ _EXTENSION_MAP: dict[SupportedExtension, set[str]] = {
 class PathProcessor:
     """Handles processing of input and output paths for CLI commands."""
 
-    def __init__(self, input_path: Path, output_path: Path | None, extension_type: SupportedExtension):
+    def __init__(
+        self,
+        input_path: Path,
+        output_path: Path | None,
+        extension_type: SupportedExtension,
+    ):
         """Handles processing of input and output paths for CLI commands."""
         self.input_path = input_path
         self.output_path = output_path
@@ -33,7 +38,10 @@ class PathProcessor:
     def _validate_paths(self) -> None:
         """Validates that if input is a dir, output is also a dir."""
         if self.input_path.is_dir() and self.output_path and not self.output_path.is_dir():
-            typer.secho("Error: If input is a directory, output must also be a directory.", fg=typer.colors.RED)
+            typer.secho(
+                "Error: If input is a directory, output must also be a directory.",
+                fg=typer.colors.RED,
+            )
             raise typer.Exit(code=1)
 
     def _get_files_from_dir(self) -> list[Path]:
@@ -42,7 +50,10 @@ class PathProcessor:
         for ext in self.extensions:
             files.extend(self.input_path.glob(f"*{ext}"))
         if not files:
-            typer.secho(f"No supported files found in directory: {self.input_path}", fg=typer.colors.YELLOW)
+            typer.secho(
+                f"No supported files found in directory: {self.input_path}",
+                fg=typer.colors.YELLOW,
+            )
             raise typer.Exit()
         return sorted(files)
 
@@ -57,7 +68,10 @@ class PathProcessor:
             files_to_process.extend(self._get_files_from_dir())
         else:
             if self.input_path.suffix.lower() not in self.extensions:
-                typer.secho(f"Error: Unsupported input file format: {self.input_path.suffix}", fg=typer.colors.RED)
+                typer.secho(
+                    f"Error: Unsupported input file format: {self.input_path.suffix}",
+                    fg=typer.colors.RED,
+                )
                 raise typer.Exit(code=1)
             files_to_process.append(self.input_path)
 

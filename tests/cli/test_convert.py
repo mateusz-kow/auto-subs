@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -63,3 +64,13 @@ def test_cli_convert_input_dir_output_file_error(tmp_path: Path) -> None:
     result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_file)])
     assert result.exit_code == 1
     assert "Error: If input is a directory, output must also be a directory." in result.stdout
+
+
+@patch("auto_subs.cli.convert.load", side_effect=ValueError("Corrupted subtitle file"))
+def test_cli_convert_processing_error(mock_load: MagicMock, tmp_srt_file: Path) -> None:
+    """Test that the CLI handles errors during file processing and exits correctly."""
+    result = runner.invoke(app, ["convert", str(tmp_srt_file), "-f", "vtt"])
+
+    assert result.exit_code == 1
+    assert "Error processing file" in result.stdout
+    assert "Corrupted subtitle file" in result.stdout

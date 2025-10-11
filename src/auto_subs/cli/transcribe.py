@@ -51,7 +51,10 @@ def transcribe(
     ass_settings = AssSettings()
     if karaoke:
         if output_format != SubtitleFormat.ASS:
-            typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+            typer.secho(
+                "Warning: --karaoke flag is only applicable for ASS format.",
+                fg=typer.colors.YELLOW,
+            )
         else:
             ass_settings.highlight_style = AssStyleSettings()
 
@@ -81,7 +84,10 @@ def transcribe(
             )
             raise typer.Exit(code=1) from e
         except Exception as e:
-            typer.secho(f"An unexpected error occurred while processing {in_file.name}: {e}", fg=typer.colors.RED)
+            typer.secho(
+                f"An unexpected error occurred while processing {in_file.name}: {e}",
+                fg=typer.colors.RED,
+            )
             has_errors = True
 
     if has_errors:

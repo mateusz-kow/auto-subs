@@ -66,7 +66,10 @@ def convert(
 
             out_file.parent.mkdir(parents=True, exist_ok=True)
             out_file.write_text(content, encoding="utf-8")
-            typer.secho(f"Successfully saved converted subtitles to: {out_file}", fg=typer.colors.GREEN)
+            typer.secho(
+                f"Successfully saved converted subtitles to: {out_file}",
+                fg=typer.colors.GREEN,
+            )
         except (OSError, ValueError) as e:
             typer.secho(f"Error processing file {in_file.name}: {e}", fg=typer.colors.RED)
             has_errors = True
