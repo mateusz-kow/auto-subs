@@ -2,7 +2,7 @@
   <p>
   </p>
   <br>
-  <img src="https://github.com/mateusz-kow/auto-subs/blob/main/assets/logo.png?raw=true" alt="Auto-Subs Logo" width="150">
+  <img src="https://github.com/mateusz-kow/auto-subs/blob/main/assets/logo.png?raw=true" alt="Auto-Subs Logo" width="250">
   <h1>Auto-Subs</h1>
   <strong>Effortless Subtitle Generation from Whisper Transcriptions.</strong>
   <p>A powerful, local-first library and CLI for generating subtitles with precise, word-level accuracy.</p>
