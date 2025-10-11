@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from auto_subs import __version__
 from auto_subs.cli import app
+from tests.utils import strip_ansi
 
 runner = CliRunner()
 
@@ -31,8 +32,10 @@ def test_cli_quiet_and_verbose_error() -> None:
     """Test that using --quiet and --verbose together raises a BadParameter error."""
     result = runner.invoke(app, ["--quiet", "--verbose", "generate", "dummy.json"])
     assert result.exit_code == 2  # Typer's exit code for bad parameters
-    assert "Error" in result.stderr
-    assert "--quiet and --verbose options cannot be used together" in result.stderr
+
+    stderr = strip_ansi(result.stderr)
+    assert "Error" in stderr
+    assert "--quiet and --verbose options cannot be used together" in stderr
 
 
 @patch("logging.basicConfig")
