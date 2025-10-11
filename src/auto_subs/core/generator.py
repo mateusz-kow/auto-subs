@@ -1,5 +1,9 @@
+from logging import getLogger
+
 from auto_subs.models.settings import AssSettings
 from auto_subs.models.subtitles import Subtitles
+
+logger = getLogger(__name__)
 
 
 def _format_srt_timestamp(seconds: float) -> str:
@@ -61,6 +65,7 @@ def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
     Returns:
         The full content of the .ass file as a string.
     """
+    logger.info("Generating subtitles in ASS format...")
     lines: list[str] = [settings.to_ass_header()]
 
     if settings.highlight_style:
@@ -90,6 +95,7 @@ def to_srt(subtitles: Subtitles) -> str:
     Returns:
         The full content of the .srt file as a string.
     """
+    logger.info("Generating subtitles in SRT format...")
     srt_blocks: list[str] = []
     for i, segment in enumerate(subtitles.segments, 1):
         start_time = _format_srt_timestamp(segment.start)
@@ -111,6 +117,7 @@ def to_txt(subtitles: Subtitles) -> str:
     Returns:
         The full transcription as a single string.
     """
+    logger.info("Generating subtitles in TXT format...")
     return str(subtitles)
 
 
@@ -123,6 +130,7 @@ def to_vtt(subtitles: Subtitles) -> str:
     Returns:
         The full content of the .vtt file as a string.
     """
+    logger.info("Generating subtitles in VTT format...")
     if not subtitles.segments:
         return "WEBVTT\n"
 

@@ -19,13 +19,3 @@ repos:
       - id: ruff
         types_or: [python, pyi, jupyter]
         args: [--fix]
-
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.406
-    hooks:
-      - id: pyright
-        pass_filenames: false
-        additional_dependencies:
-          - "typer~=0.19.2"
-          - "pydantic~=2.12.0"
-          - "pytest~=8.4.2"

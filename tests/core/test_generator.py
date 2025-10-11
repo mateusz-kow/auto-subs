@@ -75,15 +75,31 @@ def test_to_ass_empty(empty_subtitles: Subtitles) -> None:
     assert generator.to_ass(empty_subtitles, settings) == expected_ass
 
 
+def test_to_vtt(sample_subtitles: Subtitles) -> None:
+    """Test VTT generation."""
+    vtt_subtitles = generator.to_vtt(sample_subtitles)
+    expected_subtitles = (
+        "WEBVTT\n\n00:00:00.500 --> 00:00:01.500\nHello world.\n\n00:00:02.000 --> 00:00:03.000\nThis is a test.\n"
+    )
+    assert vtt_subtitles.strip() == expected_subtitles.strip()
+
+
+def test_to_vtt_empty(empty_subtitles: Subtitles) -> None:
+    """Test VTT generation with empty subtitles."""
+    vtt_subtitles = generator.to_vtt(empty_subtitles)
+    assert "WEBVTT" in vtt_subtitles
+    assert vtt_subtitles == "WEBVTT\n"
+
+
 def test_format_srt_timestamp() -> None:
     """Test SRT timestamp formatting."""
-    assert generator._format_srt_timestamp(0) == "00:00:00,000"  # type: ignore[reportPrivateUsage]
-    assert generator._format_srt_timestamp(61.525) == "00:01:01,525"  # type: ignore[reportPrivateUsage]
-    assert generator._format_srt_timestamp(3661.0) == "01:01:01,000"  # type: ignore[reportPrivateUsage]
+    assert generator._format_srt_timestamp(0) == "00:00:00,000"
+    assert generator._format_srt_timestamp(61.525) == "00:01:01,525"
+    assert generator._format_srt_timestamp(3661.0) == "01:01:01,000"
 
 
 def test_format_ass_timestamp() -> None:
     """Test ASS timestamp formatting."""
-    assert generator._format_ass_timestamp(0) == "0:00:00.00"  # type: ignore[reportPrivateUsage]
-    assert generator._format_ass_timestamp(61.525) == "0:01:01.52"  # type: ignore[reportPrivateUsage]
-    assert generator._format_ass_timestamp(3661.0) == "1:01:01.00"  # type: ignore[reportPrivateUsage]
+    assert generator._format_ass_timestamp(0) == "0:00:00.00"
+    assert generator._format_ass_timestamp(61.525) == "0:01:01.52"
+    assert generator._format_ass_timestamp(3661.0) == "1:01:01.00"

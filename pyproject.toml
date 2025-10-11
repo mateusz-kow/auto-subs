@@ -1,6 +1,6 @@
 [project]
 name = "auto-subs"
-version = "0.2.0"
+version = "0.3.0"
 description = "A powerful, local-first library and CLI for video transcription and subtitle generation using Whisper."
 authors = [
     { name = "Mateusz Kowalski", email = "kowalski.mateusz.1lo1@gmail.com" },
@@ -31,12 +31,15 @@ Repository = "https://github.com/mateusz-kow/auto-subs"
 auto-subs = "auto_subs.cli:app"
 
 [project.optional-dependencies]
+transcribe = [
+    "openai-whisper"
+]
 dev = [
     "ruff~=0.14.0",
-    "pyright~=1.1.406",
+    "mypy~=1.18.2",
     "pytest~=8.4.2",
     "pre-commit~=4.3.0",
-    "pytest-cov~=7.0.0"
+    "pytest-cov~=7.0.0",
 ]
 
 [build-system]
@@ -82,11 +85,14 @@ known-first-party = ["auto_subs"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.pyright]
-include = ["src", "tests"]
-exclude = ["**/__pycache__"]
-pythonVersion = "3.11"
-pythonPlatform = "All"
-typeCheckingMode = "strict"
-reportMissingImports = "warning"
-reportUnknownMemberType = "warning"
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unreachable = true
+disallow_untyped_defs = true
+exclude = [
+    "__pycache__/"
+]
