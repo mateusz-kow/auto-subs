@@ -4,65 +4,43 @@ This document outlines the planned features and improvements for `auto-subs` as 
 
 This roadmap is a living document and is subject to change based on development progress and community feedback.
 
-## Current State: v0.2.0
+## Current State: v0.3.2
 
--   **Core Functionality**: Generate subtitles from pre-existing Whisper JSON files.
--   **Supported Formats**: SRT, ASS, VTT, TXT.
--   **Features**: Intelligent word segmentation, karaoke-style highlighting for ASS, robust Pydantic-based data validation.
--   **Interfaces**: Python library API (`auto_subs.generate`) and a Typer-based CLI.
-
----
-
-## Version 0.3.0 - Core Feature Expansion
-
-This release will focus on making `auto-subs` a more self-contained tool by integrating transcription capabilities directly.
-
--   **🎯 Key Goal**: Move from a subtitle *formatter* to an end-to-end subtitle *generator*.
--   **Features**:
-    -   **[Major] Direct Audio/Video Transcription**:
-        -   Integrate the `openai-whisper` library to allow transcription directly from audio or video files.
-        -   Add a new CLI command: `auto-subs transcribe <media_file>`.
-        -   This command will handle audio extraction, transcription via Whisper, and then pass the result directly to the existing subtitle generation logic.
-        -   The API will be expanded with a corresponding `auto_subs.transcribe()` function.
-    -   **Batch Processing in CLI**:
-        -   Allow the `generate` and `transcribe` commands to accept a directory as input to process multiple files at once.
-        -   Example: `auto-subs transcribe ./episodes/ --format srt`.
-    -   **Whisper Model Selection**:
-        -   Allow users to select the Whisper model size (e.g., `tiny`, `base`, `small`, `medium`, `large`) via a CLI option (`--model`) and an API parameter.
+-   **Core Functionality**: Transcribe media files, generate subtitles from JSON, and convert between existing subtitle formats.
+-   **Supported Formats**: SRT, ASS, VTT.
+-   **Features**: Intelligent word segmentation, karaoke-style highlighting for ASS, batch processing, Whisper model selection.
+-   **Interfaces**: Python library API (`auto_subs.transcribe`, `auto_subs.generate`, `auto_subs.load`) and a Typer-based CLI.
 
 ---
 
-## Version 0.4.0 - Universal Subtitle Conversion
+## Version 0.3.3 - Code Quality & Refactoring
 
-This release introduces the ability to convert between existing subtitle formats, making `auto-subs` a versatile utility for any subtitle workflow.
+This is a maintenance release focused on improving the internal architecture, making the codebase more robust, scalable, and easier to maintain.
 
--   **🎯 Key Goal**: Enable `auto-subs` to read, parse, and convert between existing subtitle formats.
--   **Features**:
-    -   **[Major] Subtitle Parsing Engine**:
-        -   Implement parsers for reading and understanding common subtitle formats.
-        -   Initial support will be for SRT, VTT, and basic ASS (dialogue lines). This will involve parsing timestamps and text content into the internal `Subtitles` data model.
-    -   **New CLI `convert` Command**:
-        -   Add a new command: `auto-subs convert <input_file> -o <output_file>`.
-        -   This allows for straightforward one-off conversions from the command line.
-        -   Example: `auto-subs convert subtitles.ass -o subtitles.srt`.
-    -   **New API Function `auto_subs.load()`**:
-        -   Introduce a new public API function, `auto_subs.load()`, which takes a file path to a subtitle file and returns a `Subtitles` object.
-        -   This enables developers to load, programmatically modify, and then re-export subtitles using the existing generator functions.
+-   **🎯 Key Goal**: Refactor the codebase for long-term health and scalability.
+-   **Changes**:
+    -   **[Major] API & CLI Package Restructuring**:
+        -   The `api.py` and `cli.py` modules will be converted into packages (`api/` and `cli/`).
+        -   This will break down large files into smaller, single-responsibility modules, improving organization and making testing more granular.
+    -   **[Major] Refactor to Factory Pattern**:
+        -   Replace `if/elif` chains for format handling (`srt`, `vtt`, `ass`) with a more maintainable factory (dictionary-based) pattern. This makes adding new formats cleaner in the future.
+    -   **[Breaking] Remove TXT Output Format**:
+        -   The plain text (`.txt`) output format will be removed. It is an outlier as it does not contain timing data, which complicates the API and core logic. Users can still easily produce plain text from any subtitle file.
+    -   **Abstract CLI Path Handling Logic**:
+        -   Create a shared utility to handle file/directory path processing and batch logic, removing significant code duplication between the `generate`, `transcribe`, and `convert` commands.
 
 ---
 
-## Version 0.5.0 - Advanced Customization & Usability
+## Version 0.4.0 - Advanced Customization & Usability
 
 This release will focus on giving users more fine-grained control over the subtitle output and improving the user experience.
 
 -   **🎯 Key Goal**: Empower users with advanced styling and segmentation options.
 -   **Features**:
-    -   **Advanced ASS Styling via CLI**:
-        -   Expose key `AssSettings` parameters as CLI options.
-        -   Examples: `--ass-font "Comic Sans"`, `--ass-font-size 42`, `--ass-primary-color "&H0000FFFF&"`.
-        -   This allows for extensive customization without writing Python code.
-        -   Possible configuration file that will set the ASS style to the on defined in the file provided by the user
-        -   Example `--style funny.json`, `--style modest.json`
+    -   **Advanced ASS Styling**:
+        -   **Style Configuration Files**: Introduce a `--style <file.json>` option to load a complete ASS style from a file, allowing users to create, save, and share style presets.
+        -   **Optional Default Styling**: Allow `AssSettings` to be completely optional. When not provided, no style block will be embedded, allowing the video player (e.g., FFmpeg, VLC) to apply its own default style.
+        -   **Granular CLI Flags**: Expose key `AssSettings` parameters as CLI options for quick, on-the-fly customization (e.g., `--ass-font "Comic Sans"`).
     -   **Enhanced Segmentation Logic**:
         -   Introduce a `--min-words-per-line` option to prevent single-word subtitle lines, which can be visually jarring.
         -   Add a `--max-lines` option (defaulting to 2) to control how many lines a single subtitle entry can have.
@@ -71,7 +49,7 @@ This release will focus on giving users more fine-grained control over the subti
 
 ---
 
-## Version 0.6.0 - Robustness and Integration
+## Version 0.5.0 - Robustness and Integration
 
 This release will focus on hardening the tool against edge cases and making the API more flexible for developers.
 
@@ -81,13 +59,13 @@ This release will focus on hardening the tool against edge cases and making the 
         -   Explicitly validate and, where possible, correct inverted timestamps (`start > end`) at the word level, logging a warning instead of failing.
         -   Add checks for overlapping word timestamps within a segment.
     -   **Flexible API Inputs**:
-        -   Update `auto_subs.generate()` and `auto_subs.transcribe()` to optionally accept a file path (`str` or `Path`) in addition to a dictionary, simplifying common workflows.
+        -   Update API functions to optionally accept a file path (`str` or `Path`) in addition to a dictionary, simplifying common workflows.
     -   **Structured JSON Output**:
         -   Add a new output format: `json`. This format will output the cleaned, validated, and segmented subtitle data as a structured JSON file. This is useful for developers who want to use `auto-subs` as a pre-processing step in a larger toolchain.
 
 ---
 
-## The Path to 1.0.0 (v0.7.0 - v0.9.x)
+## The Path to 1.0.0 (v0.6.0 - v0.9.x)
 
 This phase will be dedicated to stabilization, documentation, and performance, with fewer new features.
 
