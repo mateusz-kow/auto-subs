@@ -1,11 +1,14 @@
 <div align="center">
-
-# Auto-Subs
-
-**Effortless Subtitle Generation from Whisper Transcriptions.**
-
-A powerful, local-first library and CLI for generating subtitles with precise, word-level accuracy.
-
+  <p>
+    <a href="README.md"><strong>README</strong></a> &nbsp;&middot;&nbsp;
+    <a href="CONTRIBUTING.md"><strong>Contributing</strong></a> &nbsp;&middot;&nbsp;
+    <a href="LICENSE"><strong>License</strong></a>
+  </p>
+  <br>
+  <img src="https://raw.githubusercontent.com/mateusz-kow/auto-subs/refs/heads/assets/assets/logo.png" alt="Auto-Subs Logo" width="150">
+  <h1>Auto-Subs</h1>
+  <strong>Effortless Subtitle Generation from Whisper Transcriptions.</strong>
+  <p>A powerful, local-first library and CLI for generating subtitles with precise, word-level accuracy.</p>
 </div>
 
 <div align="center">
@@ -15,7 +18,7 @@ A powerful, local-first library and CLI for generating subtitles with precise, w
 [![Code Coverage](https://codecov.io/gh/mateusz-kow/auto-subs/graph/badge.svg)](https://codecov.io/gh/mateusz-kow/auto-subs)
 <br />
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Types: pyright](https://img.shields.io/badge/Pyright-strict-4293f7.svg)](https://github.com/microsoft/pyright)
+[![Types: Mypy](https://img.shields.io/badge/Types-Mypy-blue.svg)](https://mypy-lang.org/)
 [![License: MIT](https://img.shields.io/pypi/l/auto-subs)](https://opensource.org/licenses/MIT)
 
 </div>
@@ -30,7 +33,7 @@ A powerful, local-first library and CLI for generating subtitles with precise, w
 - **⚙️ Simple & Powerful API**: Use it as a library with a clean, dictionary-based input that requires no complex objects, or as a feature-rich command-line tool.
 - **🛡️ Robust Validation**: Automatically handles common data issues, like inverted timestamps (`start > end`), ensuring your process never breaks on imperfect data.
 - **📄 Multiple Formats**: Generate subtitles in the most popular formats: **SRT**, **ASS**, and plain **TXT**.
-- **✅ High Quality & Tested**: Strictly typed with Pyright, linted with Ruff, and rigorously tested to ensure reliability.
+- **✅ High Quality & Tested**: Strictly typed with Mypy, linted with Ruff, and rigorously tested to ensure reliability.
 
 ## Installation
 
