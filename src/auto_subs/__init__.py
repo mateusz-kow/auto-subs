@@ -2,6 +2,6 @@
 
 from auto_subs.api import generate, load, transcribe
 
-__version__ = "0.4.0"
+__version__ = "0.3.2"
 
 __all__ = ["__version__", "generate", "transcribe", "load"]
