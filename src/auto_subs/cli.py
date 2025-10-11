@@ -8,6 +8,7 @@ import typer
 import auto_subs
 from auto_subs import __version__
 from auto_subs.api import transcribe as transcribe_api
+from auto_subs.core import generator
 from auto_subs.models.formats import SubtitleFormat
 from auto_subs.models.settings import AssSettings, AssStyleSettings
 from auto_subs.models.whisper import WhisperModel
@@ -22,6 +23,7 @@ app = typer.Typer(
 )
 
 SUPPORTED_MEDIA_EXTENSIONS = {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac"}
+SUPPORTED_SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass"}
 
 
 def version_callback(value: bool) -> None:
@@ -43,7 +45,10 @@ def main(
             help="Show the application's version and exit.",
         ),
     ] = False,
-    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Suppress all output except for errors.")] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Suppress all output except for errors."),
+    ] = False,
     verbose: Annotated[
         int,
         typer.Option(
@@ -92,28 +97,45 @@ def generate(
     ] = None,
     output_format: Annotated[
         SubtitleFormat,
-        typer.Option("--format", "-f", case_sensitive=False, help="Format for the output subtitles."),
+        typer.Option(
+            "--format",
+            "-f",
+            case_sensitive=False,
+            help="Format for the output subtitles.",
+        ),
     ] = SubtitleFormat.SRT,
     max_chars: Annotated[int, typer.Option(help="Maximum characters per subtitle line.")] = 35,
-    karaoke: Annotated[bool, typer.Option(help="Enable karaoke-style word highlighting for ASS format.")] = False,
+    karaoke: Annotated[
+        bool,
+        typer.Option(help="Enable karaoke-style word highlighting for ASS format."),
+    ] = False,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
     typer.echo(f"Generating subtitles in {output_format.upper()} format...")
     ass_settings = AssSettings()
     if karaoke:
         if output_format != SubtitleFormat.ASS:
-            typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+            typer.secho(
+                "Warning: --karaoke flag is only applicable for ASS format.",
+                fg=typer.colors.YELLOW,
+            )
         else:
             ass_settings.highlight_style = AssStyleSettings()
 
     files_to_process = []
     if input_path.is_dir():
         if output_path and not output_path.is_dir():
-            typer.secho("Error: If input is a directory, output must also be a directory.", fg=typer.colors.RED)
+            typer.secho(
+                "Error: If input is a directory, output must also be a directory.",
+                fg=typer.colors.RED,
+            )
             raise typer.Exit(code=1)
         files_to_process.extend(sorted(input_path.glob("*.json")))
         if not files_to_process:
-            typer.secho(f"No JSON files found in directory: {input_path}", fg=typer.colors.YELLOW)
+            typer.secho(
+                f"No JSON files found in directory: {input_path}",
+                fg=typer.colors.YELLOW,
+            )
             raise typer.Exit()
     else:
         files_to_process.append(input_path)
@@ -133,7 +155,10 @@ def generate(
             )
 
         except (OSError, json.JSONDecodeError) as e:
-            typer.secho(f"Error reading or parsing input file {file.name}: {e}", fg=typer.colors.RED)
+            typer.secho(
+                f"Error reading or parsing input file {file.name}: {e}",
+                fg=typer.colors.RED,
+            )
             has_errors = True
             continue
         except ValueError as e:
@@ -152,6 +177,113 @@ def generate(
         try:
             out_file.write_text(content, encoding="utf-8")
             typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
+        except OSError as e:
+            typer.secho(f"Error writing to file {out_file}: {e}", fg=typer.colors.RED)
+            has_errors = True
+            continue
+
+    if has_errors:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def convert(
+    input_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            readable=True,
+            help="Path to a subtitle file (.srt, .vtt, .ass) or a directory of such files.",
+        ),
+    ],
+    output_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Path to save the converted subtitle file or directory. "
+            "Defaults to the input path with a new extension.",
+        ),
+    ] = None,
+    output_format: Annotated[
+        SubtitleFormat,
+        typer.Option(
+            "--format",
+            "-f",
+            case_sensitive=False,
+            help="Format for the output subtitles.",
+        ),
+    ] = SubtitleFormat.SRT,
+) -> None:
+    """Convert an existing subtitle file to a different format."""
+    typer.echo(f"Converting subtitles to {output_format.upper()} format...")
+
+    files_to_process = []
+    if input_path.is_dir():
+        if output_path and not output_path.is_dir():
+            typer.secho(
+                "Error: If input is a directory, output must also be a directory.",
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+        for ext in SUPPORTED_SUBTITLE_EXTENSIONS:
+            files_to_process.extend(sorted(input_path.glob(f"*{ext}")))
+        if not files_to_process:
+            typer.secho(
+                f"No supported subtitle files found in directory: {input_path}",
+                fg=typer.colors.YELLOW,
+            )
+            raise typer.Exit()
+    else:
+        if input_path.suffix.lower() not in SUPPORTED_SUBTITLE_EXTENSIONS:
+            typer.secho(
+                f"Error: Unsupported input file format: {input_path.suffix}",
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+        files_to_process.append(input_path)
+
+    has_errors = False
+    for file in files_to_process:
+        typer.echo(f"Processing: {file.name}")
+        try:
+            subtitles = auto_subs.load(file)
+            if output_format == SubtitleFormat.SRT:
+                content = generator.to_srt(subtitles)
+            elif output_format == SubtitleFormat.VTT:
+                content = generator.to_vtt(subtitles)
+            elif output_format == SubtitleFormat.ASS:
+                content = generator.to_ass(subtitles, AssSettings())
+            elif output_format == SubtitleFormat.TXT:
+                content = generator.to_txt(subtitles)
+            else:
+                typer.secho(  # type: ignore[unreachable]
+                    f"Internal error: Unsupported format {output_format}",
+                    fg=typer.colors.RED,
+                )
+                has_errors = True
+                continue
+        except (OSError, ValueError) as e:
+            typer.secho(f"Error processing file {file.name}: {e}", fg=typer.colors.RED)
+            has_errors = True
+            continue
+
+        if output_path:
+            out_file = (
+                output_path / file.with_suffix(f".{output_format.value}").name if output_path.is_dir() else output_path
+            )
+        else:
+            out_file = file.with_suffix(f".{output_format.value}")
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            out_file.write_text(content, encoding="utf-8")
+            typer.secho(
+                f"Successfully saved converted subtitles to: {out_file}",
+                fg=typer.colors.GREEN,
+            )
         except OSError as e:
             typer.secho(f"Error writing to file {out_file}: {e}", fg=typer.colors.RED)
             has_errors = True
@@ -183,31 +315,48 @@ def transcribe(
     ] = None,
     output_format: Annotated[
         SubtitleFormat,
-        typer.Option("--format", "-f", case_sensitive=False, help="Format for the output subtitles."),
+        typer.Option(
+            "--format",
+            "-f",
+            case_sensitive=False,
+            help="Format for the output subtitles.",
+        ),
     ] = SubtitleFormat.SRT,
     model: Annotated[
         WhisperModel, typer.Option(case_sensitive=False, help="Whisper model to use.")
     ] = WhisperModel.BASE,
     max_chars: Annotated[int, typer.Option(help="Maximum characters per subtitle line.")] = 35,
-    karaoke: Annotated[bool, typer.Option(help="Enable karaoke-style word highlighting for ASS format.")] = False,
+    karaoke: Annotated[
+        bool,
+        typer.Option(help="Enable karaoke-style word highlighting for ASS format."),
+    ] = False,
 ) -> None:
     """Transcribe a media file and generate subtitles."""
     ass_settings = AssSettings()
     if karaoke:
         if output_format != SubtitleFormat.ASS:
-            typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+            typer.secho(
+                "Warning: --karaoke flag is only applicable for ASS format.",
+                fg=typer.colors.YELLOW,
+            )
         else:
             ass_settings.highlight_style = AssStyleSettings()
 
     files_to_process = []
     if media_path.is_dir():
         if output_path and not output_path.is_dir():
-            typer.secho("Error: If input is a directory, output must also be a directory.", fg=typer.colors.RED)
+            typer.secho(
+                "Error: If input is a directory, output must also be a directory.",
+                fg=typer.colors.RED,
+            )
             raise typer.Exit(code=1)
         for ext in SUPPORTED_MEDIA_EXTENSIONS:
             files_to_process.extend(sorted(media_path.glob(f"*{ext}")))
         if not files_to_process:
-            typer.secho(f"No supported media files found in directory: {media_path}", fg=typer.colors.YELLOW)
+            typer.secho(
+                f"No supported media files found in directory: {media_path}",
+                fg=typer.colors.YELLOW,
+            )
             raise typer.Exit()
     else:
         files_to_process.append(media_path)
@@ -231,7 +380,10 @@ def transcribe(
             )
             raise typer.Exit(code=1) from e
         except Exception as e:
-            typer.secho(f"An unexpected error occurred while processing {file.name}: {e}", fg=typer.colors.RED)
+            typer.secho(
+                f"An unexpected error occurred while processing {file.name}: {e}",
+                fg=typer.colors.RED,
+            )
             has_errors = True
             continue
 

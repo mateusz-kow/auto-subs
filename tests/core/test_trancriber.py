@@ -8,7 +8,10 @@ import pytest
 def test_run_transcription_success(fake_media_file: Path) -> None:
     """Test that run_transcription successfully calls whisper."""
     mock_whisper = MagicMock()
-    mock_whisper.load_model.return_value.transcribe.return_value = {"text": "hello", "segments": []}
+    mock_whisper.load_model.return_value.transcribe.return_value = {
+        "text": "hello",
+        "segments": [],
+    }
 
     # Patch sys.modules BEFORE importing the module under test to prevent OSError
     with patch.dict(sys.modules, {"whisper": mock_whisper}):
@@ -24,7 +27,10 @@ def test_run_transcription_success(fake_media_file: Path) -> None:
 def test_run_transcription_import_error(fake_media_file: Path) -> None:
     """Test that an ImportError is raised if whisper is not installed."""
     # Hide the 'whisper' module to simulate it not being installed
-    with patch.dict(sys.modules, {"whisper": None}), pytest.raises(ImportError, match="Whisper is not installed"):
+    with (
+        patch.dict(sys.modules, {"whisper": None}),
+        pytest.raises(ImportError, match="Whisper is not installed"),
+    ):
         # We need to reload the module for the failed import to be detected,
         # as it was likely loaded by other tests.
         from importlib import reload

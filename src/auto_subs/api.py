@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from auto_subs.core import generator
+from auto_subs.core import generator, parser
 from auto_subs.core.transcriber import run_transcription
 from auto_subs.models.formats import SubtitleFormat
 from auto_subs.models.settings import AssSettings
@@ -83,4 +83,42 @@ def transcribe(
         raise FileNotFoundError(f"Media file not found at: {media_path}")
 
     transcription_dict = run_transcription(media_path, model_name)
-    return generate(transcription_dict, output_format, max_chars=max_chars, ass_settings=ass_settings)
+    return generate(
+        transcription_dict,
+        output_format,
+        max_chars=max_chars,
+        ass_settings=ass_settings,
+    )
+
+
+def load(file_path: str | Path) -> Subtitles:
+    """Load and parse a subtitle file into a Subtitles object.
+
+    Args:
+        file_path: Path to the subtitle file (.srt, .vtt, .ass).
+
+    Returns:
+        A Subtitles object representing the parsed file content.
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+        ValueError: If the file format is unsupported or parsing fails.
+    """
+    path = Path(file_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Subtitle file not found at: {path}")
+
+    suffix = path.suffix.lower()
+    content = path.read_text(encoding="utf-8")
+
+    segments = []
+    if suffix == ".srt":
+        segments = parser.parse_srt(content)
+    elif suffix == ".vtt":
+        segments = parser.parse_vtt(content)
+    elif suffix == ".ass":
+        segments = parser.parse_ass(content)
+    else:
+        raise ValueError(f"Unsupported subtitle format: {suffix}. Must be '.srt', '.vtt', or '.ass'.")
+
+    return Subtitles(segments=segments)

@@ -75,7 +75,17 @@ def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file:
     output_file = fake_media_file.with_suffix(".vtt")
 
     result = runner.invoke(
-        app, ["transcribe", str(fake_media_file), "-f", "vtt", "--model", "tiny", "-o", str(output_file)]
+        app,
+        [
+            "transcribe",
+            str(fake_media_file),
+            "-f",
+            "vtt",
+            "--model",
+            "tiny",
+            "-o",
+            str(output_file),
+        ],
     )
 
     assert result.exit_code == 0
@@ -194,7 +204,10 @@ def test_cli_generate_karaoke_with_ass(
     assert kwargs["ass_settings"].highlight_style is not None
 
 
-@patch("auto_subs.cli.auto_subs.generate", return_value="1\n00:00:00,000 --> 00:00:02,000\nHello")
+@patch(
+    "auto_subs.cli.auto_subs.generate",
+    return_value="1\n00:00:00,000 --> 00:00:02,000\nHello",
+)
 def test_cli_generate_karaoke_non_ass(
     mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
 ) -> None:
