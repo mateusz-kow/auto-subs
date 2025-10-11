@@ -6,7 +6,6 @@ import pytest
 
 import auto_subs
 from auto_subs.api import generate, load, transcribe
-from auto_subs.models.formats import SubtitleFormat
 from auto_subs.models.settings import AssSettings, AssStyleSettings
 from auto_subs.models.subtitles import Subtitles
 
@@ -17,10 +16,14 @@ def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
         generate(transcription_dict=sample_transcription, output_format="invalid-format")
 
 
-@pytest.mark.parametrize("output_format", SubtitleFormat)
+@pytest.mark.parametrize("output_format", ["srt", "vtt", "ass"])
 def test_generate_valid_formats(output_format: str, sample_transcription: dict[str, Any]) -> None:
     """Test generation for all supported subtitle formats with default settings."""
-    result = generate(transcription_dict=sample_transcription, output_format=output_format, max_chars=200)
+    result = generate(
+        transcription_dict=sample_transcription,
+        output_format=output_format,
+        max_chars=200,
+    )
 
     assert isinstance(result, str)
     assert "This is a test transcription" in result
@@ -32,10 +35,6 @@ def test_generate_valid_formats(output_format: str, sample_transcription: dict[s
         assert "[Script Info]" in result
         assert "Dialogue: 0," in result
         assert "{\\k" not in result  # Karaoke should be off by default
-    elif output_format == "txt":
-        assert "-->" not in result
-        assert "[Script Info]" not in result
-        assert "WEBVTT" not in result
     elif output_format == "vtt":
         assert "WEBVTT" in result
         assert "00:00:00.100 --> 00:00:04.200" in result

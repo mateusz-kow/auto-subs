@@ -1,6 +1,6 @@
 [project]
 name = "auto-subs"
-version = "0.3.2"
+version = "0.3.3"
 description = "A powerful, local-first library and CLI for video transcription and subtitle generation using Whisper."
 authors = [
     { name = "Mateusz Kowalski", email = "kowalski.mateusz.1lo1@gmail.com" },
@@ -28,7 +28,7 @@ Homepage = "https://github.com/mateusz-kow/auto-subs"
 Repository = "https://github.com/mateusz-kow/auto-subs"
 
 [project.scripts]
-auto-subs = "auto_subs.cli:app"
+auto-subs = "auto_subs.cli.main:app"
 
 [project.optional-dependencies]
 transcribe = [

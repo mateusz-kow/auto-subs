@@ -108,19 +108,6 @@ def to_srt(subtitles: Subtitles) -> str:
     return "\n\n".join(srt_blocks) + "\n\n"
 
 
-def to_txt(subtitles: Subtitles) -> str:
-    """Generate plain text content from the given subtitles.
-
-    Args:
-        subtitles: The Subtitles object containing the segments.
-
-    Returns:
-        The full transcription as a single string.
-    """
-    logger.info("Generating subtitles in TXT format...")
-    return str(subtitles)
-
-
 def to_vtt(subtitles: Subtitles) -> str:
     """Generate the content for a VTT subtitle file.
 

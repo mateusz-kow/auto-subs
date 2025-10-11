@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2024-05-23
+
+### Added
+
+-   **Subtitle Conversion Engine**: Implemented parsers for SRT, VTT, and ASS formats, allowing the library to read and understand existing subtitle files.
+-   **New `convert` CLI Command**: Added `auto-subs convert` to easily convert between supported subtitle formats (e.g., SRT to VTT) from the command line. This command also supports batch processing directories.
+-   **New `load()` API Function**: Exposed `auto_subs.load()` to allow developers to programmatically load subtitle files into an `auto_subs.Subtitles` object for inspection or further processing.
+
+## [0.3.1] - 2024-05-22
+
+### Changed
+
+-   Polished documentation and updated type hints for clarity.
+-   Minor improvements to the CI workflow configuration.
+
 ## [0.3.0] - 2024-05-22
 
 ### Added

@@ -1,5 +1,6 @@
 """Public API for the auto-subs library."""
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,13 @@ from auto_subs.core.transcriber import run_transcription
 from auto_subs.models.formats import SubtitleFormat
 from auto_subs.models.settings import AssSettings
 from auto_subs.models.subtitles import Subtitles
+
+# Factory mapping subtitle formats to their respective generator functions.
+_format_map: dict[SubtitleFormat, Callable[..., str]] = {
+    SubtitleFormat.SRT: generator.to_srt,
+    SubtitleFormat.VTT: generator.to_vtt,
+    SubtitleFormat.ASS: generator.to_ass,
+}
 
 
 def generate(
@@ -23,7 +31,7 @@ def generate(
     Args:
         transcription_dict: A dictionary containing transcription data, compatible
                             with Whisper's word-level output.
-        output_format: The desired output format ("srt", "vtt", "ass", or "txt").
+        output_format: The desired output format ("srt", "vtt", or "ass").
         max_chars: The maximum number of characters per subtitle line.
         ass_settings: Optional settings for ASS format generation. If None,
                       default settings will be used.
@@ -38,17 +46,18 @@ def generate(
     subtitles = Subtitles.from_dict(transcription_dict, max_chars=max_chars)
     normalized_format = output_format.lower()
 
-    if normalized_format == SubtitleFormat.SRT:
-        return generator.to_srt(subtitles)
-    if normalized_format == SubtitleFormat.ASS:
-        settings = ass_settings or AssSettings()
-        return generator.to_ass(subtitles, settings)
-    if normalized_format == SubtitleFormat.TXT:
-        return generator.to_txt(subtitles)
-    if normalized_format == SubtitleFormat.VTT:
-        return generator.to_vtt(subtitles)
+    try:
+        format_enum = SubtitleFormat(normalized_format)
+        writer_func = _format_map[format_enum]
+    except (ValueError, KeyError) as e:
+        raise ValueError(
+            f"Invalid output format specified: {output_format}. Must be one of: {', '.join(_format_map.keys())}."
+        ) from e
 
-    raise ValueError(f"Invalid output format specified: {output_format}. Must be 'srt', 'vtt', 'ass', or 'txt'.")
+    if format_enum == SubtitleFormat.ASS:
+        settings = ass_settings or AssSettings()
+        return writer_func(subtitles, settings)
+    return writer_func(subtitles)
 
 
 def transcribe(
@@ -65,7 +74,7 @@ def transcribe(
 
     Args:
         media_file: Path to the audio or video file.
-        output_format: The desired output format ("srt", "vtt", "ass", or "txt").
+        output_format: The desired output format ("srt", "vtt", or "ass").
         model_name: The name of the Whisper model to use (e.g., "tiny", "base", "small").
         max_chars: The maximum number of characters per subtitle line.
         ass_settings: Optional settings for ASS format generation.
@@ -119,6 +128,6 @@ def load(file_path: str | Path) -> Subtitles:
     elif suffix == ".ass":
         segments = parser.parse_ass(content)
     else:
-        raise ValueError(f"Unsupported subtitle format: {suffix}. Must be '.srt', '.vtt', or '.ass'.")
+        raise ValueError(f"Unsupported subtitle format: {suffix}. Must be one of: {', '.join(_format_map.keys())}.")
 
     return Subtitles(segments=segments)

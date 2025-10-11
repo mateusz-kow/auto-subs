@@ -43,18 +43,6 @@ def test_to_srt_empty(empty_subtitles: Subtitles) -> None:
     assert generator.to_srt(empty_subtitles) == expected_srt
 
 
-def test_to_txt(sample_subtitles: Subtitles) -> None:
-    """Test TXT generation."""
-    expected_txt = "Hello world.\nThis is a test."
-    assert generator.to_txt(sample_subtitles) == expected_txt
-
-
-def test_to_txt_empty(empty_subtitles: Subtitles) -> None:
-    """Test TXT generation with empty subtitles."""
-    expected_txt = ""
-    assert generator.to_txt(empty_subtitles) == expected_txt
-
-
 def test_to_ass(sample_subtitles: Subtitles) -> None:
     """Test ASS generation."""
     settings = AssSettings()
