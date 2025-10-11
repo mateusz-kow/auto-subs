@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="PASTE_YOUR_LOGO_URL_HERE" alt="Auto-Subs Logo" width="150">
+  <img src="https://github.com/mateusz-kow/auto-subs/blob/assets/assets/logo.png?raw=true" alt="Auto-Subs Logo" width="150">
   <h1>Auto-Subs</h1>
   <strong>Effortless Subtitle Generation from Whisper Transcriptions.</strong>
   <p>A powerful, local-first library and CLI for generating subtitles with precise, word-level accuracy.</p>
