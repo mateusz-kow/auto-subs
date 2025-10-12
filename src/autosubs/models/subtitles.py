@@ -4,11 +4,6 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import ValidationError
-
-from autosubs.core.word_segmenter import segment_words
-from autosubs.models.transcription import TranscriptionModel
-
 logger = logging.getLogger(__name__)
 
 
@@ -24,18 +19,6 @@ class SubtitleWord:
         """Validates the word's timestamps after initialization."""
         if self.start > self.end:
             raise ValueError(f"SubtitleWord has invalid timestamp: start ({self.start}) > end ({self.end})")
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> SubtitleWord:
-        """Creates a SubtitleWord instance from a dictionary.
-
-        Args:
-            data: A dictionary with 'word', 'start', and 'end' keys.
-
-        Returns:
-            A new SubtitleWord instance.
-        """
-        return cls(text=data["word"].strip(), start=data["start"], end=data["end"])
 
     def to_dict(self) -> dict[str, Any]:
         """Converts the instance to a dictionary."""
@@ -102,29 +85,6 @@ class Subtitles:
                     f"Segment {i} ends at {self.segments[i].end}, "
                     f"but segment {i + 1} starts at {self.segments[i + 1].start}."
                 )
-
-    @classmethod
-    def from_dict(cls, transcription_dict: dict[str, Any], **kwargs: Any) -> Subtitles:
-        """Creates a Subtitles instance from a transcription dictionary.
-
-        Args:
-            transcription_dict: The raw transcription dictionary.
-            **kwargs: Additional arguments for the word segmenter (e.g., max_chars).
-
-        Returns:
-            A new Subtitles instance.
-
-        Raises:
-            ValueError: If the transcription data fails validation.
-        """
-        try:
-            # We still use TranscriptionModel to validate the raw input dictionary
-            validated_dict = TranscriptionModel.model_validate(transcription_dict).to_dict()
-        except ValidationError as e:
-            raise ValueError("Transcription data failed validation.") from e
-
-        segments = segment_words(validated_dict, **kwargs)
-        return cls(segments)
 
     def to_transcription_dict(self) -> dict[str, Any]:
         """Converts the subtitles object to a Whisper-compatible dictionary."""

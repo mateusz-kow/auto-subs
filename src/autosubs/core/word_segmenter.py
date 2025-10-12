@@ -1,23 +1,12 @@
 from logging import getLogger
-from typing import Any
 
 from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
-from autosubs.models.transcription import (
-    TRANSCRIPTION_ADAPTER,
-    TranscriptionModel,
-    WordModel,
-)
 
 logger = getLogger(__name__)
 
 
-def _flatten_words(transcription_model: TranscriptionModel) -> list[WordModel]:
-    """Flattens all WordModels from a TranscriptionModel into a single list."""
-    return [word for segment in transcription_model.segments for word in segment.words]
-
-
 def segment_words(
-    transcription: dict[str, Any],
+    words: list[SubtitleWord],
     max_chars: int = 35,
     min_words: int = 1,
     break_chars: tuple[str, ...] = (".", ",", "!", "?"),
@@ -25,8 +14,7 @@ def segment_words(
     """Segments word-level transcription data into subtitle lines.
 
     Args:
-        transcription: The transcription data. Must contain a "segments" key,
-                       which holds a list of segments, each with a "words" key.
+        words: The list of words to include in the subtitles.
         max_chars: The maximum number of characters desired per subtitle line.
         min_words: The minimum number of words for a line to be broken by punctuation.
         break_chars: Punctuation that should force a line break.
@@ -35,17 +23,15 @@ def segment_words(
         A list of SubtitleSegment objects.
     """
     logger.info("Starting word segmentation...")
-    validated_model = TRANSCRIPTION_ADAPTER.validate_python(transcription)
-    all_words = _flatten_words(validated_model)
 
-    if not all_words:
+    if not words:
         return []
 
     segments: list[SubtitleSegment] = []
     current_line_words: list[SubtitleWord] = []
 
-    for word_model in all_words:
-        word_text = word_model.word.strip()
+    for word_model in words:
+        word_text = word_model.text.strip()
         if not word_text:
             continue
 

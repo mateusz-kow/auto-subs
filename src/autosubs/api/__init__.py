@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from autosubs.core import generator, parser
+from autosubs.core.builder import create_subtitles_from_transcription
 from autosubs.core.transcriber import run_transcription
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings
@@ -54,13 +55,11 @@ def generate(
         if not path.is_file():
             raise FileNotFoundError(f"Transcription file not found at: {path}")
         with path.open("r", encoding="utf-8") as f:
-            valid_transcription_dict = json.load(f)
+            transcription_dict = json.load(f)
     else:
-        valid_transcription_dict = transcription_source
+        transcription_dict = transcription_source
 
-    subtitles = Subtitles.from_dict(valid_transcription_dict, max_chars=max_chars, min_words=min_words)
     normalized_format = output_format.lower()
-
     try:
         format_enum = SubtitleFormat(normalized_format)
         writer_func = _format_map[format_enum]
@@ -68,6 +67,8 @@ def generate(
         raise ValueError(
             f"Invalid output format specified: {output_format}. Must be one of: {', '.join(_format_map.keys())}."
         ) from e
+
+    subtitles = create_subtitles_from_transcription(transcription_dict, max_chars=max_chars, min_words=min_words)
 
     if format_enum == SubtitleFormat.ASS:
         settings = ass_settings or AssSettings()
