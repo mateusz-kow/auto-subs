@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from auto_subs import __version__
-from auto_subs.cli import app
+from autosubs import __version__
+from autosubs.cli import app
 from tests.utils import strip_ansi
 
 runner = CliRunner()

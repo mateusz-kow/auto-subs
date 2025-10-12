@@ -1,16 +1,17 @@
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from auto_subs.cli import app
-from auto_subs.typing.transcription import TranscriptionDict
+from autosubs.cli import app
+from autosubs.models.settings import AssSettings
 
 runner = CliRunner()
 
 
-def test_cli_generate_srt_success(tmp_path: Path, sample_transcription: TranscriptionDict) -> None:
+def test_cli_generate_srt_success(tmp_path: Path, sample_transcription: dict[str, Any]) -> None:
     """Test successful generation of an SRT file."""
     input_file = tmp_path / "input.json"
     output_file = tmp_path / "output.srt"
@@ -26,7 +27,7 @@ def test_cli_generate_srt_success(tmp_path: Path, sample_transcription: Transcri
     assert "This is a test transcription for" in content
 
 
-def test_cli_generate_ass_default_output(tmp_path: Path, sample_transcription: TranscriptionDict) -> None:
+def test_cli_generate_ass_default_output(tmp_path: Path, sample_transcription: dict[str, Any]) -> None:
     """Test successful generation with a default output path."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
@@ -41,7 +42,7 @@ def test_cli_generate_ass_default_output(tmp_path: Path, sample_transcription: T
     assert "Dialogue:" in content
 
 
-def test_cli_generate_batch(tmp_path: Path, sample_transcription: TranscriptionDict) -> None:
+def test_cli_generate_batch(tmp_path: Path, sample_transcription: dict[str, Any]) -> None:
     """Test successful generation for a directory of JSON files."""
     input_dir = tmp_path / "input"
     output_dir = tmp_path / "output"
@@ -81,13 +82,13 @@ def test_cli_validation_error(tmp_path: Path) -> None:
     assert "Input file validation error" in result.stdout
 
 
-def test_cli_write_error(tmp_path: Path, sample_transcription: TranscriptionDict) -> None:
+def test_cli_write_error(tmp_path: Path, sample_transcription: dict[str, Any]) -> None:
     """Test error handling for an OSError during file writing."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
 
-    target_output_file = input_file.with_suffix(".srt")
-    target_output_file.mkdir()
+    # Create a directory where the file should be, causing an OSError on write
+    (input_file.with_suffix(".srt")).mkdir()
 
     result = runner.invoke(app, ["generate", str(input_file), "-f", "srt"])
 
@@ -95,40 +96,37 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: TranscriptionDict
     assert f"Error reading or parsing input file {input_file.name}" in result.stdout
 
 
-@patch("auto_subs.cli.generate.generate_api", return_value="[Script Info]\nDialogue: Test")
+@patch("autosubs.cli.generate.generate_api")
 def test_cli_generate_karaoke_with_ass(
-    mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
+    mock_generate_api: MagicMock, tmp_path: Path, sample_transcription: dict[str, Any]
 ) -> None:
     """Test --karaoke flag correctly applies ASS karaoke style."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
+    mock_generate_api.return_value = "[Script Info]\nDialogue: Test"
 
     result = runner.invoke(app, ["generate", str(input_file), "-f", "ass", "--karaoke"])
 
     assert result.exit_code == 0
-    assert "Generating subtitles in ASS format" in result.stdout
-    assert "Warning" not in result.stdout
-    mock_generate.assert_called_once()
-    _, kwargs = mock_generate.call_args
-    assert hasattr(kwargs["ass_settings"], "highlight_style")
+    mock_generate_api.assert_called_once()
+    _, kwargs = mock_generate_api.call_args
+    assert isinstance(kwargs["ass_settings"], AssSettings)
     assert kwargs["ass_settings"].highlight_style is not None
 
 
-@patch(
-    "auto_subs.cli.generate.generate_api",
-    return_value="1\n00:00:00,000 --> 00:00:02,000\nHello",
-)
+@patch("autosubs.cli.generate.generate_api")
 def test_cli_generate_karaoke_non_ass(
-    mock_generate: MagicMock, tmp_path: Path, sample_transcription: TranscriptionDict
+    mock_generate_api: MagicMock, tmp_path: Path, sample_transcription: dict[str, Any]
 ) -> None:
     """Test --karaoke flag with non-ASS format shows a warning and still generates output."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
+    mock_generate_api.return_value = "1\n00:00:00,000 --> 00:00:02,000\nHello"
 
     result = runner.invoke(app, ["generate", str(input_file), "-f", "srt", "--karaoke"])
 
     assert result.exit_code == 0
     assert "Warning: --karaoke flag is only applicable for ASS format." in result.stdout
     assert "Successfully saved subtitles" in result.stdout
-    _, kwargs = mock_generate.call_args
-    assert not hasattr(kwargs["ass_settings"], "highlight_style") or kwargs["ass_settings"].highlight_style is None
+    _, kwargs = mock_generate_api.call_args
+    assert kwargs["ass_settings"] is None

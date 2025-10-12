@@ -15,7 +15,7 @@ def test_run_transcription_success(fake_media_file: Path) -> None:
 
     # Patch sys.modules BEFORE importing the module under test to prevent OSError
     with patch.dict(sys.modules, {"whisper": mock_whisper}):
-        from auto_subs.core.transcriber import run_transcription
+        from autosubs.core.transcriber import run_transcription
 
         result = run_transcription(fake_media_file, "base")
 
@@ -35,7 +35,7 @@ def test_run_transcription_import_error(fake_media_file: Path) -> None:
         # as it was likely loaded by other tests.
         from importlib import reload
 
-        from auto_subs.core import transcriber
+        from autosubs.core import transcriber
 
         reload(transcriber)
         transcriber.run_transcription(fake_media_file, "base")

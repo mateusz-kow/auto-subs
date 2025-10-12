@@ -3,10 +3,10 @@ from typing import Annotated
 
 import typer
 
-from auto_subs import __version__
-from auto_subs.cli.convert import convert
-from auto_subs.cli.generate import generate
-from auto_subs.cli.transcribe import transcribe
+from autosubs import __version__
+from autosubs.cli.convert import convert
+from autosubs.cli.generate import generate
+from autosubs.cli.transcribe import transcribe
 
 # The logger is configured in the main() callback based on CLI flags.
 logger = logging.getLogger(__name__)

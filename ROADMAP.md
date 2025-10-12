@@ -1,101 +1,99 @@
 # Auto-Subs Roadmap to 1.0.0
 
-This document outlines the planned features and improvements for `auto-subs` as it progresses towards a stable `1.0.0` release. The goal of `1.0.0` is to provide a mature, feature-rich, and highly reliable tool for subtitle generation and conversion.
+This document outlines the planned features and improvements for `auto-subs` as it progresses towards a stable `1.0.0` release. The goal of `1.0.0` is to provide a mature, feature-rich, and highly reliable tool for subtitle generation and conversion, serving both as a powerful CLI and as the definitive library for building modern, AI-driven subtitle applications.
 
 This roadmap is a living document and is subject to change based on development progress and community feedback.
 
-## Current State: v0.3.2
-
--   **Core Functionality**: Transcribe media files, generate subtitles from JSON, and convert between existing subtitle formats.
--   **Supported Formats**: SRT, ASS, VTT.
--   **Features**: Intelligent word segmentation, karaoke-style highlighting for ASS, batch processing, Whisper model selection.
--   **Interfaces**: Python library API (`auto_subs.transcribe`, `auto_subs.generate`, `auto_subs.load`) and a Typer-based CLI.
-
 ---
 
-## Version 0.3.3 - Code Quality & Refactoring
+### Phase 1: Solidifying the Foundation (v0.3.x - v0.5.x)
 
-This is a maintenance release focused on improving the internal architecture, making the codebase more robust, scalable, and easier to maintain.
+This phase focuses on code quality, usability, and making the existing features more robust.
 
--   **🎯 Key Goal**: Refactor the codebase for long-term health and scalability.
--   **Changes**:
-    -   **[Major] API & CLI Package Restructuring**:
-        -   The `api.py` and `cli.py` modules will be converted into packages (`api/` and `cli/`).
-        -   This will break down large files into smaller, single-responsibility modules, improving organization and making testing more granular.
-    -   **[Major] Refactor to Factory Pattern**:
-        -   Replace `if/elif` chains for format handling (`srt`, `vtt`, `ass`) with a more maintainable factory (dictionary-based) pattern. This makes adding new formats cleaner in the future.
-    -   **[Breaking] Remove TXT Output Format**:
-        -   The plain text (`.txt`) output format will be removed. It is an outlier as it does not contain timing data, which complicates the API and core logic. Users can still easily produce plain text from any subtitle file.
-    -   **Abstract CLI Path Handling Logic**:
-        -   Create a shared utility to handle file/directory path processing and batch logic, removing significant code duplication between the `generate`, `transcribe`, and `convert` commands.
-
----
-
-## Version 0.4.0 - Advanced Customization & Usability
-
-This release will focus on giving users more fine-grained control over the subtitle output and improving the user experience.
-
+#### **Version 0.4.0 - Advanced Customization**
 -   **🎯 Key Goal**: Empower users with advanced styling and segmentation options.
--   **Features**:
-    -   **Advanced ASS Styling**:
-        -   **Style Configuration Files**: Introduce a `--style <file.json>` option to load a complete ASS style from a file, allowing users to create, save, and share style presets.
-        -   **Optional Default Styling**: Allow `AssSettings` to be completely optional. When not provided, no style block will be embedded, allowing the video player (e.g., FFmpeg, VLC) to apply its own default style.
-        -   **Granular CLI Flags**: Expose key `AssSettings` parameters as CLI options for quick, on-the-fly customization (e.g., `--ass-font "Comic Sans"`).
-    -   **Enhanced Segmentation Logic**:
-        -   Introduce a `--min-words-per-line` option to prevent single-word subtitle lines, which can be visually jarring.
-        -   Add a `--max-lines` option (defaulting to 2) to control how many lines a single subtitle entry can have.
-    -   **Output Format Inference**:
-        -   Allow the CLI to automatically detect the desired output format from the file extension provided in the `--output` flag (e.g., `auto-subs generate in.json -o out.vtt` will automatically select VTT format).
+-   **Features**: Advanced ASS styling (from file, granular CLI flags), enhanced segmentation logic (`--min-words-per-line`, `--max-lines`), CLI output format inference.
+
+#### **Version 0.5.0 - Robustness & Integration**
+-   **🎯 Key Goal**: Ensure maximum reliability and improve the developer experience for integrations.
+-   **Features**: Improved data validation (inverted/overlapping timestamps), flexible API inputs (accept file paths), serializable models with a dedicated `json` export format, expose core utilities like timestamp formatters.
 
 ---
 
-## Version 0.5.0 - Robustness and Integration
+### Phase 2: Achieving Feature Parity and Superiority (v0.6.0 - v0.15.x)
 
-This release will focus on hardening the tool against edge cases and making the API more flexible for developers.
+This phase is about closing the gap with established libraries on essential features, while leveraging our unique word-level model to provide superior implementations.
 
--   **🎯 Key Goal**: Ensure maximum reliability and improve the developer experience.
+#### **Version 0.6.0 - Rich API for Programmatic Editing**
+-   **🎯 Key Goal**: Enable advanced, in-memory subtitle manipulation, a core requirement for GUI editors.
+-   **Features**: Mutable `Subtitle` objects with methods like `add_word()`, `remove_segment()`, `merge_segments()`, `split_at_word()`, and `resize()` with **proportional word timestamp scaling**.
+
+#### **Version 0.8.0 - Streaming & Parallel Transcription**
+-   **🎯 Key Goal**: Enable real-time feedback and faster processing for long media files, inspired by `agermanidis-autosub` and user feedback.
 -   **Features**:
-    -   **Improved Data Validation and Correction**:
-        -   Explicitly validate and, where possible, correct inverted timestamps (`start > end`) at the word level, logging a warning instead of failing.
-        -   Add checks for overlapping word timestamps within a segment.
-    -   **Flexible API Inputs**:
-        -   Update API functions to optionally accept a file path (`str` or `Path`) in addition to a dictionary, simplifying common workflows.
-    -   **Structured JSON Output**:
-        -   Add a new output format: `json`. This format will output the cleaned, validated, and segmented subtitle data as a structured JSON file. This is useful for developers who want to use `auto-subs` as a pre-processing step in a larger toolchain.
+    -   **New `stream_transcribe()` API**: An async generator that yields segments as they are processed.
+    -   **Voice Activity Detection (VAD)**: Integrate a modern VAD model to intelligently chunk audio at silent intervals, ensuring high-quality transcription across boundaries.
+    -   **Multi-Process Parallelization**: Use a pool of worker processes to transcribe audio chunks in parallel, dramatically reducing total transcription time.
+
+#### **Version 0.10.0 - Advanced Retiming and Utilities**
+-   **🎯 Key Goal**: Match and exceed `pysubs2`'s retiming capabilities.
+-   **Features**: `transform_framerate()`, `map_timestamps(func)` for non-linear retiming, and a `clean()` method to programmatically remove unwanted content.
+
+#### **Version 0.12.0 - Translation Integration**
+-   **🎯 Key Goal**: Provide a flexible, integrated translation workflow.
+-   **Features**:
+    -   Introduce a `subtitles.translate(dest_lang, backend='google')` method.
+    -   Implement a pluggable backend system for different translation services.
+    -   CLI integration: `auto-subs transcribe video.mp4 --translate de`.
+
+#### **Version 0.14.0 - CLI Power-User Features**
+-   **🎯 Key Goal**: Add high-value, end-to-end features to the CLI.
+-   **Features**:
+    -   **Hardsubbing**: Introduce a `--burn` flag to the `transcribe` and `generate` commands. This will use FFmpeg to burn the generated subtitles directly into a new video file, a core feature of `m1guelpf-auto-subtitle`.
+    -   **Audio Pre-processing Hooks**: Allow specifying simple pre-processing filters (e.g., `--audio-filter "lowpass=3000,highpass=200"`) for advanced users.
+
+#### **Version 0.15.0 - Strategic Format Expansion**
+-   **🎯 Key Goal**: Expand support to other key subtitle formats for broader compatibility.
+-   **Features**: Add parsers and writers for **TTML** and the frame-based **MicroDVD (`.sub`)** format.
 
 ---
 
-## The Path to 1.0.0 (v0.6.0 - v0.9.x)
+### Phase 3: Polish and Production Readiness (v0.16.0 - v0.25.x)
 
-This phase will be dedicated to stabilization, documentation, and performance, with fewer new features.
+This phase is dedicated to stabilization, documentation, and the final features needed for a world-class library.
 
--   **[v0.7.0] Comprehensive Documentation**:
-    -   Set up a dedicated documentation website using MkDocs or Sphinx.
-    -   Include a full API reference, tutorials for common use cases, and detailed explanations of all CLI commands and options.
--   **[v0.8.0] Performance Optimization**:
-    -   Profile the application with very large transcription files (e.g., 2-3 hour videos).
-    -   Optimize word segmentation, parsing, and file generation algorithms to reduce memory usage and processing time.
--   **[v0.9.0] Release Candidate Phase**:
-    -   Focus exclusively on fixing bugs and incorporating feedback from early adopters.
-    -   Freeze the API and feature set in preparation for the `1.0.0` release.
+#### **Version 0.16.0 - Advanced Styling and Tag Support**
+-   **🎯 Key Goal**: Handle complex ASS styling and override tags gracefully.
+-   **Features**: Preserve unknown ASS tags, implement `import_styles()` and `rename_style()`.
+
+#### **Version 0.17.0 - Context-Aware & Time-Aware Layered Styling Engine**
+-   **🎯 Key Goal**: Introduce a modular, rule-based, and time-aware styling engine that enables Aegisub-level visual fidelity with modern, programmable control, establishing `auto-subs` as a true subtitle generation engine.
+-   **Features**:
+    -   **Layered Styling System**: Implement independent, composable layers for `ass_style` (line appearance), `karaoke_styles` (word timing), and `animation_presets` (reusable `\t` effects).
+    -   **Rule-Based & Time-Aware Matching**: Allow styles and animations to be applied based on rules with `patterns` (regex), `priority`, and `start_time`/`end_time` ranges, enabling effects to change dynamically throughout the media.
+    -   **Declarative Configuration**: Define all styling logic in a single, validated JSON or YAML file, separating style from content. The engine will use Pydantic for robust validation and convert to internal dataclasses for high performance.
+    -   **Indexed Word Architecture**: Internally, each word will reference its applied styles, enabling highly efficient `O(m)` updates, crucial for future GUI applications.
+    -   **Dynamic Default Styles**: Support changing the default ASS style for new lines at different points in time, without affecting previously generated lines.
+
+#### **Version 0.18.0 - Comprehensive Documentation**
+-   **🎯 Key Goal**: Create a full-fledged documentation website.
+-   **Features**: Set up a site using MkDocs/Sphinx with a full API reference, tutorials, and detailed CLI explanations.
+
+#### **Version 0.20.0 - Performance & Optimization**
+-   **🎯 Key Goal**: Ensure the library is fast and memory-efficient with large files.
+-   **Features**: Profile and optimize all core operations.
+
+#### **Version 0.22.0 - Handling ASS Attachments**
+-   **🎯 Key Goal**: Support preserving embedded data in ASS files for full Aegisub compatibility.
+-   **Features**: Implement logic to read, store, and write back `[Fonts]` and `[Graphics]` sections from ASS files.
+
+#### **Version 0.25.0 - Release Candidate Phase**
+-   **🎯 Key Goal**: Prepare for the stable release.
+-   **Features**: Freeze the API. Focus exclusively on bug fixes, performance tweaks, and community feedback.
 
 ---
 
 ## Version 1.0.0 - Stable Release
 
--   **🎯 Key Goal**: Mark the library as stable, reliable, and production-ready.
--   **Commitments**:
-    -   **Guaranteed API Stability**: The public API will adhere to Semantic Versioning. No breaking changes will be introduced until a `2.0.0` release.
-    -   **Finalized Documentation**: The documentation will be complete and up-to-date.
-    -   **Thorough Testing**: Confident in the test suite and its coverage of all core features and edge cases.
-
----
-
-## Post-1.0.0 / Future Ideas
-
-Features to be considered after the stable `1.0.0` release.
-
--   **Speaker Diarization**: Add support for identifying and labeling different speakers (e.g., `Speaker 1: Hello.`, `Speaker 2: Hi there.`).
--   **Translation Support**: Integrate translation APIs or models to translate subtitles into different languages.
--   **GUI Application**: A simple cross-platform desktop app (e.g., using PyQt) for non-technical users.
--   **Plugin System**: Allow integration with other Automatic Speech Recognition (ASR) models beyond Whisper.
+-   **🎯 Key Goal**: Mark the library as stable, reliable, and production-ready for both CLI users and application developers.
+-   **Commitments**: Guaranteed API Stability, finalized documentation, and thorough test coverage.

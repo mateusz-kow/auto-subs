@@ -3,7 +3,7 @@
 import re
 from logging import getLogger
 
-from auto_subs.models.subtitles import SubtitleSegment, SubtitleWord
+from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
 
 logger = getLogger(__name__)
 
@@ -14,7 +14,7 @@ ASS_TIMESTAMP_REGEX = re.compile(r"(\d):(\d{2}):(\d{2})\.(\d{2})")
 ASS_STYLE_TAG_REGEX = re.compile(r"{[^}]+}")
 
 
-def _srt_timestamp_to_seconds(timestamp: str) -> float:
+def srt_timestamp_to_seconds(timestamp: str) -> float:
     """Converts an SRT timestamp string to seconds.
 
     Args:
@@ -33,7 +33,7 @@ def _srt_timestamp_to_seconds(timestamp: str) -> float:
     return h * 3600 + m * 60 + s + ms / 1000
 
 
-def _vtt_timestamp_to_seconds(timestamp: str) -> float:
+def vtt_timestamp_to_seconds(timestamp: str) -> float:
     """Converts a VTT timestamp string to seconds.
 
     Args:
@@ -54,7 +54,7 @@ def _vtt_timestamp_to_seconds(timestamp: str) -> float:
     return h * 3600 + m * 60 + s + ms / 1000
 
 
-def _ass_timestamp_to_seconds(timestamp: str) -> float:
+def ass_timestamp_to_seconds(timestamp: str) -> float:
     """Converts an ASS timestamp string to seconds.
 
     Args:
@@ -99,8 +99,12 @@ def parse_srt(file_content: str) -> list[SubtitleSegment]:
                 continue
 
             start_str, end_str = (part.strip() for part in timestamp_line.split("-->"))
-            start_time = _srt_timestamp_to_seconds(start_str)
-            end_time = _srt_timestamp_to_seconds(end_str)
+            start_time = srt_timestamp_to_seconds(start_str)
+            end_time = srt_timestamp_to_seconds(end_str)
+
+            if start_time >= end_time:
+                logger.warning(f"Skipping SRT block with invalid timestamp (start >= end): {block}")
+                continue
 
             word = SubtitleWord(text=text, start=start_time, end=end_time)
             segments.append(SubtitleSegment(words=[word]))
@@ -139,9 +143,13 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
         try:
             start_str, end_str_full = timestamp_line.split("-->")
             end_str = end_str_full.strip().split(" ")[0]
-            start_time = _vtt_timestamp_to_seconds(start_str.strip())
-            end_time = _vtt_timestamp_to_seconds(end_str)
+            start_time = vtt_timestamp_to_seconds(start_str.strip())
+            end_time = vtt_timestamp_to_seconds(end_str)
             text = "\n".join(lines[text_start_index:])
+
+            if start_time >= end_time:
+                logger.warning(f"Skipping VTT block with invalid timestamp (start >= end): {block}")
+                continue
 
             word = SubtitleWord(text=text, start=start_time, end=end_time)
             segments.append(SubtitleSegment(words=[word]))
@@ -193,9 +201,14 @@ def parse_ass(file_content: str) -> list[SubtitleSegment]:
 
             parts = value.split(",", len(format_map) - 1)
             try:
-                start_time = _ass_timestamp_to_seconds(parts[format_map["start"]].strip())
-                end_time = _ass_timestamp_to_seconds(parts[format_map["end"]].strip())
+                start_time = ass_timestamp_to_seconds(parts[format_map["start"]].strip())
+                end_time = ass_timestamp_to_seconds(parts[format_map["end"]].strip())
                 text = parts[format_map["text"]].strip()
+
+                if start_time >= end_time:
+                    logger.warning(f"Skipping ASS Dialogue with invalid timestamp (start >= end): {line}")
+                    continue
+
                 clean_text = ASS_STYLE_TAG_REGEX.sub("", text).replace("\\N", "\n")
 
                 word = SubtitleWord(text=clean_text, start=start_time, end=end_time)
