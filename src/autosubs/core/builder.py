@@ -12,7 +12,7 @@ from autosubs.models.subtitles import Subtitles, SubtitleWord
 
 
 def create_subtitles_from_transcription(
-    transcription_dict: dict[str, Any], max_chars: int, min_words: int
+    transcription_dict: dict[str, Any], max_chars: int, min_words: int, max_lines: int
 ) -> Subtitles:
     """Validates a raw transcription dictionary and builds a Subtitles object.
 
@@ -23,6 +23,7 @@ def create_subtitles_from_transcription(
         transcription_dict: The raw transcription dictionary.
         max_chars: The maximum number of characters per subtitle line.
         min_words: The minimum number of words per subtitle line (punctuation breaks).
+        max_lines: The maximum number of lines per subtitle segment.
 
     Returns:
         A fully constructed and validated Subtitles object.
@@ -34,7 +35,7 @@ def create_subtitles_from_transcription(
         for segment in validated_model.segments
         for word in segment.words
     ]
-    segments = segment_words(words, max_chars=max_chars, min_words=min_words)
+    segments = segment_words(words, max_chars=max_chars, min_words=min_words, max_lines=max_lines)
 
     return Subtitles(segments=segments)
 

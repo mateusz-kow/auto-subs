@@ -5,10 +5,32 @@ from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
 logger = getLogger(__name__)
 
 
+def _combine_segments(segments: list[SubtitleSegment], max_lines: int) -> list[SubtitleSegment]:
+    """Combines single-line segments into multi-line segments up to a limit."""
+    if not segments or max_lines <= 1:
+        return segments
+
+    combined: list[SubtitleSegment] = []
+    i = 0
+    while i < len(segments):
+        group = segments[i : i + max_lines]
+        all_words = [word for seg in group for word in seg.words]
+
+        new_segment = SubtitleSegment(words=all_words)
+        new_segment.text_override = "\n".join(seg.text for seg in group)
+
+        combined.append(new_segment)
+        i += len(group)
+
+    logger.info(f"Combined {len(segments)} lines into {len(combined)} multi-line segments.")
+    return combined
+
+
 def segment_words(
     words: list[SubtitleWord],
     max_chars: int = 35,
     min_words: int = 1,
+    max_lines: int = 2,
     break_chars: tuple[str, ...] = (".", ",", "!", "?"),
 ) -> list[SubtitleSegment]:
     """Segments word-level transcription data into subtitle lines.
@@ -17,6 +39,7 @@ def segment_words(
         words: The list of words to include in the subtitles.
         max_chars: The maximum number of characters desired per subtitle line.
         min_words: The minimum number of words for a line to be broken by punctuation.
+        max_lines: The maximum number of lines to combine into a single segment.
         break_chars: Punctuation that should force a line break.
 
     Returns:
@@ -27,7 +50,7 @@ def segment_words(
     if not words:
         return []
 
-    segments: list[SubtitleSegment] = []
+    lines: list[SubtitleSegment] = []
     current_line_words: list[SubtitleWord] = []
 
     for word_model in words:
@@ -38,7 +61,7 @@ def segment_words(
         current_text = " ".join(w.text for w in current_line_words)
         # The +1 is for the space character.
         if current_line_words and len(current_text) + 1 + len(word_text) > max_chars:
-            segments.append(SubtitleSegment(words=current_line_words.copy()))
+            lines.append(SubtitleSegment(words=current_line_words.copy()))
             current_line_words = []  # Reset for a new line
 
         # Add the word to the (potentially new) line.
@@ -46,11 +69,14 @@ def segment_words(
 
         # If the newly added word ends with a break character, this line might be done.
         if word_text.endswith(break_chars) and len(current_line_words) >= min_words:
-            segments.append(SubtitleSegment(words=current_line_words.copy()))
+            lines.append(SubtitleSegment(words=current_line_words.copy()))
             current_line_words = []
 
     if current_line_words:
-        segments.append(SubtitleSegment(words=current_line_words.copy()))
+        lines.append(SubtitleSegment(words=current_line_words.copy()))
 
-    logger.info(f"Segmentation complete: {len(segments)} subtitle lines created.")
-    return segments
+    logger.info(f"Segmentation created {len(lines)} raw subtitle lines.")
+
+    final_segments = _combine_segments(lines, max_lines)
+    logger.info(f"Segmentation complete: {len(final_segments)} final subtitle segments created.")
+    return final_segments

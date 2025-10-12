@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from _pytest.logging import LogCaptureFixture
 
@@ -38,12 +40,18 @@ def test_subtitles_sorting_and_overlap_warning(caplog: LogCaptureFixture) -> Non
     seg3 = SubtitleSegment(words=[SubtitleWord(text="Overlap", start=2.5, end=3.5)])
 
     # Segments are out of order and one overlaps
-    subtitles = Subtitles(segments=[seg1, seg2, seg3])
+    with caplog.at_level(logging.WARNING):
+        subtitles = Subtitles(segments=[seg1, seg2, seg3])
 
     # Check sorting
     assert subtitles.segments[0] is seg2
     assert subtitles.segments[1] is seg1
     assert subtitles.segments[2] is seg3
+
+    # Check for warning log
+    assert len(caplog.records) == 1
+    assert "Overlap detected" in caplog.text
+    assert "ending at 3.000s overlaps with segment starting at 2.500s" in caplog.text
 
 
 def test_subtitles_to_transcription_dict() -> None:

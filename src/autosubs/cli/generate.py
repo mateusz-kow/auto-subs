@@ -43,6 +43,10 @@ def generate(
         int,
         typer.Option(help="Minimum words per line before allowing a punctuation break."),
     ] = 1,
+    max_lines: Annotated[
+        int,
+        typer.Option(help="Maximum number of lines per subtitle segment."),
+    ] = 1,
     # ASS Options
     karaoke: Annotated[
         bool,
@@ -134,6 +138,7 @@ def generate(
                 output_format=final_output_format,
                 max_chars=max_chars,
                 min_words=min_words,
+                max_lines=max_lines,
                 ass_settings=ass_settings,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)

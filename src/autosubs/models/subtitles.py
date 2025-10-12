@@ -27,6 +27,7 @@ class SubtitleSegment:
     words: list[SubtitleWord]
     start: float = field(init=False)
     end: float = field(init=False)
+    text_override: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Calculates start and end times after initialization."""
@@ -38,7 +39,13 @@ class SubtitleSegment:
 
     @property
     def text(self) -> str:
-        """Returns the segment text by concatenating the words."""
+        """Returns the segment text.
+
+        If `text_override` is set, it returns that value. Otherwise, it
+        concatenates the words with spaces.
+        """
+        if self.text_override is not None:
+            return self.text_override
         return " ".join(word.text for word in self.words)
 
 
@@ -51,6 +58,14 @@ class Subtitles:
     def __post_init__(self) -> None:
         """Sorts segments and checks for overlaps after initialization."""
         self.segments.sort(key=lambda s: s.start)
+        for i in range(len(self.segments) - 1):
+            current_seg = self.segments[i]
+            next_seg = self.segments[i + 1]
+            if current_seg.end > next_seg.start:
+                logger.warning(
+                    f"Overlap detected: Segment ending at {current_seg.end:.3f}s overlaps with "
+                    f"segment starting at {next_seg.start:.3f}s."
+                )
 
     @property
     def text(self) -> str:

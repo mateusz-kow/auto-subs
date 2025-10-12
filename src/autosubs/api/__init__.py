@@ -26,6 +26,7 @@ def generate(
     output_format: str,
     max_chars: int = 35,
     min_words: int = 1,
+    max_lines: int = 1,
     ass_settings: AssSettings | None = None,
 ) -> str:
     """Generate subtitle content from a transcription dictionary.
@@ -39,6 +40,7 @@ def generate(
         output_format: The desired output format ("srt", "vtt", "ass", or "json").
         max_chars: The maximum number of characters per subtitle line.
         min_words: The minimum number of words per subtitle line (punctuation breaks).
+        max_lines: The maximum number of lines per subtitle segment.
         ass_settings: Optional settings for ASS format generation. If None,
                       default settings will be used.
 
@@ -68,7 +70,9 @@ def generate(
             f"Invalid output format specified: {output_format}. Must be one of: {', '.join(_format_map.keys())}."
         ) from e
 
-    subtitles = create_subtitles_from_transcription(transcription_dict, max_chars=max_chars, min_words=min_words)
+    subtitles = create_subtitles_from_transcription(
+        transcription_dict, max_chars=max_chars, min_words=min_words, max_lines=max_lines
+    )
 
     if format_enum == SubtitleFormat.ASS:
         settings = ass_settings or AssSettings()
@@ -82,6 +86,7 @@ def transcribe(
     model_name: str = "base",
     max_chars: int = 35,
     min_words: int = 1,
+    max_lines: int = 2,
     ass_settings: AssSettings | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content.
@@ -95,6 +100,7 @@ def transcribe(
         model_name: The name of the Whisper model to use (e.g., "tiny", "base", "small").
         max_chars: The maximum number of characters per subtitle line.
         min_words: The minimum number of words per subtitle line (punctuation breaks).
+        max_lines: The maximum number of lines per subtitle segment.
         ass_settings: Optional settings for ASS format generation.
 
     Returns:
@@ -115,6 +121,7 @@ def transcribe(
         output_format,
         max_chars=max_chars,
         min_words=min_words,
+        max_lines=max_lines,
         ass_settings=ass_settings,
     )
 
