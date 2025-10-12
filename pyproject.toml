@@ -46,7 +46,11 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+
 # --- Tool Configurations ---
+
+[tool.hatch.build]
+packages = ["src/autosubs"]
 
 [tool.ruff]
 fix = true
