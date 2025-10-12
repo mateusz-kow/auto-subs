@@ -4,11 +4,12 @@ from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
 
 from autosubs.cli import app
+from autosubs.models.settings import AssSettings
 
 runner = CliRunner()
 
 
-@patch("auto_subs.cli.transcribe.transcribe_api")
+@patch("autosubs.cli.transcribe.transcribe_api")
 def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file: Path) -> None:
     """Test successful transcription of a single media file."""
     mock_api_transcribe.return_value = "WEBVTT\n\n00:00:00.100 --> 00:00:01.200\nHello world"
@@ -37,7 +38,7 @@ def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file:
     assert "Successfully saved subtitles" in result.stdout
 
 
-@patch("auto_subs.cli.transcribe.transcribe_api")
+@patch("autosubs.cli.transcribe.transcribe_api")
 def test_cli_transcribe_batch(mock_api_transcribe: MagicMock, tmp_path: Path) -> None:
     """Test successful transcription of a directory of media files."""
     input_dir = tmp_path / "input"
@@ -62,7 +63,7 @@ def test_cli_transcribe_batch(mock_api_transcribe: MagicMock, tmp_path: Path) ->
     assert (output_dir / "test2.srt").exists()
 
 
-@patch("auto_subs.cli.transcribe.transcribe_api")
+@patch("autosubs.cli.transcribe.transcribe_api")
 def test_cli_transcribe_karaoke_with_ass(mock_transcribe_api: MagicMock, fake_media_file: Path) -> None:
     """Test that the --karaoke flag is correctly passed to the API for ASS format."""
     mock_transcribe_api.return_value = "[Script Info]\nDialogue: ..."
@@ -70,10 +71,11 @@ def test_cli_transcribe_karaoke_with_ass(mock_transcribe_api: MagicMock, fake_me
 
     mock_transcribe_api.assert_called_once()
     _, kwargs = mock_transcribe_api.call_args
+    assert isinstance(kwargs["ass_settings"], AssSettings)
     assert kwargs["ass_settings"].highlight_style is not None
 
 
-@patch("auto_subs.cli.transcribe.transcribe_api")
+@patch("autosubs.cli.transcribe.transcribe_api")
 def test_cli_transcribe_karaoke_with_non_ass_warning(mock_transcribe_api: MagicMock, fake_media_file: Path) -> None:
     """Test that a warning is shown when using --karaoke with a non-ASS format."""
     mock_transcribe_api.return_value = "1\n00:00:00,100 --> 00:00:01,200\nHello"
@@ -82,11 +84,11 @@ def test_cli_transcribe_karaoke_with_non_ass_warning(mock_transcribe_api: MagicM
     assert result.exit_code == 0
     assert "Warning: --karaoke flag is only applicable for ASS format." in result.stdout
     _, kwargs = mock_transcribe_api.call_args
-    assert kwargs["ass_settings"].highlight_style is None
+    assert kwargs["ass_settings"] is None
 
 
 @patch(
-    "auto_subs.cli.transcribe.transcribe_api",
+    "autosubs.cli.transcribe.transcribe_api",
     side_effect=ImportError("whisper not found"),
 )
 def test_cli_transcribe_import_error(mock_transcribe_api: MagicMock, fake_media_file: Path) -> None:
@@ -99,7 +101,7 @@ def test_cli_transcribe_import_error(mock_transcribe_api: MagicMock, fake_media_
 
 
 @patch(
-    "auto_subs.cli.transcribe.transcribe_api",
+    "autosubs.cli.transcribe.transcribe_api",
     side_effect=Exception("A generic error occurred"),
 )
 def test_cli_transcribe_generic_error(mock_transcribe_api: MagicMock, fake_media_file: Path) -> None:

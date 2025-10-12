@@ -110,12 +110,17 @@ def transcribe(
 
         if karaoke:
             ass_settings.highlight_style = AssStyleSettings()
+    elif karaoke:
+        typer.secho(
+            "Warning: --karaoke flag is only applicable for ASS format.",
+            fg=typer.colors.YELLOW,
+        )
 
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
     has_errors = False
 
     for in_file, out_file_base in processor.process():
-        typer.echo(f"Transcribing: {in_file.name} (using '{model}' model)")
+        typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
         out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:

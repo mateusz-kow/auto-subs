@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, TypeAdapter
-
-TRANSCRIPTION_ADAPTER: TypeAdapter[TranscriptionModel] = TypeAdapter(lambda: TranscriptionModel)
+from pydantic import BaseModel, Field
 
 
 class WordModel(BaseModel):

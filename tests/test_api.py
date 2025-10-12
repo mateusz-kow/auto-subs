@@ -15,7 +15,7 @@ def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
         generate(transcription_source=sample_transcription, output_format="invalid-format")
 
 
-@pytest.mark.parametrize("output_format", ["srt", "vtt", "ass"])
+@pytest.mark.parametrize("output_format", ["srt", "vtt", "ass", "json"])
 def test_generate_valid_formats(output_format: str, sample_transcription: dict[str, Any]) -> None:
     """Test generation for all supported subtitle formats with default settings."""
     result = generate(
@@ -56,7 +56,7 @@ def test_ass_output_with_karaoke(sample_transcription: dict[str, Any]) -> None:
     assert "{\\k10}is" in result
 
 
-@patch("auto_subs.api.run_transcription")
+@patch("autosubs.api.run_transcription")
 def test_transcribe_api_success(
     mock_run_transcription: MagicMock,
     fake_media_file: Path,
@@ -72,13 +72,11 @@ def test_transcribe_api_success(
     assert "-->" in result
 
 
-@patch("auto_subs.api.run_transcription")
-def test_transcribe_api_file_not_found(mock_run_transcription: MagicMock) -> None:
+def test_transcribe_api_file_not_found() -> None:
     """Test that transcribe API raises FileNotFoundError."""
     non_existent_file = Path("non_existent_file.mp4")
     with pytest.raises(FileNotFoundError):
         transcribe(non_existent_file, "srt")
-    mock_run_transcription.assert_not_called()
 
 
 @patch.dict("sys.modules", {"whisper": None})

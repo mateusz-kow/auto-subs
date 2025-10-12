@@ -28,7 +28,7 @@ Homepage = "https://github.com/mateusz-kow/auto-subs"
 Repository = "https://github.com/mateusz-kow/auto-subs"
 
 [project.scripts]
-auto-subs = "auto_subs.cli.main:app"
+auto-subs = "autosubs.cli.main:app"
 
 [project.optional-dependencies]
 transcribe = [
@@ -80,7 +80,7 @@ ignore = [
 "tests/*" = ["D"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["auto_subs"]
+known-first-party = ["autosubs"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

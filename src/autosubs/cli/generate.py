@@ -108,6 +108,11 @@ def generate(
 
         if karaoke:
             ass_settings.highlight_style = AssStyleSettings()
+    elif karaoke:
+        typer.secho(
+            "Warning: --karaoke flag is only applicable for ASS format.",
+            fg=typer.colors.YELLOW,
+        )
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
     has_errors = False

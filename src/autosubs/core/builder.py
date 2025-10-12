@@ -7,8 +7,8 @@ separating the core logic from the data models themselves.
 from typing import Any
 
 from autosubs.core.word_segmenter import segment_words
+from autosubs.models import TRANSCRIPTION_ADAPTER
 from autosubs.models.subtitles import Subtitles, SubtitleWord
-from autosubs.models.transcription import TRANSCRIPTION_ADAPTER
 
 
 def create_subtitles_from_transcription(
