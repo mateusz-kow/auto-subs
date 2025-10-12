@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from auto_subs.cli import app
+from autosubs.cli import app
 
 runner = CliRunner()
 

@@ -1,6 +1,6 @@
 import pytest
 
-from auto_subs.core import parser
+from autosubs.core import parser
 
 
 @pytest.mark.parametrize(

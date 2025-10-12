@@ -5,9 +5,9 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from auto_subs.core.word_segmenter import segment_words
-from auto_subs.models.transcription import TranscriptionModel
-from auto_subs.typing.transcription import WordDict
+from autosubs.core.word_segmenter import segment_words
+from autosubs.models.transcription import TranscriptionModel
+from autosubs.typing.transcription import WordDict
 
 
 @dataclass(frozen=True)

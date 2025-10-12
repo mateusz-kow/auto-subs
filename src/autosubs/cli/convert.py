@@ -4,12 +4,12 @@ from typing import Annotated
 
 import typer
 
-from auto_subs.api import load
-from auto_subs.cli.utils import PathProcessor, SupportedExtension
-from auto_subs.core import generator
-from auto_subs.models.formats import SubtitleFormat
-from auto_subs.models.settings import AssSettings
-from auto_subs.models.subtitles import Subtitles
+from autosubs.api import load
+from autosubs.cli.utils import PathProcessor, SupportedExtension
+from autosubs.core import generator
+from autosubs.models.formats import SubtitleFormat
+from autosubs.models.settings import AssSettings
+from autosubs.models.subtitles import Subtitles
 
 # Factory mapping formats to their generator functions
 _format_map: dict[SubtitleFormat, Callable[..., str]] = {

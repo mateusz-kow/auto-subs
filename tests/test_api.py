@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import auto_subs
-from auto_subs.api import generate, load, transcribe
-from auto_subs.models.settings import AssSettings, AssStyleSettings
-from auto_subs.models.subtitles import Subtitles
+import autosubs
+from autosubs.api import generate, load, transcribe
+from autosubs.models.settings import AssSettings, AssStyleSettings
+from autosubs.models.subtitles import Subtitles
 
 
 def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
@@ -86,7 +86,7 @@ def test_transcribe_api_file_not_found(mock_run_transcription: MagicMock) -> Non
 def test_transcribe_api_whisper_not_installed(fake_media_file: Path) -> None:
     """Test that transcribe API raises ImportError if whisper is not installed."""
     with pytest.raises(ImportError, match="Whisper is not installed"):
-        auto_subs.core.transcriber.run_transcription(fake_media_file, "base")
+        autosubs.core.transcriber.run_transcription(fake_media_file, "base")
 
 
 def test_load_api_success(tmp_srt_file: Path, tmp_vtt_file: Path, tmp_ass_file: Path) -> None:

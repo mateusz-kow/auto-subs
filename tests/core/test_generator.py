@@ -1,8 +1,8 @@
 import pytest
 
-from auto_subs.core import generator
-from auto_subs.models.settings import AssSettings
-from auto_subs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
+from autosubs.core import generator
+from autosubs.models.settings import AssSettings
+from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
 
 
 @pytest.fixture

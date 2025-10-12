@@ -4,11 +4,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from auto_subs.core import generator, parser
-from auto_subs.core.transcriber import run_transcription
-from auto_subs.models.formats import SubtitleFormat
-from auto_subs.models.settings import AssSettings
-from auto_subs.models.subtitles import Subtitles
+from autosubs.core import generator, parser
+from autosubs.core.transcriber import run_transcription
+from autosubs.models.formats import SubtitleFormat
+from autosubs.models.settings import AssSettings
+from autosubs.models.subtitles import Subtitles
 
 # Factory mapping subtitle formats to their respective generator functions.
 _format_map: dict[SubtitleFormat, Callable[..., str]] = {

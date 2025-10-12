@@ -68,7 +68,7 @@ Integrate `auto-subs` directly into your application for full control.
 
 ```python
 import json
-from auto_subs import generate, transcribe, load
+from autosubs import generate, transcribe, load
 
 # --- Generate from existing JSON ---
 with open("path/to/transcription.json", "r", encoding="utf-8") as f:
@@ -82,7 +82,6 @@ try:
 except ValueError as e:
     print(f"Error: {e}")
 
-
 # --- Transcribe directly from a media file ---
 try:
     vtt_content = transcribe("path/to/video.mp4", "vtt", model_name="base")
@@ -92,7 +91,6 @@ except ImportError:
     print("Transcription requires 'auto-subs[transcribe]' to be installed.")
 except FileNotFoundError:
     print("Media file not found.")
-
 
 # --- Load and inspect an existing subtitle file ---
 try:

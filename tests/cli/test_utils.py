@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from typer import Exit
 
-from auto_subs.cli.utils import PathProcessor, SupportedExtension
+from autosubs.cli.utils import PathProcessor, SupportedExtension
 
 
 def test_path_processor_single_file(tmp_path: Path) -> None:

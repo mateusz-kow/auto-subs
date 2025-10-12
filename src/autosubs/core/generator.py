@@ -1,7 +1,7 @@
 from logging import getLogger
 
-from auto_subs.models.settings import AssSettings
-from auto_subs.models.subtitles import Subtitles
+from autosubs.models.settings import AssSettings
+from autosubs.models.subtitles import Subtitles
 
 logger = getLogger(__name__)
 

@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
-from auto_subs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
-from auto_subs.typing.transcription import WordDict
+from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
+from autosubs.typing.transcription import WordDict
 
 
 def test_subtitle_word_from_dict() -> None:

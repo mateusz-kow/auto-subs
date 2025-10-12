@@ -1,6 +1,6 @@
 import pytest
 
-from auto_subs.models.transcription import (
+from autosubs.models.transcription import (
     SegmentModel,
     TranscriptionModel,
     WordModel,

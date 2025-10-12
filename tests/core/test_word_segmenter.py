@@ -1,7 +1,7 @@
 import pytest
 
-from auto_subs.core.word_segmenter import segment_words
-from auto_subs.typing.transcription import SegmentDict, TranscriptionDict
+from autosubs.core.word_segmenter import segment_words
+from autosubs.typing.transcription import SegmentDict, TranscriptionDict
 
 
 def test_segment_words_default(sample_transcription: TranscriptionDict, empty_transcription: TranscriptionDict) -> None:

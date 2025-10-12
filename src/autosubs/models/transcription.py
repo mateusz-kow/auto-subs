@@ -2,7 +2,7 @@ from typing import cast
 
 from pydantic import BaseModel, Field
 
-from auto_subs.typing.transcription import TranscriptionDict
+from autosubs.typing.transcription import TranscriptionDict
 
 
 class WordModel(BaseModel):

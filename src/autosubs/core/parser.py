@@ -3,7 +3,7 @@
 import re
 from logging import getLogger
 
-from auto_subs.models.subtitles import SubtitleSegment, SubtitleWord
+from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
 
 logger = getLogger(__name__)
 

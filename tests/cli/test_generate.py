@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from auto_subs.cli import app
-from auto_subs.typing.transcription import TranscriptionDict
+from autosubs.cli import app
+from autosubs.typing.transcription import TranscriptionDict
 
 runner = CliRunner()
 

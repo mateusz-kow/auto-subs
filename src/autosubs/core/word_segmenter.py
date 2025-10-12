@@ -2,7 +2,7 @@ from collections.abc import Generator
 from logging import getLogger
 from typing import cast
 
-from auto_subs.typing.transcription import SegmentDict, TranscriptionDict, WordDict
+from autosubs.typing.transcription import SegmentDict, TranscriptionDict, WordDict
 
 logger = getLogger(__name__)
 

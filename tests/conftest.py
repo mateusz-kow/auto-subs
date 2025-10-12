@@ -4,7 +4,7 @@ from typing import cast
 
 import pytest
 
-from auto_subs.typing.transcription import TranscriptionDict
+from autosubs.typing.transcription import TranscriptionDict
 
 
 @pytest.fixture
