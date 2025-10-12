@@ -22,29 +22,29 @@ def test_segment_words_default(sample_words: list[SubtitleWord]) -> None:
     """Test segmentation with the default character limit."""
     segments = segment_words(sample_words, max_chars=35)
     assert len(segments) == 4
-    assert str(segments[0]) == "This is a test transcription for"
-    assert str(segments[1]) == "the auto-subs library."
-    assert str(segments[2]) == "It includes punctuation!"
-    assert str(segments[3]) == "And a final line."
+    assert str(segments[0].text) == "This is a test transcription for"
+    assert str(segments[1].text) == "the auto-subs library."
+    assert str(segments[2].text) == "It includes punctuation!"
+    assert str(segments[3].text) == "And a final line."
 
 
 def test_segment_words_short_lines(sample_words: list[SubtitleWord]) -> None:
     """Test segmentation with a very short character limit."""
     segments = segment_words(sample_words, max_chars=16)
     assert len(segments) == 9
-    assert str(segments[0]) == "This is a test"
-    assert str(segments[1]) == "transcription"
-    assert str(segments[2]) == "for the"
-    assert str(segments[8]) == "line."
+    assert str(segments[0].text) == "This is a test"
+    assert str(segments[1].text) == "transcription"
+    assert str(segments[2].text) == "for the"
+    assert str(segments[8].text) == "line."
 
 
 def test_segment_words_break_chars(sample_words: list[SubtitleWord]) -> None:
     """Test that break characters force a new line regardless of length."""
     segments = segment_words(sample_words, max_chars=100)
     assert len(segments) == 3
-    assert str(segments[0]) == "This is a test transcription for the auto-subs library."
-    assert str(segments[1]) == "It includes punctuation!"
-    assert str(segments[2]) == "And a final line."
+    assert str(segments[0].text) == "This is a test transcription for the auto-subs library."
+    assert str(segments[1].text) == "It includes punctuation!"
+    assert str(segments[2].text) == "And a final line."
 
 
 def test_segment_words_with_long_word() -> None:
@@ -54,9 +54,9 @@ def test_segment_words_with_long_word() -> None:
     segments = segment_words(words, max_chars=20)
     # The long word should be on its own line
     assert len(segments) == 2
-    assert str(segments[0]) == long_word.text
+    assert str(segments[0].text) == long_word.text
     # The next line should start with the next word
-    assert str(segments[1]) == "is a"
+    assert str(segments[1].text) == "is a"
 
 
 def test_segment_words_empty_input() -> None:
@@ -73,4 +73,4 @@ def test_segment_words_handles_empty_word_text() -> None:
     ]
     segments = segment_words(words)
     assert len(segments) == 1
-    assert str(segments[0]) == "Hello world"
+    assert str(segments[0].text) == "Hello world"

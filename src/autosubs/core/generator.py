@@ -1,6 +1,7 @@
 import json
 from logging import getLogger
 
+from autosubs.core.builder import create_dict_from_subtitles
 from autosubs.models.settings import AssSettings
 from autosubs.models.subtitles import Subtitles
 
@@ -81,7 +82,7 @@ def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
         for segment in subtitles.segments:
             start = format_ass_timestamp(segment.start)
             end = format_ass_timestamp(segment.end)
-            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment}")
+            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment.text}")
 
     result = "\n".join(lines)
     return f"{result}\n" if subtitles.segments else result
@@ -101,7 +102,7 @@ def to_srt(subtitles: Subtitles) -> str:
     for i, segment in enumerate(subtitles.segments, 1):
         start_time = format_srt_timestamp(segment.start)
         end_time = format_srt_timestamp(segment.end)
-        srt_blocks.append(f"{i}\n{start_time} --> {end_time}\n{segment}")
+        srt_blocks.append(f"{i}\n{start_time} --> {end_time}\n{segment.text}")
 
     if not srt_blocks:
         return ""
@@ -126,7 +127,7 @@ def to_vtt(subtitles: Subtitles) -> str:
     for segment in subtitles.segments:
         start_time = format_vtt_timestamp(segment.start)
         end_time = format_vtt_timestamp(segment.end)
-        vtt_blocks.append(f"{start_time} --> {end_time}\n{segment}")
+        vtt_blocks.append(f"{start_time} --> {end_time}\n{segment.text}")
 
     return "\n\n".join(vtt_blocks) + "\n\n"
 
@@ -143,4 +144,4 @@ def to_json(subtitles: Subtitles) -> str:
         A JSON string representing the subtitles.
     """
     logger.info("Generating subtitles in JSON format...")
-    return json.dumps(subtitles.to_transcription_dict(), indent=2, ensure_ascii=False)
+    return json.dumps(create_dict_from_subtitles(subtitles), indent=2, ensure_ascii=False)

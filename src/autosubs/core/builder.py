@@ -37,3 +37,35 @@ def create_subtitles_from_transcription(
     segments = segment_words(words, max_chars=max_chars, min_words=min_words)
 
     return Subtitles(segments=segments)
+
+
+def create_dict_from_subtitles(subtitles: Subtitles) -> dict[str, Any]:
+    """Converts a Subtitles object back into a Whisper-compatible dictionary.
+
+    Args:
+        subtitles: The Subtitles object to convert.
+
+    Returns:
+        A dictionary compatible with the original transcription format.
+    """
+    return {
+        "segments": [
+            {
+                "id": i,
+                "start": segment.start,
+                "end": segment.end,
+                "text": segment.text,
+                "words": [
+                    {
+                        "word": word.text,
+                        "start": word.start,
+                        "end": word.end,
+                    }
+                    for word in segment.words
+                ],
+            }
+            for i, segment in enumerate(subtitles.segments, 1)
+        ],
+        "language": "unknown",
+        "text": subtitles.text,
+    }
