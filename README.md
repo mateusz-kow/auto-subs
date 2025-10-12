@@ -25,36 +25,42 @@
 
 ## Key Features
 
-- **🎯 Intelligent Word Segmentation**: Automatically splits word-level transcriptions into perfectly timed subtitle lines based on character limits and natural punctuation breaks.
-- **⚙️ Simple & Powerful API**: Use it as a library with a clean, dictionary-based input that requires no complex objects, or as a feature-rich command-line tool.
-- **🛡️ Robust Validation**: Automatically handles common data issues, like inverted timestamps (`start > end`), ensuring your process never breaks on imperfect data.
-- **📄 Multiple Formats**: Generate subtitles in the most popular formats: **SRT**, **ASS**, and plain **TXT**.
-- **✅ High Quality & Tested**: Strictly typed with Mypy, linted with Ruff, and rigorously tested to ensure reliability.
+-   **🚀 End-to-End Transcription**: Go from an audio or video file directly to perfectly timed subtitles in one command.
+-   **🔄 Versatile Format Conversion**: Easily convert existing subtitle files between supported formats.
+-   **🧠 Intelligent Word Segmentation**: Automatically splits word-level transcriptions into perfectly timed subtitle lines based on character limits and natural punctuation breaks.
+-   **📄 Multiple Formats**: Generate and convert subtitles in the most popular formats: **SRT**, **VTT**, and **ASS**.
+-   **🎤 Karaoke-Style Highlighting**: Generate word-by-word highlighting (`{\k...}`) for `.ass` files, perfect for music videos or language learning.
+-   **🛡️ Robust Validation**: Automatically handles common data issues, like inverted timestamps (`start > end`), ensuring your process never breaks on imperfect data.
+-   **⚙️ Simple & Powerful API**: Use it as a library with a clean, dictionary-based input that requires no complex objects, or as a feature-rich command-line tool.
 
 ## Installation
 
 ```bash
+# For subtitle generation and conversion
 pip install auto-subs
+
+# To include direct transcription capabilities
+pip install auto-subs[transcribe]
 ```
 
 ## Quickstart
 
 ### As a Command-Line Tool (CLI)
 
-The fastest way to generate a subtitle file from a Whisper-compatible JSON.
+`auto-subs` provides three powerful commands: `transcribe`, `generate`, and `convert`.
 
 ```bash
-# Generate an SRT file with default settings
-auto-subs generate path/to/transcription.json
+# 1. Transcribe a media file directly to a VTT subtitle file
+auto-subs transcribe video.mp4 -f vtt --model small
 
-# Generate a styled ASS file with a custom character limit
-auto-subs generate input.json -f ass -o styled.ass --max-chars 42
+# 2. Generate a styled ASS file from an existing transcription JSON
+auto-subs generate input.json -f ass -o styled.ass --max-chars 42 --karaoke
+
+# 3. Convert an existing SRT file to ASS format
+auto-subs convert subtitles.srt -f ass
 ```
 
-**CLI Options:**
-- `--output, -o`: Specify the output file path. (Defaults to the input filename with a new extension)
-- `--format, -f`: Choose the output format (`srt`, `ass`, `txt`). (Defaults to `srt`)
-- `--max-chars`: Set the maximum characters per subtitle line. (Defaults to `35`)
+Each command supports batch processing directories and has more options available via `--help`.
 
 ### As a Python Library
 
@@ -62,25 +68,40 @@ Integrate `auto-subs` directly into your application for full control.
 
 ```python
 import json
-from auto_subs import generate
+from auto_subs import generate, transcribe, load
 
-# 1. Load your Whisper-compatible transcription data (as a dict)
+# --- Generate from existing JSON ---
 with open("path/to/transcription.json", "r", encoding="utf-8") as f:
     transcription_data = json.load(f)
 
 try:
-    # 2. Generate SRT content with a 40-character limit per line
     srt_content = generate(transcription_data, "srt", max_chars=40)
-
-    # 3. Save the content to a file
     with open("output.srt", "w", encoding="utf-8") as f:
         f.write(srt_content)
-
     print("Successfully generated subtitles!")
-
 except ValueError as e:
-    # Handle validation errors for malformed input data
     print(f"Error: {e}")
+
+
+# --- Transcribe directly from a media file ---
+try:
+    vtt_content = transcribe("path/to/video.mp4", "vtt", model_name="base")
+    with open("output.vtt", "w", encoding="utf-8") as f:
+        f.write(vtt_content)
+except ImportError:
+    print("Transcription requires 'auto-subs[transcribe]' to be installed.")
+except FileNotFoundError:
+    print("Media file not found.")
+
+
+# --- Load and inspect an existing subtitle file ---
+try:
+    subtitles = load("path/to/existing.srt")
+    print(f"Loaded {len(subtitles.segments)} subtitle segments.")
+    for segment in subtitles.segments:
+        print(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment}")
+except (ValueError, FileNotFoundError) as e:
+    print(f"Error loading subtitles: {e}")
 ```
 
 ## API Design: Simplicity First

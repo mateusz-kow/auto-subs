@@ -66,6 +66,15 @@ This phase is dedicated to stabilization, documentation, and the final features 
 -   **🎯 Key Goal**: Handle complex ASS styling and override tags gracefully.
 -   **Features**: Preserve unknown ASS tags, implement `import_styles()` and `rename_style()`.
 
+#### **Version 0.17.0 - Context-Aware & Time-Aware Layered Styling Engine**
+-   **🎯 Key Goal**: Introduce a modular, rule-based, and time-aware styling engine that enables Aegisub-level visual fidelity with modern, programmable control, establishing `auto-subs` as a true subtitle generation engine.
+-   **Features**:
+    -   **Layered Styling System**: Implement independent, composable layers for `ass_style` (line appearance), `karaoke_styles` (word timing), and `animation_presets` (reusable `\t` effects).
+    -   **Rule-Based & Time-Aware Matching**: Allow styles and animations to be applied based on rules with `patterns` (regex), `priority`, and `start_time`/`end_time` ranges, enabling effects to change dynamically throughout the media.
+    -   **Declarative Configuration**: Define all styling logic in a single, validated JSON or YAML file, separating style from content. The engine will use Pydantic for robust validation and convert to internal dataclasses for high performance.
+    -   **Indexed Word Architecture**: Internally, each word will reference its applied styles, enabling highly efficient `O(m)` updates, crucial for future GUI applications.
+    -   **Dynamic Default Styles**: Support changing the default ASS style for new lines at different points in time, without affecting previously generated lines.
+
 #### **Version 0.18.0 - Comprehensive Documentation**
 -   **🎯 Key Goal**: Create a full-fledged documentation website.
 -   **Features**: Set up a site using MkDocs/Sphinx with a full API reference, tutorials, and detailed CLI explanations.
