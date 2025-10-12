@@ -75,7 +75,10 @@ def transcribe(
     bold: Annotated[bool | None, typer.Option(help="[ASS] Enable bold text.")] = None,
     italic: Annotated[bool | None, typer.Option(help="[ASS] Enable italic text.")] = None,
     underline: Annotated[bool | None, typer.Option(help="[ASS] Enable underlined text.")] = None,
-    alignment: Annotated[int | None, typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center).")] = None,
+    alignment: Annotated[
+        int | None,
+        typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center)."),
+    ] = None,
     margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
 ) -> None:
     """Transcribe a media file and generate subtitles."""

@@ -50,7 +50,11 @@ def test_segment_words_break_chars(sample_words: list[SubtitleWord]) -> None:
 def test_segment_words_with_long_word() -> None:
     """Test segmentation handles a single word longer than max_chars."""
     long_word = SubtitleWord(text="Supercalifragilisticexpialidocious", start=0.0, end=1.0)
-    words = [long_word, SubtitleWord(text="is", start=1.1, end=1.2), SubtitleWord(text="a", start=1.3, end=1.4)]
+    words = [
+        long_word,
+        SubtitleWord(text="is", start=1.1, end=1.2),
+        SubtitleWord(text="a", start=1.3, end=1.4),
+    ]
     segments = segment_words(words, max_chars=20)
     # The long word should be on its own line, combined with the next line.
     assert len(segments) == 1
@@ -74,7 +78,9 @@ def test_segment_words_handles_empty_word_text() -> None:
     assert str(segments[0].text) == "Hello world"
 
 
-def test_segment_words_max_lines_combines_short_lines(sample_words: list[SubtitleWord]) -> None:
+def test_segment_words_max_lines_combines_short_lines(
+    sample_words: list[SubtitleWord],
+) -> None:
     """Test that max_lines combines short lines into multi-line segments."""
     segments = segment_words(sample_words, max_chars=35, max_lines=2)
     assert len(segments) == 2
@@ -86,7 +92,9 @@ def test_segment_words_max_lines_combines_short_lines(sample_words: list[Subtitl
     assert segments[1].end == 9.0
 
 
-def test_segment_words_max_lines_with_odd_number_of_lines(sample_words: list[SubtitleWord]) -> None:
+def test_segment_words_max_lines_with_odd_number_of_lines(
+    sample_words: list[SubtitleWord],
+) -> None:
     """Test that max_lines handles leftover single lines correctly."""
     # This will generate 3 lines based on punctuation breaks. With max_lines=2,
     # it should be one 2-line segment and one 1-line segment.
@@ -96,7 +104,9 @@ def test_segment_words_max_lines_with_odd_number_of_lines(sample_words: list[Sub
     assert segments[1].text == "And a final line."
 
 
-def test_segment_words_max_lines_one_does_nothing(sample_words: list[SubtitleWord]) -> None:
+def test_segment_words_max_lines_one_does_nothing(
+    sample_words: list[SubtitleWord],
+) -> None:
     """Test that max_lines=1 does not combine any lines."""
     segments_default = segment_words(sample_words, max_chars=35, max_lines=1)
     assert len(segments_default) == 4  # Same as default behavior without combining

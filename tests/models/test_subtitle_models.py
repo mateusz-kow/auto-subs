@@ -25,8 +25,10 @@ def test_subtitle_segment_properties_and_validation() -> None:
     assert segment.end == 1.5
     assert segment.text == "Hello world."
 
-    with pytest.raises(ValueError, match="must contain at least one word"):
-        SubtitleSegment(words=[])
+    # Test that empty segment is now allowed and initializes correctly
+    empty_segment = SubtitleSegment(words=[])
+    assert empty_segment.start == 0.0
+    assert empty_segment.end == 0.0
 
     with pytest.raises(ValueError, match="has invalid timestamp"):
         word3 = SubtitleWord(text="invalid", start=2.0, end=1.9)

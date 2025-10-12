@@ -8,6 +8,7 @@ from typing import Any
 from autosubs.core import generator, parser
 from autosubs.core.builder import create_subtitles_from_transcription
 from autosubs.core.transcriber import run_transcription
+from autosubs.models.enums import TimingDistribution
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings
 from autosubs.models.subtitles import Subtitles
@@ -71,7 +72,10 @@ def generate(
         ) from e
 
     subtitles = create_subtitles_from_transcription(
-        transcription_dict, max_chars=max_chars, min_words=min_words, max_lines=max_lines
+        transcription_dict,
+        max_chars=max_chars,
+        min_words=min_words,
+        max_lines=max_lines,
     )
 
     if format_enum == SubtitleFormat.ASS:
@@ -126,11 +130,18 @@ def transcribe(
     )
 
 
-def load(file_path: str | Path) -> Subtitles:
+def load(
+    file_path: str | Path,
+    generate_word_timings: bool = False,
+    timing_strategy: TimingDistribution = TimingDistribution.BY_CHAR_COUNT,
+) -> Subtitles:
     """Load and parse a subtitle file into a Subtitles object.
 
     Args:
         file_path: Path to the subtitle file (.srt, .vtt, .ass).
+        generate_word_timings: If True, heuristically generates word-level timestamps
+                               for formats that lack them (e.g., SRT, VTT).
+        timing_strategy: The strategy to use for generating word timings.
 
     Returns:
         A Subtitles object representing the parsed file content.
@@ -159,4 +170,9 @@ def load(file_path: str | Path) -> Subtitles:
             f"Unsupported subtitle format: {suffix}. Must be one of: {', '.join(sorted(supported_formats))}."
         )
 
-    return Subtitles(segments=segments)
+    subtitles = Subtitles(segments=segments)
+    if generate_word_timings:
+        for segment in subtitles.segments:
+            segment.generate_word_timings(strategy=timing_strategy)
+
+    return subtitles
