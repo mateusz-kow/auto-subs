@@ -64,11 +64,18 @@ def convert(
     typer.echo(f"Converting subtitles to {final_output_format.upper()} format...")
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.SUBTITLE)
+    is_batch = input_path.is_dir()
     has_errors = False
 
     for in_file, out_file_base in processor.process():
         typer.echo(f"Processing: {in_file.name}")
-        out_file = out_file_base.with_suffix(f".{final_output_format.value}")
+
+        if is_batch:
+            # Batch mode: append extension to avoid collisions
+            out_file = out_file_base.with_name(f"{in_file.name}.{final_output_format.value}")
+        else:
+            # Single file mode: just replace the extension
+            out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
             subtitles: Subtitles = load(in_file)

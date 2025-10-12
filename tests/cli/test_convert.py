@@ -43,8 +43,8 @@ def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Pat
     assert "Processing: test.srt" in result.stdout
     assert "Processing: test.vtt" in result.stdout
     assert f"Processing: {ass_file_name}" in result.stdout
-    assert (output_dir / "test.srt").exists()
-    assert (output_dir / "test.srt").read_text().strip().endswith("This is a test.")
+    assert (output_dir / "test.srt.srt").exists()
+    assert (output_dir / "test.srt.srt").read_text().strip().endswith("This is a test.")
     assert (output_dir / "test.vtt.srt").exists()
     assert (output_dir / f"{ass_file_name}.srt").exists()
 

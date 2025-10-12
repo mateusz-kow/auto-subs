@@ -115,11 +115,15 @@ def generate(
         )
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
+    is_batch = input_path.is_dir()
     has_errors = False
 
     for in_file, out_file_base in processor.process():
         typer.echo(f"Processing: {in_file.name}")
-        out_file = out_file_base.with_suffix(f".{final_output_format.value}")
+        if is_batch:
+            out_file = out_file_base.with_name(f"{in_file.stem}.{final_output_format.value}")
+        else:
+            out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
             with in_file.open("r", encoding="utf-8") as f:

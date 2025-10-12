@@ -117,11 +117,16 @@ def transcribe(
         )
 
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
+    is_batch = media_path.is_dir()
     has_errors = False
 
     for in_file, out_file_base in processor.process():
         typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
-        out_file = out_file_base.with_suffix(f".{final_output_format.value}")
+
+        if is_batch:
+            out_file = out_file_base.with_name(f"{in_file.stem}.{final_output_format.value}")
+        else:
+            out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
             content = transcribe_api(

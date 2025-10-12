@@ -1,4 +1,5 @@
 import pytest
+from _pytest.logging import LogCaptureFixture
 
 from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
 
@@ -30,7 +31,7 @@ def test_subtitle_segment_properties_and_validation() -> None:
         SubtitleSegment(words=[word3])
 
 
-def test_subtitles_sorting_and_overlap_warning(caplog) -> None:  # noqa: PT019
+def test_subtitles_sorting_and_overlap_warning(caplog: LogCaptureFixture) -> None:
     """Test that Subtitles automatically sorts segments and warns on overlap."""
     seg1 = SubtitleSegment(words=[SubtitleWord(text="B", start=2.0, end=3.0)])
     seg2 = SubtitleSegment(words=[SubtitleWord(text="A", start=0.0, end=1.0)])
