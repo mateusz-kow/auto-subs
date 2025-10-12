@@ -8,7 +8,6 @@ from pydantic import ValidationError
 
 from autosubs.core.word_segmenter import segment_words
 from autosubs.models.transcription import TranscriptionModel
-from autosubs.typing.transcription import TranscriptionDict, WordDict
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +21,12 @@ class SubtitleWord:
     end: float
 
     def __post_init__(self) -> None:
-        """Validates the timestamps after initialization."""
+        """Validates the word's timestamps after initialization."""
         if self.start > self.end:
             raise ValueError(f"SubtitleWord has invalid timestamp: start ({self.start}) > end ({self.end})")
 
     @classmethod
-    def from_dict(cls, data: WordDict) -> SubtitleWord:
+    def from_dict(cls, data: dict[str, Any]) -> SubtitleWord:
         """Creates a SubtitleWord instance from a dictionary.
 
         Args:
@@ -38,7 +37,7 @@ class SubtitleWord:
         """
         return cls(text=data["word"].strip(), start=data["start"], end=data["end"])
 
-    def to_dict(self) -> WordDict:
+    def to_dict(self) -> dict[str, Any]:
         """Converts the instance to a dictionary."""
         return {"word": self.text, "start": self.start, "end": self.end}
 
@@ -64,9 +63,22 @@ class SubtitleSegment:
         """Returns the segment as a string of concatenated word texts."""
         return " ".join(word.text for word in self.words)
 
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the instance to a dictionary."""
-        return {"start": self.start, "end": self.end, "text": str(self), "words": [w.to_dict() for w in self.words]}
+    def to_dict(self, segment_id: int) -> dict[str, Any]:
+        """Converts the instance to a dictionary compatible with TranscriptionDict.
+
+        Args:
+            segment_id: The sequential ID to assign to this segment.
+
+        Returns:
+            A SegmentDict representing the segment.
+        """
+        return {
+            "id": segment_id,
+            "start": self.start,
+            "end": self.end,
+            "text": str(self),
+            "words": [w.to_dict() for w in self.words],
+        }
 
 
 @dataclass
@@ -101,29 +113,19 @@ class Subtitles:
             ValueError: If the transcription data fails validation.
         """
         try:
-            transcription = TranscriptionModel.model_validate(transcription_dict)
+            # We still use TranscriptionModel to validate the raw input dictionary
+            validated_dict = TranscriptionModel.model_validate(transcription_dict).to_dict()
         except ValidationError as e:
             raise ValueError("Transcription data failed validation.") from e
 
-        dict_segments = segment_words(transcription.to_dict(), **kwargs)
-        segments: list[SubtitleSegment] = []
-        for dict_segment in dict_segments:
-            words = [SubtitleWord.from_dict(w) for w in dict_segment.get("words", [])]
-            if words:
-                segments.append(SubtitleSegment(words))
+        segments = segment_words(validated_dict, **kwargs)
         return cls(segments)
 
-    def to_transcription_dict(self) -> TranscriptionDict:
+    def to_transcription_dict(self) -> dict[str, Any]:
         """Converts the subtitles object to a Whisper-compatible dictionary."""
-        segments_as_dicts = []
-        for i, segment in enumerate(self.segments):
-            seg_dict = segment.to_dict()
-            seg_dict["id"] = i
-            segments_as_dicts.append(seg_dict)
-
         return {
             "text": str(self),
-            "segments": segments_as_dicts,
+            "segments": [segment.to_dict(i) for i, segment in enumerate(self.segments)],
             "language": "unknown",  # Language info is lost during this conversion
         }
 

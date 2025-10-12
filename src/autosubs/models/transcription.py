@@ -1,8 +1,10 @@
-from typing import cast
+from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import Any
 
-from autosubs.typing.transcription import TranscriptionDict
+from pydantic import BaseModel, Field, TypeAdapter
+
+TRANSCRIPTION_ADAPTER: TypeAdapter[TranscriptionModel] = TypeAdapter(lambda: TranscriptionModel)
 
 
 class WordModel(BaseModel):
@@ -22,7 +24,7 @@ class SegmentModel(BaseModel):
     A segment typically represents a sentence or a continuous chunk of speech.
     """
 
-    id: int
+    id: int | None = None
     start: float
     end: float
     text: str
@@ -47,7 +49,7 @@ class TranscriptionModel(BaseModel):
     segments: list[SegmentModel]
     language: str
 
-    def to_dict(self) -> TranscriptionDict:
+    def to_dict(self) -> dict[str, Any]:
         """Converts the Pydantic model back to a dictionary.
 
         This is useful for compatibility with functions that still expect dicts.
@@ -55,4 +57,4 @@ class TranscriptionModel(BaseModel):
         Returns:
             The model's data as a dictionary.
         """
-        return cast(TranscriptionDict, self.model_dump(by_alias=True))
+        return self.model_dump(by_alias=True, exclude_none=True)
