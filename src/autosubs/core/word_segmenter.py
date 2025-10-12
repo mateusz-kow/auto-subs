@@ -32,6 +32,7 @@ def _extract_words(transcription: TranscriptionDict) -> Generator[WordDict, None
 def segment_words(
     transcription: TranscriptionDict,
     max_chars: int = 35,
+    min_words: int = 1,
     break_chars: tuple[str, ...] = (".", ",", "!", "?"),
 ) -> list[SegmentDict]:
     """Segments word-level transcription data into subtitle lines.
@@ -40,6 +41,7 @@ def segment_words(
         transcription: The transcription data. Must contain a "segments" key,
                        which holds a list of segments, each with a "words" key.
         max_chars: The maximum number of characters desired per subtitle line.
+        min_words: The minimum number of words for a line to be broken by punctuation.
         break_chars: Punctuation that should force a line break.
 
     Returns:
@@ -79,8 +81,8 @@ def segment_words(
         # Add the word to the (potentially new) line.
         current_line_words.append(word_data)
 
-        # If the newly added word ends with a break character, this line is done.
-        if word_text.endswith(break_chars):
+        # If the newly added word ends with a break character, this line might be done.
+        if word_text.endswith(break_chars) and len(current_line_words) >= min_words:
             lines.append(
                 cast(
                     SegmentDict,

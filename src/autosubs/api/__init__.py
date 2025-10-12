@@ -1,5 +1,6 @@
 """Public API for the auto-subs library."""
 
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -15,13 +16,15 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.SRT: generator.to_srt,
     SubtitleFormat.VTT: generator.to_vtt,
     SubtitleFormat.ASS: generator.to_ass,
+    SubtitleFormat.JSON: generator.to_json,
 }
 
 
 def generate(
-    transcription_dict: dict[str, Any],
+    transcription_source: dict[str, Any] | str | Path,
     output_format: str,
     max_chars: int = 35,
+    min_words: int = 1,
     ass_settings: AssSettings | None = None,
 ) -> str:
     """Generate subtitle content from a transcription dictionary.
@@ -29,10 +32,12 @@ def generate(
     This is the main entry point for using auto-subs as a library.
 
     Args:
-        transcription_dict: A dictionary containing transcription data, compatible
-                            with Whisper's word-level output.
-        output_format: The desired output format ("srt", "vtt", or "ass").
+        transcription_source: A dictionary containing transcription data (compatible
+                              with Whisper's word-level output), or a path to a
+                              JSON file containing such data.
+        output_format: The desired output format ("srt", "vtt", "ass", or "json").
         max_chars: The maximum number of characters per subtitle line.
+        min_words: The minimum number of words per subtitle line (punctuation breaks).
         ass_settings: Optional settings for ASS format generation. If None,
                       default settings will be used.
 
@@ -42,8 +47,18 @@ def generate(
     Raises:
         ValueError: If the transcription data fails validation or the output
                     format is not supported.
+        FileNotFoundError: If `transcription_source` is a path that does not exist.
     """
-    subtitles = Subtitles.from_dict(transcription_dict, max_chars=max_chars)
+    if isinstance(transcription_source, (str, Path)):
+        path = Path(transcription_source)
+        if not path.is_file():
+            raise FileNotFoundError(f"Transcription file not found at: {path}")
+        with path.open("r", encoding="utf-8") as f:
+            transcription_dict = json.load(f)
+    else:
+        transcription_dict = transcription_source
+
+    subtitles = Subtitles.from_dict(transcription_dict, max_chars=max_chars, min_words=min_words)
     normalized_format = output_format.lower()
 
     try:
@@ -65,6 +80,7 @@ def transcribe(
     output_format: str,
     model_name: str = "base",
     max_chars: int = 35,
+    min_words: int = 1,
     ass_settings: AssSettings | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content.
@@ -74,9 +90,10 @@ def transcribe(
 
     Args:
         media_file: Path to the audio or video file.
-        output_format: The desired output format ("srt", "vtt", or "ass").
+        output_format: The desired output format ("srt", "vtt", "ass", "json").
         model_name: The name of the Whisper model to use (e.g., "tiny", "base", "small").
         max_chars: The maximum number of characters per subtitle line.
+        min_words: The minimum number of words per subtitle line (punctuation breaks).
         ass_settings: Optional settings for ASS format generation.
 
     Returns:
@@ -96,6 +113,7 @@ def transcribe(
         transcription_dict,
         output_format,
         max_chars=max_chars,
+        min_words=min_words,
         ass_settings=ass_settings,
     )
 
@@ -121,6 +139,7 @@ def load(file_path: str | Path) -> Subtitles:
     content = path.read_text(encoding="utf-8")
 
     segments = []
+    supported_formats = {f".{fmt}" for fmt in SubtitleFormat if fmt != SubtitleFormat.JSON}
     if suffix == ".srt":
         segments = parser.parse_srt(content)
     elif suffix == ".vtt":
@@ -128,6 +147,8 @@ def load(file_path: str | Path) -> Subtitles:
     elif suffix == ".ass":
         segments = parser.parse_ass(content)
     else:
-        raise ValueError(f"Unsupported subtitle format: {suffix}. Must be one of: {', '.join(_format_map.keys())}.")
+        raise ValueError(
+            f"Unsupported subtitle format: {suffix}. Must be one of: {', '.join(sorted(supported_formats))}."
+        )
 
     return Subtitles(segments=segments)

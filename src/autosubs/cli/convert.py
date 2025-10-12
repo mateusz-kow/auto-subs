@@ -16,6 +16,7 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.SRT: generator.to_srt,
     SubtitleFormat.VTT: generator.to_vtt,
     SubtitleFormat.ASS: lambda subs: generator.to_ass(subs, AssSettings()),
+    SubtitleFormat.JSON: generator.to_json,
 }
 
 
@@ -40,28 +41,38 @@ def convert(
         ),
     ] = None,
     output_format: Annotated[
-        SubtitleFormat,
+        SubtitleFormat | None,
         typer.Option(
             "--format",
             "-f",
             case_sensitive=False,
-            help="Format for the output subtitles.",
+            help="Format for the output subtitles. Inferred from --output if not specified.",
         ),
-    ] = SubtitleFormat.SRT,
+    ] = None,
 ) -> None:
     """Convert an existing subtitle file to a different format."""
-    typer.echo(f"Converting subtitles to {output_format.upper()} format...")
+    final_output_format = output_format
+    if output_path and not final_output_format:
+        suffix = output_path.suffix.lower().strip(".")
+        if suffix and suffix in SubtitleFormat.__members__.values():
+            final_output_format = SubtitleFormat(suffix)
+
+    if not final_output_format:
+        final_output_format = SubtitleFormat.SRT
+        typer.secho("No output format specified. Defaulting to SRT.", fg=typer.colors.YELLOW)
+
+    typer.echo(f"Converting subtitles to {final_output_format.upper()} format...")
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.SUBTITLE)
     has_errors = False
 
     for in_file, out_file_base in processor.process():
         typer.echo(f"Processing: {in_file.name}")
-        out_file = out_file_base.with_suffix(f".{output_format.value}")
+        out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
             subtitles: Subtitles = load(in_file)
-            writer_func = _format_map[output_format]
+            writer_func = _format_map[final_output_format]
             content = writer_func(subtitles)
 
             out_file.parent.mkdir(parents=True, exist_ok=True)

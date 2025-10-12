@@ -1,14 +1,16 @@
 """Models related to the Whisper transcription process."""
 
-from enum import StrEnum, auto
+from enum import StrEnum
 
 
 class WhisperModel(StrEnum):
     """Enumeration for the supported Whisper model sizes."""
 
-    TINY = auto()
-    BASE = auto()
-    SMALL = auto()
-    MEDIUM = auto()
-    LARGE = auto()
-    TURBO = auto()
+    TINY = "tiny"
+    BASE = "base"
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
+    LARGE_V1 = "large-v1"
+    LARGE_V2 = "large-v2"
+    LARGE_V3 = "large-v3"

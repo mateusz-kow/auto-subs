@@ -30,30 +30,83 @@ def generate(
         ),
     ] = None,
     output_format: Annotated[
-        SubtitleFormat,
+        SubtitleFormat | None,
         typer.Option(
             "--format",
             "-f",
             case_sensitive=False,
-            help="Format for the output subtitles.",
+            help="Format for the output subtitles. Inferred from --output if not specified.",
         ),
-    ] = SubtitleFormat.SRT,
+    ] = None,
     max_chars: Annotated[int, typer.Option(help="Maximum characters per subtitle line.")] = 35,
+    min_words: Annotated[
+        int,
+        typer.Option(help="Minimum words per line before allowing a punctuation break."),
+    ] = 1,
+    # ASS Options
     karaoke: Annotated[
         bool,
-        typer.Option(help="Enable karaoke-style word highlighting for ASS format."),
+        typer.Option(help="[ASS] Enable karaoke-style word highlighting."),
     ] = False,
+    style_file: Annotated[
+        Path | None,
+        typer.Option(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="[ASS] Path to a JSON file with ASS style settings.",
+        ),
+    ] = None,
+    font_name: Annotated[str | None, typer.Option(help="[ASS] Font name.")] = None,
+    font_size: Annotated[int | None, typer.Option(help="[ASS] Font size.")] = None,
+    primary_color: Annotated[str | None, typer.Option(help="[ASS] Primary color.")] = None,
+    secondary_color: Annotated[str | None, typer.Option(help="[ASS] Secondary color.")] = None,
+    outline_color: Annotated[str | None, typer.Option(help="[ASS] Outline color.")] = None,
+    back_color: Annotated[str | None, typer.Option(help="[ASS] Back color (shadow).")] = None,
+    bold: Annotated[bool | None, typer.Option(help="[ASS] Enable bold text.")] = None,
+    italic: Annotated[bool | None, typer.Option(help="[ASS] Enable italic text.")] = None,
+    underline: Annotated[bool | None, typer.Option(help="[ASS] Enable underlined text.")] = None,
+    alignment: Annotated[int | None, typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center).")] = None,
+    margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
-    typer.echo(f"Generating subtitles in {output_format.upper()} format...")
-    ass_settings = AssSettings()
-    if karaoke:
-        if output_format != SubtitleFormat.ASS:
-            typer.secho(
-                "Warning: --karaoke flag is only applicable for ASS format.",
-                fg=typer.colors.YELLOW,
-            )
-        else:
+    final_output_format = output_format
+    if output_path and not final_output_format:
+        suffix = output_path.suffix.lower().strip(".")
+        if suffix and suffix in SubtitleFormat.__members__.values():
+            final_output_format = SubtitleFormat(suffix)
+
+    if not final_output_format:
+        final_output_format = SubtitleFormat.SRT
+        typer.secho("No output format specified. Defaulting to SRT.", fg=typer.colors.YELLOW)
+
+    typer.echo(f"Generating subtitles in {final_output_format.upper()} format...")
+
+    ass_settings: AssSettings | None = None
+    if final_output_format == SubtitleFormat.ASS:
+        settings_dict = {}
+        if style_file:
+            with style_file.open("r", encoding="utf-8") as f:
+                settings_dict = json.load(f)
+
+        cli_opts = {
+            "font": font_name,
+            "font_size": font_size,
+            "primary_color": primary_color,
+            "secondary_color": secondary_color,
+            "outline_color": outline_color,
+            "back_color": back_color,
+            "bold": -1 if bold else (0 if bold is False else None),
+            "italic": -1 if italic else (0 if italic is False else None),
+            "underline": -1 if underline else (0 if underline is False else None),
+            "alignment": alignment,
+            "margin_v": margin_v,
+        }
+        settings_dict.update({k: v for k, v in cli_opts.items() if v is not None})
+        ass_settings = AssSettings.model_validate(settings_dict)
+
+        if karaoke:
             ass_settings.highlight_style = AssStyleSettings()
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
@@ -61,7 +114,7 @@ def generate(
 
     for in_file, out_file_base in processor.process():
         typer.echo(f"Processing: {in_file.name}")
-        out_file = out_file_base.with_suffix(f".{output_format.value}")
+        out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
             with in_file.open("r", encoding="utf-8") as f:
@@ -69,8 +122,9 @@ def generate(
 
             content = generate_api(
                 raw_data,
-                output_format=output_format,
+                output_format=final_output_format,
                 max_chars=max_chars,
+                min_words=min_words,
                 ass_settings=ass_settings,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
