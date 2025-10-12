@@ -80,6 +80,11 @@ class SubtitleSegment:
             "words": [w.to_dict() for w in self.words],
         }
 
+    @property
+    def text(self) -> str:
+        """Returns the segment text by concatenating the words."""
+        return " ".join(word.text for word in self.words)
+
 
 @dataclass
 class Subtitles:

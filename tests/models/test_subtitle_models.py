@@ -1,15 +1,14 @@
-from typing import Any, cast
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 
 from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
-from autosubs.typing.transcription import WordDict
 
 
 def test_subtitle_word_from_dict() -> None:
     """Test that SubtitleWord.from_dict correctly creates an instance."""
-    data = cast(WordDict, {"word": " Hello ", "start": 1.0, "end": 2.0})
+    data = {"word": " Hello ", "start": 1.0, "end": 2.0}
     word = SubtitleWord.from_dict(data)
 
     assert isinstance(word, SubtitleWord)

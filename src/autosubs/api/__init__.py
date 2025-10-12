@@ -54,11 +54,11 @@ def generate(
         if not path.is_file():
             raise FileNotFoundError(f"Transcription file not found at: {path}")
         with path.open("r", encoding="utf-8") as f:
-            transcription_dict = json.load(f)
+            valid_transcription_dict = json.load(f)
     else:
-        transcription_dict = transcription_source
+        valid_transcription_dict = transcription_source
 
-    subtitles = Subtitles.from_dict(transcription_dict, max_chars=max_chars, min_words=min_words)
+    subtitles = Subtitles.from_dict(valid_transcription_dict, max_chars=max_chars, min_words=min_words)
     normalized_format = output_format.lower()
 
     try:

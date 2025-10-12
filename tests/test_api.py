@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import autosubs
 from autosubs.api import generate, load, transcribe
 from autosubs.models.settings import AssSettings, AssStyleSettings
 from autosubs.models.subtitles import Subtitles
@@ -13,14 +12,14 @@ from autosubs.models.subtitles import Subtitles
 def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
     """Verify that an unsupported format raises a ValueError."""
     with pytest.raises(ValueError, match="Invalid output format specified"):
-        generate(transcription_dict=sample_transcription, output_format="invalid-format")
+        generate(transcription_source=sample_transcription, output_format="invalid-format")
 
 
 @pytest.mark.parametrize("output_format", ["srt", "vtt", "ass"])
 def test_generate_valid_formats(output_format: str, sample_transcription: dict[str, Any]) -> None:
     """Test generation for all supported subtitle formats with default settings."""
     result = generate(
-        transcription_dict=sample_transcription,
+        transcription_source=sample_transcription,
         output_format=output_format,
         max_chars=200,
     )
@@ -45,7 +44,7 @@ def test_ass_output_with_karaoke(sample_transcription: dict[str, Any]) -> None:
     """Verify that enabling karaoke mode for ASS format adds timing tags."""
     ass_settings = AssSettings(highlight_style=AssStyleSettings())
     result = generate(
-        transcription_dict=sample_transcription,
+        transcription_source=sample_transcription,
         output_format="ass",
         ass_settings=ass_settings,
     )
@@ -86,7 +85,7 @@ def test_transcribe_api_file_not_found(mock_run_transcription: MagicMock) -> Non
 def test_transcribe_api_whisper_not_installed(fake_media_file: Path) -> None:
     """Test that transcribe API raises ImportError if whisper is not installed."""
     with pytest.raises(ImportError, match="Whisper is not installed"):
-        autosubs.core.transcriber.run_transcription(fake_media_file, "base")
+        transcribe(fake_media_file, "base")
 
 
 def test_load_api_success(tmp_srt_file: Path, tmp_vtt_file: Path, tmp_ass_file: Path) -> None:

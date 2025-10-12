@@ -13,15 +13,15 @@ from autosubs.core import parser
 )
 def test_srt_timestamp_to_seconds(timestamp: str, expected_seconds: float) -> None:
     """Test conversion of valid SRT timestamps to seconds."""
-    assert parser._srt_timestamp_to_seconds(timestamp) == expected_seconds
+    assert parser.srt_timestamp_to_seconds(timestamp) == expected_seconds
 
 
 def test_srt_timestamp_to_seconds_invalid() -> None:
     """Test that invalid SRT timestamps raise ValueError."""
     with pytest.raises(ValueError):
-        parser._srt_timestamp_to_seconds("00:00:00.000")  # Wrong separator
+        parser.srt_timestamp_to_seconds("00:00:00.000")  # Wrong separator
     with pytest.raises(ValueError):
-        parser._srt_timestamp_to_seconds("0:0:0,0")  # Wrong padding
+        parser.srt_timestamp_to_seconds("0:0:0,0")  # Wrong padding
 
 
 @pytest.mark.parametrize(
@@ -34,15 +34,15 @@ def test_srt_timestamp_to_seconds_invalid() -> None:
 )
 def test_vtt_timestamp_to_seconds(timestamp: str, expected_seconds: float) -> None:
     """Test conversion of valid VTT timestamps to seconds."""
-    assert parser._vtt_timestamp_to_seconds(timestamp) == expected_seconds
+    assert parser.vtt_timestamp_to_seconds(timestamp) == expected_seconds
 
 
 def test_vtt_timestamp_to_seconds_invalid() -> None:
     """Test that invalid VTT timestamps raise ValueError."""
     with pytest.raises(ValueError):
-        parser._vtt_timestamp_to_seconds("00:00,000")  # Wrong separator
+        parser.vtt_timestamp_to_seconds("00:00,000")  # Wrong separator
     with pytest.raises(ValueError):
-        parser._vtt_timestamp_to_seconds("0:0:0.0")  # Wrong padding on some parts
+        parser.vtt_timestamp_to_seconds("0:0:0.0")  # Wrong padding on some parts
 
 
 @pytest.mark.parametrize(
@@ -55,15 +55,15 @@ def test_vtt_timestamp_to_seconds_invalid() -> None:
 )
 def test_ass_timestamp_to_seconds(timestamp: str, expected_seconds: float) -> None:
     """Test conversion of valid ASS timestamps to seconds."""
-    assert parser._ass_timestamp_to_seconds(timestamp) == expected_seconds
+    assert parser.ass_timestamp_to_seconds(timestamp) == expected_seconds
 
 
 def test_ass_timestamp_to_seconds_invalid() -> None:
     """Test that invalid ASS timestamps raise ValueError."""
     with pytest.raises(ValueError):
-        parser._ass_timestamp_to_seconds("0:00:00,00")  # Wrong separator
+        parser.ass_timestamp_to_seconds("0:00:00,00")  # Wrong separator
     with pytest.raises(ValueError):
-        parser._ass_timestamp_to_seconds("0:0:0.0")  # Wrong padding
+        parser.ass_timestamp_to_seconds("0:0:0.0")  # Wrong padding
 
 
 def test_parse_srt_success(sample_srt_content: str) -> None:
