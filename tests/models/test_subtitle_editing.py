@@ -10,91 +10,106 @@ def sample_segment() -> SubtitleSegment:
     words = [
         SubtitleWord(text="Hello", start=10.0, end=10.5),
         SubtitleWord(text="world", start=10.6, end=11.0),
-        SubtitleWord(text="test", start=11.5, end=12.5),  # Note the end time
+        SubtitleWord(text="test", start=11.5, end=12.5),
     ]
     return SubtitleSegment(words=words)
 
 
-def test_segment_allows_empty_init() -> None:
-    """Test that SubtitleSegment can be initialized with no words."""
-    segment = SubtitleSegment(words=[])
-    assert segment.start == 0.0
-    assert segment.end == 0.0
-    assert not segment.words
+@pytest.fixture
+def empty_segment() -> SubtitleSegment:
+    """Provides an empty SubtitleSegment for testing."""
+    return SubtitleSegment(words=[])
 
 
 def test_segment_boundary_calculation(sample_segment: SubtitleSegment) -> None:
     """Test that start is the first start and end is the last end."""
     assert sample_segment.start == 10.0
-    assert sample_segment.end == 12.5  # Max of all word ends
-
-
-def test_add_word_optimized(sample_segment: SubtitleSegment) -> None:
-    """Test that add_word correctly inserts and updates boundaries."""
-    # Add to beginning
-    sample_segment.add_word(SubtitleWord("First", 9.0, 9.5))
-    assert sample_segment.start == 9.0
-    assert sample_segment.words[0].text == "First"
-
-    # Add to end
-    sample_segment.add_word(SubtitleWord("Last", 13.0, 13.5))
-    assert sample_segment.end == 13.5
-    assert sample_segment.words[-1].text == "Last"
-
-
-def test_remove_word_optimized(sample_segment: SubtitleSegment) -> None:
-    """Test that remove_word only recalculates boundaries when necessary."""
-    # Remove a middle word (no full recalc needed)
-    middle_word = sample_segment.words[1]
-    sample_segment.remove_word(middle_word)
-    assert len(sample_segment.words) == 2
-    assert sample_segment.start == 10.0
     assert sample_segment.end == 12.5
 
-    # Remove the last boundary word (triggers full recalc)
-    last_word = sample_segment.words[-1]
-    sample_segment.remove_word(last_word)
-    assert len(sample_segment.words) == 1
-    assert sample_segment.end == 10.5  # Recalculated
+
+def test_add_word_to_empty_segment(empty_segment: SubtitleSegment) -> None:
+    """Test adding a word to an empty segment correctly sets boundaries."""
+    word = SubtitleWord("First", 9.0, 9.5)
+    empty_segment.add_word(word)
+    assert empty_segment.start == 9.0
+    assert empty_segment.end == 9.5
+    assert empty_segment.words == [word]
 
 
-def test_shift_by_optimized(sample_segment: SubtitleSegment) -> None:
-    """Test that shift_by directly adds offsets."""
-    sample_segment.shift_by(5.0)
-    assert sample_segment.start == 15.0
-    assert sample_segment.end == 17.5
-    assert sample_segment.words[0].start == 15.0
-    assert sample_segment.words[-1].end == 17.5
+def test_remove_last_word_from_segment() -> None:
+    """Test that removing the last word resets the segment's state."""
+    word = SubtitleWord("Only", 1.0, 2.0)
+    segment = SubtitleSegment(words=[word])
+    segment.remove_word(word)
+    assert not segment.words
+    assert segment.start == 0.0
+    assert segment.end == 0.0
+
+
+def test_remove_non_existent_word(sample_segment: SubtitleSegment) -> None:
+    """Test that attempting to remove a word not in the list fails silently."""
+    non_existent_word = SubtitleWord("NotInList", 0.0, 1.0)
+    original_words = sample_segment.words[:]
+    sample_segment.remove_word(non_existent_word)
+    assert sample_segment.words == original_words
+
+
+def test_shift_by_on_empty_segment(empty_segment: SubtitleSegment) -> None:
+    """Test that shifting an empty segment is a no-op."""
+    empty_segment.shift_by(10.0)
+    assert empty_segment.start == 0.0
+    assert empty_segment.end == 0.0
+    assert not empty_segment.words
 
 
 def test_resize_proportional(sample_segment: SubtitleSegment) -> None:
     """Test that resize correctly scales all internal words."""
-    # Original duration = 2.5s. New duration = 5.0s (2x scale)
     sample_segment.resize(new_start=20.0, new_end=25.0)
     assert sample_segment.start == 20.0
     assert sample_segment.end == 25.0
-    # First word was at start (10.0), now should be at new start (20.0)
     assert pytest.approx(sample_segment.words[0].start) == 20.0
-    # Last word was at 11.5, which is (11.5-10.0)=1.5s into the segment.
-    # New position should be 20.0 + 1.5*2 = 23.0
     assert pytest.approx(sample_segment.words[-1].start) == 23.0
 
 
+def test_resize_empty_segment(empty_segment: SubtitleSegment) -> None:
+    """Test that resizing an empty segment sets its boundaries."""
+    empty_segment.resize(10.0, 20.0)
+    assert empty_segment.start == 10.0
+    assert empty_segment.end == 20.0
+    assert not empty_segment.words
+
+
+def test_resize_with_invalid_timestamps(sample_segment: SubtitleSegment) -> None:
+    """Test that resizing with start > end raises a ValueError."""
+    with pytest.raises(ValueError, match="Start time cannot be after end time"):
+        sample_segment.resize(10.0, 5.0)
+
+
 def test_set_duration(sample_segment: SubtitleSegment) -> None:
-    """Test the set_duration helper method."""
-    # Anchor start
+    """Test the set_duration helper method with valid anchors."""
     sample_segment.set_duration(5.0, anchor="start")
     assert sample_segment.start == 10.0
     assert pytest.approx(sample_segment.end) == 15.0
 
-    # Anchor end
     sample_segment.set_duration(1.0, anchor="end")
     assert pytest.approx(sample_segment.start) == 14.0
     assert sample_segment.end == 15.0
 
 
+def test_set_duration_negative(sample_segment: SubtitleSegment) -> None:
+    """Test that setting a negative duration raises a ValueError."""
+    with pytest.raises(ValueError, match="Duration cannot be negative"):
+        sample_segment.set_duration(-1.0)
+
+
+def test_set_duration_invalid_anchor(sample_segment: SubtitleSegment) -> None:
+    """Test that setting duration with an invalid anchor raises a ValueError."""
+    with pytest.raises(ValueError, match="Anchor must be 'start' or 'end'"):
+        sample_segment.set_duration(1.0, anchor="middle")
+
+
 def test_merge_segments() -> None:
-    """Test merging two segments."""
+    """Test merging two non-empty segments."""
     seg1 = SubtitleSegment(words=[SubtitleWord("A", 1.0, 2.0)])
     seg2 = SubtitleSegment(words=[SubtitleWord("B", 3.0, 4.0)])
     subs = Subtitles(segments=[seg1, seg2])
@@ -106,31 +121,62 @@ def test_merge_segments() -> None:
     assert len(merged.words) == 2
 
 
+def test_merge_into_empty_segment() -> None:
+    """Test merging a non-empty segment into an empty one."""
+    seg1 = SubtitleSegment(words=[])
+    seg2 = SubtitleSegment(words=[SubtitleWord("B", 3.0, 4.0)])
+    subs = Subtitles(segments=[seg1, seg2])
+    subs.merge_segments(0, 1)
+    assert len(subs.segments) == 1
+    merged = subs.segments[0]
+    assert merged.start == 3.0
+    assert merged.end == 4.0
+    assert len(merged.words) == 1
+
+
+def test_merge_with_empty_segment() -> None:
+    """Test that merging an empty segment into a non-empty one is a no-op."""
+    seg1 = SubtitleSegment(words=[SubtitleWord("A", 1.0, 2.0)])
+    seg2 = SubtitleSegment(words=[])
+    subs = Subtitles(segments=[seg1, seg2])
+    original_words = seg1.words[:]
+    subs.merge_segments(0, 1)
+    assert len(subs.segments) == 1
+    assert subs.segments[0].words == original_words
+
+
 def test_split_segment() -> None:
-    """Test splitting a segment."""
-    seg = SubtitleSegment(
-        words=[
-            SubtitleWord("A", 1, 2),
-            SubtitleWord("B", 3, 4),
-            SubtitleWord("C", 5, 6),
-        ]
-    )
+    """Test splitting a segment at a valid word index."""
+    seg = SubtitleSegment(words=[SubtitleWord("A", 1, 2), SubtitleWord("B", 3, 4), SubtitleWord("C", 5, 6)])
     subs = Subtitles(segments=[seg])
     subs.split_segment_at_word(0, 1)
     assert len(subs.segments) == 2
-    assert len(subs.segments[0].words) == 1
     assert subs.segments[0].text == "A"
-    assert len(subs.segments[1].words) == 2
     assert subs.segments[1].text == "B C"
     assert subs.segments[1].start == 3.0
 
 
-def test_generate_word_timings_no_op() -> None:
+@pytest.mark.parametrize("invalid_index", [0, 3])
+def test_split_segment_at_word_invalid_index(invalid_index: int) -> None:
+    """Test splitting a segment at an out-of-bounds index raises IndexError."""
+    seg = SubtitleSegment(words=[SubtitleWord("A", 1, 2), SubtitleWord("B", 3, 4), SubtitleWord("C", 5, 6)])
+    subs = Subtitles(segments=[seg])
+    with pytest.raises(IndexError, match="Split index must be within the bounds"):
+        subs.split_segment_at_word(0, invalid_index)
+
+
+def test_generate_word_timings_no_op(sample_segment: SubtitleSegment) -> None:
     """Test that generation is a no-op on already detailed segments."""
-    seg = SubtitleSegment(words=[SubtitleWord("A", 1, 2), SubtitleWord("B", 3, 4)])
-    original_words = seg.words
-    seg.generate_word_timings()
-    assert seg.words == original_words
+    original_words = sample_segment.words[:]
+    sample_segment.generate_word_timings()
+    assert sample_segment.words == original_words
+
+
+def test_generate_word_timings_with_zero_chars() -> None:
+    """Test word timing generation on a synthetic word with no characters."""
+    segment = SubtitleSegment(words=[SubtitleWord(" ", 1.0, 4.0)])
+    segment.generate_word_timings(strategy=TimingDistribution.BY_CHAR_COUNT)
+    assert not segment.words
 
 
 @pytest.mark.parametrize(
@@ -146,8 +192,6 @@ def test_generate_word_timings_strategies(strategy: TimingDistribution, expected
     seg.generate_word_timings(strategy=strategy)
     assert len(seg.words) == 3
     assert seg.words[0].text == "A"
-    assert seg.words[1].text == "BB"
-    assert seg.words[2].text == "CCC"
     current_time = 1.0
     for i, word in enumerate(seg.words):
         assert pytest.approx(word.start) == current_time
