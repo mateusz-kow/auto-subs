@@ -144,4 +144,4 @@ def to_json(subtitles: Subtitles) -> str:
         A JSON string representing the subtitles.
     """
     logger.info("Generating subtitles in JSON format...")
-    return json.dumps(create_dict_from_subtitles(subtitles), indent=2, ensure_ascii=False)
+    return json.dumps(create_dict_from_subtitles(subtitles), indent=4, ensure_ascii=False)

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-05-28
+
+### Added
+-   **Expanded Test Suite**: Added comprehensive tests for the programmatic editing API, including edge cases for resizing, splitting, and merging subtitle segments.
+-   **CLI Robustness Tests**: Added tests to verify CLI argument parsing for advanced ASS styling and to ensure correct error handling in batch processing jobs.
+
+### Changed
+-   **Refactored CLI Internals**: Consolidated the logic for parsing ASS style settings from command-line arguments into a shared utility function, reducing code duplication between the `generate` and `transcribe` commands.
+-   **Updated Documentation**: Significantly improved `README.md`, `ROADMAP.md`, and `CONTRIBUTING.md` to better reflect the project's current capabilities, fix inconsistencies, and clarify usage examples.
+
 ## [0.4.0] - 2024-05-27
 
 ### Added

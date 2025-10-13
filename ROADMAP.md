@@ -11,6 +11,7 @@ This roadmap is a living document and is subject to change based on development 
 These features form the stable foundation of `auto-subs` and are available today.
 
 -   **✅ End-to-End Transcription**: Go from an audio/video file directly to subtitles in a single command.
+-   **✅ Rich Programmatic Editing API**: A powerful, in-memory object model for subtitle manipulation, including methods to `shift_by()`, `resize()`, `set_duration()`, `merge_segments()`, and `split_segment_at_word()`.
 -   **✅ Versatile Format Conversion**: Convert between SRT, VTT, and ASS formats.
 -   **✅ Intelligent Word Segmentation**: Generate perfectly timed, multi-line subtitle segments from word-level timestamps.
 -   **✅ Broad Format Support**: Full support for SRT, VTT, ASS, and a Whisper-compatible JSON format.
@@ -26,7 +27,6 @@ These features form the stable foundation of `auto-subs` and are available today
 
 These are the high-impact features planned for upcoming releases to significantly expand the library's capabilities.
 
--   **🎯 Rich API for Programmatic Editing**: Enable advanced, in-memory subtitle manipulation, a core requirement for GUI editors. This includes methods like `add_word()`, `remove_segment()`, `merge_segments()`, `split_at_word()`, and `resize()` with **proportional word timestamp scaling**.
 -   **🎯 Hardsubbing (Video Burning)**: Introduce a `--burn` flag to the `transcribe` and `generate` commands. This will use FFmpeg to burn the generated subtitles directly into a new video file.
 -   **🎯 Translation Integration**: Provide a flexible, integrated translation workflow. This will include a `subtitles.translate(dest_lang)` method with a pluggable backend system and a `--translate` flag for the CLI.
 -   **🎯 Streaming & Parallel Transcription**: Enable real-time feedback and dramatically faster processing for long media files. This involves a `stream_transcribe()` API, **Voice Activity Detection (VAD)** for intelligent chunking, and multi-process parallelization.

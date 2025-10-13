@@ -10,7 +10,7 @@ First off, thank you for considering contributing to `auto-subs`! Your help is g
     Fork the repository on GitHub and then clone it to your local machine.
 
     ```bash
-    git clone https://github.com/<your-username>/auto-subs.git
+    git clone https://github.com/mateusz-kow/auto-subs.git
     cd auto-subs
     ```
 
@@ -44,11 +44,11 @@ Before submitting your changes, please ensure that all checks and tests pass.
     uv run ruff format --check .
     ```
 
-3.  **Type Checking with Pyright**:
-    This project uses strict type checking with Pyright. To run the type checker:
+3.  **Type Checking with Mypy**:
+    This project uses strict type checking with Mypy. To run the type checker:
 
     ```bash
-    uv run pyright
+    uv run mypy
     ```
 
 4.  **Running Tests with Pytest**:

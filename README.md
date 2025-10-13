@@ -90,16 +90,17 @@ subtitles = load("path/to/existing.srt")
 print(f"Loaded {len(subtitles.segments)} subtitle segments.")
 ```
 
-## Programmatic Editing
+## Powerful Programmatic Editing
 
-`auto-subs` provides a rich, object-oriented API for advanced, in-memory subtitle manipulation.
+`auto-subs` provides a rich, object-oriented API for advanced, in-memory subtitle manipulation. Once you load or create subtitles, you can edit them and then generate the final output.
 
 ```python
-from autosubs import load
+from autosubs import load, to_ass
 from autosubs.models import AssSettings, AssStyleSettings
 
-# Load an SRT file and automatically generate word-level timings
-# This "upgrades" the SRT to a rich, editable format.
+# Load an SRT file and automatically generate word-level timings.
+# This "upgrades" a standard SRT to a rich, editable format with precise
+# word timestamps, enabling fine-grained edits or karaoke generation.
 subs = load("input.srt", generate_word_timings=True)
 
 # Get the first subtitle segment
@@ -114,7 +115,7 @@ if len(subs.segments) >= 3:
 
 # Generate a karaoke-style ASS file from the edited subtitles
 ass_settings = AssSettings(highlight_style=AssStyleSettings())
-karaoke_ass = subs.to_ass(ass_settings)
+karaoke_ass = to_ass(subs, ass_settings)
 
 with open("output.ass", "w", encoding="utf-8") as f:
     f.write(karaoke_ass)
