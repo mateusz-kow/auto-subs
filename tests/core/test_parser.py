@@ -1,4 +1,5 @@
 import pytest
+from _pytest.logging import LogCaptureFixture
 
 from autosubs.core import parser
 
@@ -182,3 +183,62 @@ def test_parse_ass_skips_malformed_dialogue_line() -> None:
     assert len(segments) == 2
     assert str(segments[0].text) == "First line"
     assert str(segments[1].text) == "Third line"
+
+
+def test_parse_srt_skips_incomplete_blocks() -> None:
+    """Test that the SRT parser skips blocks with fewer than 2 lines."""
+    content = (
+        "1\n00:00:00,500 --> 00:00:01,500\nFirst good block\n\n"
+        "2\n\n"  # Malformed block with only one line
+        "3\n00:00:04,000 --> 00:00:05,000\nSecond good block"
+    )
+    segments = parser.parse_srt(content)
+    assert len(segments) == 2
+    assert str(segments[0].text) == "First good block"
+    assert str(segments[1].text) == "Second good block"
+
+
+def test_parse_srt_skips_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that SRT blocks with start > end are skipped with a warning."""
+    content = "1\n00:00:02,000 --> 00:00:01,000\nInverted timestamp\n\n2\n00:00:03,000 --> 00:00:04,000\nGood block"
+    segments = parser.parse_srt(content)
+    assert len(segments) == 1
+    assert str(segments[0].text) == "Good block"
+    assert "Skipping SRT block with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_vtt_skips_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that VTT blocks with start > end are skipped with a warning."""
+    content = "WEBVTT\n\n00:02.000 --> 00:01.000\nInverted timestamp\n\n00:03.000 --> 00:04.000\nGood block"
+    segments = parser.parse_vtt(content)
+    assert len(segments) == 1
+    assert str(segments[0].text) == "Good block"
+    assert "Skipping VTT block with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_ass_skips_dialogue_before_format(caplog: LogCaptureFixture) -> None:
+    """Test that the ASS parser skips Dialogue lines that appear before the Format line."""
+    content = (
+        "[Events]\n"
+        "Dialogue: 0:00:01.00,0:00:02.00,Should be ignored\n"
+        "Format: Start, End, Text\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Should be parsed"
+    )
+    segments = parser.parse_ass(content)
+    assert len(segments) == 1
+    assert str(segments[0].text) == "Should be parsed"
+    assert "Skipping Dialogue line found before Format line" in caplog.text
+
+
+def test_parse_ass_skips_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that ASS Dialogue lines with start > end are skipped with a warning."""
+    content = (
+        "[Events]\n"
+        "Format: Start, End, Text\n"
+        "Dialogue: 0:00:02.00,0:00:01.00,Inverted timestamp\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Good dialogue"
+    )
+    segments = parser.parse_ass(content)
+    assert len(segments) == 1
+    assert str(segments[0].text) == "Good dialogue"
+    assert "Skipping ASS Dialogue with invalid timestamp (start > end)" in caplog.text

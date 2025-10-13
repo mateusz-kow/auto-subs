@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -108,3 +109,43 @@ def test_load_api_unsupported_format(tmp_path: Path) -> None:
     unsupported_file.touch()
     with pytest.raises(ValueError, match="Unsupported subtitle format"):
         load(unsupported_file)
+
+
+def test_generate_from_file_path(tmp_path: Path, sample_transcription: dict[str, Any]) -> None:
+    """Test that `generate` can load a transcription from a valid file path."""
+    json_path = tmp_path / "transcription.json"
+    json_path.write_text(json.dumps(sample_transcription), encoding="utf-8")
+
+    result = generate(json_path, "srt")
+    assert isinstance(result, str)
+    assert "This is a test transcription" in result
+    assert "-->" in result
+
+
+def test_generate_api_file_not_found() -> None:
+    """Test that `generate` raises FileNotFoundError for a non-existent path."""
+    non_existent_path = Path("non_existent_transcription.json")
+    with pytest.raises(FileNotFoundError, match="Transcription file not found"):
+        generate(non_existent_path, "srt")
+
+
+def test_load_api_with_word_timing_generation(tmp_srt_file: Path) -> None:
+    """Test that `load` with generate_word_timings=True splits segments into words."""
+    # First, load normally. Each segment should have only one "word" (the whole line).
+    subs_no_timings = load(tmp_srt_file)
+    assert len(subs_no_timings.segments[0].words) == 1
+    assert subs_no_timings.segments[0].words[0].text == "Hello world."
+    assert len(subs_no_timings.segments[1].words) == 1
+    assert subs_no_timings.segments[1].words[0].text == "This is a test."
+
+    # Now, load with word timing generation.
+    subs_with_timings = load(tmp_srt_file, generate_word_timings=True)
+    assert len(subs_with_timings.segments[0].words) == 2  # "Hello", "world."
+    assert subs_with_timings.segments[0].words[0].text == "Hello"
+    assert len(subs_with_timings.segments[1].words) == 4  # "This", "is", "a", "test."
+    assert subs_with_timings.segments[1].words[0].text == "This"
+
+    # Check that word timings are within segment boundaries
+    first_word = subs_with_timings.segments[0].words[0]
+    segment = subs_with_timings.segments[0]
+    assert segment.start <= first_word.start < first_word.end <= segment.end

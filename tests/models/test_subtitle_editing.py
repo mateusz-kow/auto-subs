@@ -36,6 +36,27 @@ def test_add_word_to_empty_segment(empty_segment: SubtitleSegment) -> None:
     assert empty_segment.words == [word]
 
 
+def test_add_word_maintains_order_and_updates_boundaries(sample_segment: SubtitleSegment) -> None:
+    """Test adding a word preserves sorting and correctly updates boundaries."""
+    # Word that should be inserted in the middle
+    middle_word = SubtitleWord("middle", 11.1, 11.4)
+    sample_segment.add_word(middle_word)
+    assert [w.start for w in sample_segment.words] == [10.0, 10.6, 11.1, 11.5]
+    assert sample_segment.start == 10.0  # Should not change
+    assert sample_segment.end == 12.5  # Should not change
+
+    # Word that should become the new start
+    first_word = SubtitleWord("first", 9.0, 9.5)
+    sample_segment.add_word(first_word)
+    assert [w.start for w in sample_segment.words] == [9.0, 10.0, 10.6, 11.1, 11.5]
+    assert sample_segment.start == 9.0  # Should update
+
+    # Word that should become the new end
+    last_word = SubtitleWord("last", 13.0, 13.5)
+    sample_segment.add_word(last_word)
+    assert sample_segment.end == 13.5  # Should update
+
+
 def test_remove_last_word_from_segment() -> None:
     """Test that removing the last word resets the segment's state."""
     word = SubtitleWord("Only", 1.0, 2.0)
@@ -46,12 +67,48 @@ def test_remove_last_word_from_segment() -> None:
     assert segment.end == 0.0
 
 
+def test_remove_boundary_word_recalculates_segment_boundaries() -> None:
+    """Test removing a boundary word forces recalculation of start/end times."""
+    word1 = SubtitleWord("A", 1.0, 2.0)
+    word2 = SubtitleWord("B", 2.5, 3.0)
+    word3 = SubtitleWord("C", 3.5, 4.5)
+    segment = SubtitleSegment(words=[word1, word2, word3])
+
+    assert segment.start == 1.0
+    assert segment.end == 4.5
+
+    # Remove the first word, forcing a start time recalculation
+    segment.remove_word(word1)
+    assert segment.start == 2.5
+    assert segment.end == 4.5
+
+    # Remove the (new) last word, forcing an end time recalculation
+    segment.remove_word(word3)
+    assert segment.start == 2.5
+    assert segment.end == 3.0
+
+
 def test_remove_non_existent_word(sample_segment: SubtitleSegment) -> None:
     """Test that attempting to remove a word not in the list fails silently."""
     non_existent_word = SubtitleWord("NotInList", 0.0, 1.0)
     original_words = sample_segment.words[:]
     sample_segment.remove_word(non_existent_word)
     assert sample_segment.words == original_words
+
+
+def test_shift_by(sample_segment: SubtitleSegment) -> None:
+    """Test shifting a segment updates its and all its words' timestamps."""
+    original_starts = [w.start for w in sample_segment.words]
+    original_ends = [w.end for w in sample_segment.words]
+    offset = 5.5
+
+    sample_segment.shift_by(offset)
+
+    assert sample_segment.start == 10.0 + offset
+    assert sample_segment.end == 12.5 + offset
+    for i, word in enumerate(sample_segment.words):
+        assert word.start == original_starts[i] + offset
+        assert word.end == original_ends[i] + offset
 
 
 def test_shift_by_on_empty_segment(empty_segment: SubtitleSegment) -> None:
@@ -175,6 +232,19 @@ def test_generate_word_timings_no_op(sample_segment: SubtitleSegment) -> None:
 def test_generate_word_timings_with_zero_chars() -> None:
     """Test word timing generation on a synthetic word with no characters."""
     segment = SubtitleSegment(words=[SubtitleWord(" ", 1.0, 4.0)])
+    segment.generate_word_timings(strategy=TimingDistribution.BY_CHAR_COUNT)
+    assert not segment.words
+
+
+def test_generate_word_timings_with_empty_text_avoids_division_by_zero() -> None:
+    """Test word timing generation on a synthetic word with empty text.
+
+    This covers the `if total_chars == 0` check by first hitting the `if not words_in_text`
+    check, which is the only way to produce a zero-character count from a split string.
+    """
+    segment = SubtitleSegment(words=[SubtitleWord("", 1.0, 4.0)])
+    # The `strip()` on "" results in "", and `"".split()` results in `[]`.
+    # This is caught by `if not words_in_text`, preventing division by zero.
     segment.generate_word_timings(strategy=TimingDistribution.BY_CHAR_COUNT)
     assert not segment.words
 
