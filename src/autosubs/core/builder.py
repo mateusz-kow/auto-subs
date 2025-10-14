@@ -13,7 +13,7 @@ from autosubs.models.subtitles import Subtitles, SubtitleWord
 
 def create_subtitles_from_transcription(
     transcription_dict: dict[str, Any], max_chars: int, min_words: int, max_lines: int
-) -> Subtitles:
+) -> "Subtitles":
     """Validates a raw transcription dictionary and builds a Subtitles object.
 
     This is the canonical factory function for creating Subtitles from a
@@ -40,7 +40,7 @@ def create_subtitles_from_transcription(
     return Subtitles(segments=segments)
 
 
-def create_dict_from_subtitles(subtitles: Subtitles) -> dict[str, Any]:
+def create_dict_from_subtitles(subtitles: "Subtitles") -> dict[str, Any]:
     """Converts a Subtitles object back into a Whisper-compatible dictionary.
 
     Args:

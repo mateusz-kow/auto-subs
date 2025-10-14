@@ -4,7 +4,7 @@
   <img src="https://github.com/mateusz-kow/auto-subs/blob/main/assets/logo.png?raw=true" alt="Auto-Subs Logo" width="250">
   <h1>Auto-Subs</h1>
   <strong>Effortless Subtitle Generation from Whisper Transcriptions.</strong>
-  <p>A powerful, local-first library and CLI for generating subtitles with precise, word-level accuracy.</p>
+  <p>A powerful, local-first library and CLI for generating and editing subtitles with precise, word-level accuracy.</p>
 </div>
 
 <div align="center">
@@ -26,6 +26,7 @@
 ## Key Features
 
 -   **🚀 End-to-End Transcription**: Go from an audio or video file directly to perfectly timed subtitles in one command.
+-   **📝 Rich Programmatic Editing**: A powerful, in-memory API to programmatically edit subtitles—shift timing, adjust duration, merge/split segments, and more.
 -   **🔄 Versatile Format Conversion**: Easily convert existing subtitle files between supported formats.
 -   **🧠 Intelligent Word Segmentation**: Automatically splits word-level transcriptions into perfectly timed subtitle lines based on character limits and natural punctuation breaks.
 -   **📄 Multiple Formats**: Generate and convert subtitles in the most popular formats: **SRT**, **VTT**, and **ASS**.
@@ -60,8 +61,6 @@ auto-subs generate input.json -f ass -o styled.ass --max-chars 42 --karaoke
 auto-subs convert subtitles.srt -f ass
 ```
 
-Each command supports batch processing directories and has more options available via `--help`.
-
 ### As a Python Library
 
 Integrate `auto-subs` directly into your application for full control.
@@ -74,13 +73,9 @@ from autosubs import generate, transcribe, load
 with open("path/to/transcription.json", "r", encoding="utf-8") as f:
     transcription_data = json.load(f)
 
-try:
-    srt_content = generate(transcription_data, "srt", max_chars=40)
-    with open("output.srt", "w", encoding="utf-8") as f:
-        f.write(srt_content)
-    print("Successfully generated subtitles!")
-except ValueError as e:
-    print(f"Error: {e}")
+srt_content = generate(transcription_data, "srt", max_chars=40)
+with open("output.srt", "w", encoding="utf-8") as f:
+    f.write(srt_content)
 
 # --- Transcribe directly from a media file ---
 try:
@@ -89,28 +84,52 @@ try:
         f.write(vtt_content)
 except ImportError:
     print("Transcription requires 'auto-subs[transcribe]' to be installed.")
-except FileNotFoundError:
-    print("Media file not found.")
 
 # --- Load and inspect an existing subtitle file ---
-try:
-    subtitles = load("path/to/existing.srt")
-    print(f"Loaded {len(subtitles.segments)} subtitle segments.")
-    for segment in subtitles.segments:
-        print(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment}")
-except (ValueError, FileNotFoundError) as e:
-    print(f"Error loading subtitles: {e}")
+subtitles = load("path/to/existing.srt")
+print(f"Loaded {len(subtitles.segments)} subtitle segments.")
+```
+
+## Powerful Programmatic Editing
+
+`auto-subs` provides a rich, object-oriented API for advanced, in-memory subtitle manipulation. Once you load or create subtitles, you can edit them and then generate the final output.
+
+```python
+from autosubs import load, to_ass
+from autosubs.models import AssSettings, AssStyleSettings
+
+# Load an SRT file and automatically generate word-level timings.
+# This "upgrades" a standard SRT to a rich, editable format with precise
+# word timestamps, enabling fine-grained edits or karaoke generation.
+subs = load("input.srt", generate_word_timings=True)
+
+# Get the first subtitle segment
+first_segment = subs.segments[0]
+
+# Perform edits using a fluent, chainable API
+first_segment.shift_by(-0.25).set_duration(3.5, anchor="start") # Shift 250ms earlier and set duration to 3.5s
+
+# Merge the second and third segments into one
+if len(subs.segments) >= 3:
+    subs.merge_segments(1, 2)
+
+# Generate a karaoke-style ASS file from the edited subtitles
+ass_settings = AssSettings(highlight_style=AssStyleSettings())
+karaoke_ass = to_ass(subs, ass_settings)
+
+with open("output.ass", "w", encoding="utf-8") as f:
+    f.write(karaoke_ass)
 ```
 
 ## API Design: Simplicity First
 
-The public API of `auto-subs` is designed to be as simple as possible. All functions, like `auto_subs.generate()`, accept a standard Python dictionary (`dict`).
+The public API of `auto-subs` is designed to be as simple as possible. Functions like `auto_subs.generate()` accept a standard Python dictionary (`dict`).
 
 This approach was chosen intentionally to:
-- **Reduce Friction:** You can directly use the JSON output from Whisper after loading it into a dictionary, without needing to import and instantiate our internal Pydantic models.
+- **Reduce Friction:** You can directly use the JSON output from Whisper after loading it, without needing to instantiate our internal Pydantic models.
 - **Decouple Your Code:** Your project doesn't need to depend on our internal data structures, making your code more resilient to future updates.
 
-While the input is a simple dictionary, `auto-subs` performs robust internal validation to ensure the data is well-formed, giving you the best of both worlds: a simple API and the safety of strong data validation.
+While the input is simple, `auto-subs` performs robust internal validation, giving you the best of both worlds: a simple API and the safety of strong data validation.
 
 ## Contributing
 

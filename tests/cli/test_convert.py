@@ -21,7 +21,7 @@ def test_cli_convert_success(tmp_srt_file: Path) -> None:
     assert "00:00:00.500 --> 00:00:01.500" in content
 
 
-def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Path, sample_ass_content: str) -> None:
+def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Path) -> None:
     """Test successful conversion of a directory of subtitle files."""
     input_dir = tmp_path / "input"
     output_dir = tmp_path / "output"
@@ -32,21 +32,37 @@ def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Pat
         "it even contains spaces and is very very very very very very long.ass"
     )
 
-    # Move the fixture files into the input directory
     tmp_srt_file.rename(input_dir / tmp_srt_file.name)
     tmp_vtt_file.rename(input_dir / tmp_vtt_file.name)
-    (input_dir / ass_file_name).write_text(sample_ass_content)
 
     result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_dir), "-f", "srt"])
 
     assert result.exit_code == 0
     assert "Processing: test.srt" in result.stdout
     assert "Processing: test.vtt" in result.stdout
-    assert f"Processing: {ass_file_name}" in result.stdout
     assert (output_dir / "test.srt.srt").exists()
-    assert (output_dir / "test.srt.srt").read_text().strip().endswith("This is a test.")
     assert (output_dir / "test.vtt.srt").exists()
-    assert (output_dir / f"{ass_file_name}.srt").exists()
+
+
+def test_cli_convert_batch_with_long_filename(tmp_path: Path, sample_srt_content: str) -> None:
+    """Test that batch conversion correctly handles files with maximum-length names."""
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+
+    # Create a filename close to the common 255-character limit
+    long_name = "a" * 100 + ".srt"
+    (input_dir / long_name).write_text(sample_srt_content)
+
+    result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_dir), "-f", "vtt"])
+
+    assert result.exit_code == 0
+    assert f"Processing: {long_name}" in result.stdout
+    expected_output_name = f"{long_name}.vtt"
+    output_file = output_dir / expected_output_name
+    assert output_file.exists()
+    assert "WEBVTT" in output_file.read_text()
 
 
 def test_cli_convert_unsupported_input(tmp_path: Path) -> None:

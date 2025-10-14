@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-05-28
+
+### Added
+-   **Expanded Test Suite**: Added comprehensive tests for the programmatic editing API, including edge cases for resizing, splitting, and merging subtitle segments.
+-   **CLI Robustness Tests**: Added tests to verify CLI argument parsing for advanced ASS styling and to ensure correct error handling in batch processing jobs.
+
+### Changed
+-   **Refactored CLI Internals**: Consolidated the logic for parsing ASS style settings from command-line arguments into a shared utility function, reducing code duplication between the `generate` and `transcribe` commands.
+-   **Updated Documentation**: Significantly improved `README.md`, `ROADMAP.md`, and `CONTRIBUTING.md` to better reflect the project's current capabilities, fix inconsistencies, and clarify usage examples.
+
+## [0.4.0] - 2024-05-27
+
+### Added
+
+-   **Multi-line Segment Generation**: Introduced a `--max-lines` option to the CLI and API to group individual lines into professional, multi-line subtitle segments with correctly adjusted timings.
+-   **Advanced ASS Styling**: The `generate` and `transcribe` commands now accept a `--style-file` argument to load style settings from a JSON file, along with numerous granular flags for overriding specific styles (e.g., `--font-name`, `--primary-color`).
+-   **Enhanced Data Validation**: The `Subtitles` model now automatically detects and logs a warning for segments with overlapping timestamps, improving the quality and reliability of parsed files.
+-   **Serializable JSON Format**: Added a dedicated `json` output format that converts subtitle models back into a Whisper-compatible JSON structure, allowing for lossless data round-trips.
+-   **Public Core Utilities**: Exposed core timestamp formatting and parsing functions (e.g., `format_srt_timestamp`, `srt_timestamp_to_seconds`) in the main package namespace, making them available for developers.
+
+### Changed
+
+-   The public API functions `generate()` and `transcribe()` can now accept a `pathlib.Path` or `str` for transcription sources, providing more flexible inputs for developers.
+-   The CLI now infers the desired output format from the output file's extension (e.g., `-o video.vtt`) if the `--format` flag is not explicitly provided.
+
 ## [0.3.3] - 2024-05-24
 
 ### Changed

@@ -130,3 +130,36 @@ def test_cli_generate_karaoke_non_ass(
     assert "Successfully saved subtitles" in result.stdout
     _, kwargs = mock_generate_api.call_args
     assert kwargs["ass_settings"] is None
+
+
+@patch("autosubs.cli.generate.generate_api")
+def test_cli_generate_ass_with_style_file(
+    mock_generate_api: MagicMock, tmp_path: Path, sample_transcription: dict[str, Any]
+) -> None:
+    """Test that --style-file correctly loads and applies ASS style settings."""
+    input_file = tmp_path / "input.json"
+    input_file.write_text(json.dumps(sample_transcription))
+
+    style_file = tmp_path / "styles.json"
+    custom_styles = {
+        "font_name": "Impact",
+        "font_size": 72,
+        "primary_color": "&H0000FFFF&",  # Yellow
+    }
+    style_file.write_text(json.dumps(custom_styles))
+
+    mock_generate_api.return_value = "dummy ass content"
+
+    result = runner.invoke(app, ["generate", str(input_file), "-f", "ass", "--style-file", str(style_file)])
+
+    assert result.exit_code == 0
+    mock_generate_api.assert_called_once()
+    _, kwargs = mock_generate_api.call_args
+
+    passed_settings = kwargs.get("ass_settings")
+    assert isinstance(passed_settings, AssSettings)
+
+    # Verify that the custom settings from the file were applied
+    assert passed_settings.font == "Impact"
+    assert passed_settings.font_size == 72
+    assert passed_settings.primary_color == "&H0000FFFF&"

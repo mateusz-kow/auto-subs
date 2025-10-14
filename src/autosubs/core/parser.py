@@ -102,8 +102,8 @@ def parse_srt(file_content: str) -> list[SubtitleSegment]:
             start_time = srt_timestamp_to_seconds(start_str)
             end_time = srt_timestamp_to_seconds(end_str)
 
-            if start_time >= end_time:
-                logger.warning(f"Skipping SRT block with invalid timestamp (start >= end): {block}")
+            if start_time > end_time:
+                logger.warning(f"Skipping SRT block with invalid timestamp (start > end): {block}")
                 continue
 
             word = SubtitleWord(text=text, start=start_time, end=end_time)
@@ -147,8 +147,8 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
             end_time = vtt_timestamp_to_seconds(end_str)
             text = "\n".join(lines[text_start_index:])
 
-            if start_time >= end_time:
-                logger.warning(f"Skipping VTT block with invalid timestamp (start >= end): {block}")
+            if start_time > end_time:
+                logger.warning(f"Skipping VTT block with invalid timestamp (start > end): {block}")
                 continue
 
             word = SubtitleWord(text=text, start=start_time, end=end_time)
@@ -205,8 +205,8 @@ def parse_ass(file_content: str) -> list[SubtitleSegment]:
                 end_time = ass_timestamp_to_seconds(parts[format_map["end"]].strip())
                 text = parts[format_map["text"]].strip()
 
-                if start_time >= end_time:
-                    logger.warning(f"Skipping ASS Dialogue with invalid timestamp (start >= end): {line}")
+                if start_time > end_time:
+                    logger.warning(f"Skipping ASS Dialogue with invalid timestamp (start > end): {line}")
                     continue
 
                 clean_text = ASS_STYLE_TAG_REGEX.sub("", text).replace("\\N", "\n")

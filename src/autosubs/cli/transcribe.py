@@ -1,13 +1,12 @@
-import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from autosubs.api import transcribe as transcribe_api
-from autosubs.cli.utils import PathProcessor, SupportedExtension
+from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format, parse_ass_settings_from_cli
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings, AssStyleSettings
+from autosubs.models.settings import AssSettings
 from autosubs.models.whisper import WhisperModel
 
 
@@ -75,50 +74,34 @@ def transcribe(
     bold: Annotated[bool | None, typer.Option(help="[ASS] Enable bold text.")] = None,
     italic: Annotated[bool | None, typer.Option(help="[ASS] Enable italic text.")] = None,
     underline: Annotated[bool | None, typer.Option(help="[ASS] Enable underlined text.")] = None,
-    alignment: Annotated[int | None, typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center).")] = None,
+    alignment: Annotated[
+        int | None,
+        typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center)."),
+    ] = None,
     margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
 ) -> None:
     """Transcribe a media file and generate subtitles."""
-    final_output_format = output_format
-    if output_path and not final_output_format:
-        suffix = output_path.suffix.lower().strip(".")
-        if suffix and suffix in SubtitleFormat.__members__.values():
-            final_output_format = SubtitleFormat(suffix)
-
-    if not final_output_format:
-        final_output_format = SubtitleFormat.SRT
-        typer.secho("No output format specified. Defaulting to SRT.", fg=typer.colors.YELLOW)
+    final_output_format = determine_output_format(output_format, output_path)
 
     ass_settings: AssSettings | None = None
     if final_output_format == SubtitleFormat.ASS:
-        settings_dict = {}
-        if style_file:
-            with style_file.open("r", encoding="utf-8") as f:
-                settings_dict = json.load(f)
-
-        cli_opts = {
-            "font": font_name,
-            "font_size": font_size,
-            "primary_color": primary_color,
-            "secondary_color": secondary_color,
-            "outline_color": outline_color,
-            "back_color": back_color,
-            "bold": -1 if bold else (0 if bold is False else None),
-            "italic": -1 if italic else (0 if italic is False else None),
-            "underline": -1 if underline else (0 if underline is False else None),
-            "alignment": alignment,
-            "margin_v": margin_v,
-        }
-        settings_dict.update({k: v for k, v in cli_opts.items() if v is not None})
-        ass_settings = AssSettings.model_validate(settings_dict)
-
-        if karaoke:
-            ass_settings.highlight_style = AssStyleSettings()
-    elif karaoke:
-        typer.secho(
-            "Warning: --karaoke flag is only applicable for ASS format.",
-            fg=typer.colors.YELLOW,
+        ass_settings = parse_ass_settings_from_cli(
+            style_file,
+            karaoke,
+            font_name,
+            font_size,
+            primary_color,
+            secondary_color,
+            outline_color,
+            back_color,
+            bold,
+            italic,
+            underline,
+            alignment,
+            margin_v,
         )
+    elif karaoke:
+        typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
 
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
     is_batch = media_path.is_dir()
