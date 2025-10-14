@@ -335,3 +335,12 @@ def test_complex_editing_sequence_maintains_integrity() -> None:
     assert subs.segments[1].text == "C1"
     assert subs.segments[2].text == "C2 C3"
     assert pytest.approx(subs.segments[2].start) == 25.3
+
+
+def test_generate_word_timings_handles_whitespace_only_word() -> None:
+    """Test that a word with only whitespace is correctly handled, resulting in an empty segment."""
+    segment = SubtitleSegment(words=[SubtitleWord(" \t ", 5.0, 10.0)])
+    segment.generate_word_timings()
+    assert not segment.words
+    assert segment.start == 0.0
+    assert segment.end == 0.0

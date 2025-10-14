@@ -152,6 +152,7 @@ class SubtitleSegment:
         words_in_text = synthetic_word.text.strip().split()
         if not words_in_text:
             self.words = []
+            self.start = self.end = 0.0
             return self
 
         total_duration = self.end - self.start
