@@ -1,10 +1,14 @@
 import json
+import os
+import shutil
+import tempfile
 from collections.abc import Generator
 from enum import Enum, auto
 from pathlib import Path
 
 import typer
 
+from autosubs.core.burner import FFmpegError, burn_subtitles
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings, AssStyleSettings
 
@@ -87,12 +91,14 @@ class SupportedExtension(Enum):
     MEDIA = auto()
     SUBTITLE = auto()
     JSON = auto()
+    VIDEO = auto()
 
 
 _EXTENSION_MAP: dict[SupportedExtension, set[str]] = {
-    SupportedExtension.MEDIA: {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac"},
+    SupportedExtension.MEDIA: {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac", ".mov", ".webm"},
     SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass"},
     SupportedExtension.JSON: {".json"},
+    SupportedExtension.VIDEO: {".mp4", ".mkv", ".avi", ".mov", ".webm"},
 }
 
 
@@ -157,3 +163,60 @@ class PathProcessor:
             else:
                 out_file = file
             yield file, out_file
+
+
+def check_ffmpeg_installed() -> None:
+    """Checks for FFmpeg executable and exits if not found."""
+    if not shutil.which("ffmpeg"):
+        typer.secho(
+            "Error: FFmpeg executable not found. This feature requires FFmpeg to be "
+            "installed and available in your system's PATH.",
+            fg=typer.colors.RED,
+        )
+        typer.secho("Visit https://ffmpeg.org/download.html for installation instructions.", fg=typer.colors.YELLOW)
+        raise typer.Exit(code=1)
+
+
+def handle_burn_operation(
+    video_input: Path,
+    video_output: Path,
+    subtitle_content: str,
+    subtitle_format: SubtitleFormat,
+    styling_options_used: bool,
+) -> None:
+    """Central handler for burning subtitles into video."""
+    if styling_options_used and subtitle_format in {SubtitleFormat.SRT, SubtitleFormat.VTT}:
+        typer.secho(
+            "Warning: Burning in SRT/VTT format. All styling options (--font-name, --karaoke, etc.) "
+            "will be ignored. For styled subtitles, use the ASS format.",
+            fg=typer.colors.YELLOW,
+        )
+
+    typer.secho(
+        "Starting video burn process. This may take a significant amount of time...",
+        fg=typer.colors.CYAN,
+    )
+
+    temp_sub_file = None
+    try:
+        suffix = f".{subtitle_format.value}"
+        # Create a temporary file, ensuring it's closed before FFmpeg accesses it.
+        with tempfile.NamedTemporaryFile(
+            "w",
+            suffix=suffix,
+            delete=False,
+            encoding="utf-8",
+        ) as f:
+            temp_sub_file = Path(f.name)
+            f.write(subtitle_content)
+
+        burn_subtitles(video_input, temp_sub_file, video_output)
+
+        typer.secho(f"Successfully burned subtitles into video: {video_output}", fg=typer.colors.GREEN)
+    except (FFmpegError, Exception) as e:
+        typer.secho(f"An unexpected error occurred while burning subtitles: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=1) from e
+    finally:
+        # Guarantee cleanup of the temporary file.
+        if temp_sub_file and temp_sub_file.exists():
+            os.remove(temp_sub_file)

@@ -80,3 +80,11 @@ def tmp_ass_file(tmp_path: Path, sample_ass_content: str) -> Path:
     ass_file = tmp_path / "test.ass"
     ass_file.write_text(sample_ass_content, encoding="utf-8")
     return ass_file
+
+
+@pytest.fixture
+def fake_video_file(tmp_path: Path) -> Path:
+    """Create a dummy video file for testing burn paths."""
+    video_file = tmp_path / "test_video.mp4"
+    video_file.touch()
+    return video_file

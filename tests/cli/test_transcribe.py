@@ -83,7 +83,7 @@ def test_cli_transcribe_karaoke_with_non_ass_warning(mock_transcribe_api: MagicM
     result = runner.invoke(app, ["transcribe", str(fake_media_file), "-f", "srt", "--karaoke"])
 
     assert result.exit_code == 0
-    assert "Warning: --karaoke flag is only applicable for ASS format." in result.stdout
+    assert "Warning: ASS styling options are only applicable for ASS format." in result.stdout
     _, kwargs = mock_transcribe_api.call_args
     assert kwargs["ass_settings"] is None
 
@@ -152,3 +152,76 @@ def test_cli_transcribe_ass_with_style_file(
     assert passed_settings.font == "Impact"
     assert passed_settings.font_size == 72
     assert passed_settings.primary_color == "&H0000FFFF&"
+
+
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+@patch("subprocess.run")
+@patch("autosubs.cli.transcribe.transcribe_api")
+def test_cli_transcribe_burn_success(
+    mock_transcribe: MagicMock,
+    mock_run: MagicMock,
+    mock_which: MagicMock,
+    fake_video_file: Path,
+) -> None:
+    """Test successful end-to-end transcription and burning."""
+    mock_transcribe.return_value = "1\n00:00:00,100 --> 00:00:01,200\nHello"
+    result = runner.invoke(app, ["transcribe", str(fake_video_file), "--burn"])
+
+    assert result.exit_code == 0
+    mock_transcribe.assert_called_once()
+    mock_run.assert_called_once()
+    assert "Successfully burned subtitles into video" in result.stdout
+
+
+@patch("shutil.which", return_value=None)
+@patch("autosubs.cli.transcribe.transcribe_api")
+def test_cli_transcribe_burn_ffmpeg_not_found_fails_early(
+    mock_transcribe: MagicMock, mock_which: MagicMock, fake_video_file: Path
+) -> None:
+    """Test that --burn fails early if FFmpeg is not found, before transcription."""
+    result = runner.invoke(app, ["transcribe", str(fake_video_file), "--burn"])
+
+    assert result.exit_code == 1
+    assert "Error: FFmpeg executable not found" in result.stdout
+    mock_transcribe.assert_not_called()
+
+
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+@patch("subprocess.run")
+@patch("autosubs.cli.transcribe.transcribe_api")
+def test_cli_transcribe_burn_skips_audio_in_batch(
+    mock_transcribe: MagicMock,
+    mock_run: MagicMock,
+    mock_which: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Test that --burn in batch mode skips non-video files."""
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    (input_dir / "video.mp4").touch()
+    (input_dir / "audio.mp3").touch()
+
+    mock_transcribe.return_value = "dummy subtitles"
+    result = runner.invoke(app, ["transcribe", str(input_dir), "--burn"])
+
+    assert result.exit_code == 0
+    assert "Skipping non-video file for burning: audio.mp3" in result.stdout
+    assert mock_transcribe.call_count == 2  # Transcribes both
+    assert mock_run.call_count == 1  # Burns only one
+
+
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+@patch("subprocess.run")
+@patch("autosubs.cli.transcribe.transcribe_api")
+def test_cli_transcribe_burn_style_warning_for_srt(
+    mock_transcribe: MagicMock,
+    mock_run: MagicMock,
+    mock_which: MagicMock,
+    fake_video_file: Path,
+) -> None:
+    """Test that a warning is shown when burning SRT with styling flags."""
+    mock_transcribe.return_value = "dummy subtitles"
+    result = runner.invoke(app, ["transcribe", str(fake_video_file), "--burn", "--karaoke", "-f", "srt"])
+
+    assert result.exit_code == 0
+    assert "Warning: Burning in SRT/VTT format. All styling options" in result.stdout

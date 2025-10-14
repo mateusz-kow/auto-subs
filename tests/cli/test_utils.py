@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from _pytest.capture import CaptureFixture
@@ -215,3 +216,23 @@ def test_parse_ass_settings_karaoke_flag() -> None:
         margin_v=None,
     )
     assert settings.highlight_style is not None
+
+
+@patch("shutil.which", return_value="/path/to/ffmpeg")
+def test_check_ffmpeg_installed_success(mock_which: MagicMock) -> None:
+    """Test that no error is raised when ffmpeg is found."""
+    from autosubs.cli.utils import check_ffmpeg_installed
+
+    try:
+        check_ffmpeg_installed()
+    except Exit:
+        pytest.fail("check_ffmpeg_installed raised Exit unexpectedly.")
+
+
+@patch("shutil.which", return_value=None)
+def test_check_ffmpeg_installed_failure(mock_which: MagicMock) -> None:
+    """Test that Exit is raised when ffmpeg is not found."""
+    from autosubs.cli.utils import check_ffmpeg_installed
+
+    with pytest.raises(Exit):
+        check_ffmpeg_installed()
