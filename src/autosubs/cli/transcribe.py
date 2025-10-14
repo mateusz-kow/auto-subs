@@ -4,7 +4,12 @@ from typing import Annotated
 import typer
 
 from autosubs.api import transcribe as transcribe_api
-from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format, parse_ass_settings_from_cli
+from autosubs.cli.utils import (
+    PathProcessor,
+    SupportedExtension,
+    determine_output_format,
+    parse_ass_settings_from_cli,
+)
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings
 from autosubs.models.whisper import WhisperModel
@@ -101,7 +106,10 @@ def transcribe(
             margin_v,
         )
     elif karaoke:
-        typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+        typer.secho(
+            "Warning: --karaoke flag is only applicable for ASS format.",
+            fg=typer.colors.YELLOW,
+        )
 
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
     is_batch = media_path.is_dir()

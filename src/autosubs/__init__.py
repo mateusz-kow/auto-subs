@@ -5,4 +5,13 @@ from autosubs.core import to_ass, to_json, to_srt, to_vtt
 
 __version__ = "0.5.0"
 
-__all__ = ["__version__", "generate", "transcribe", "load", "to_json", "to_srt", "to_vtt", "to_ass"]
+__all__ = [
+    "__version__",
+    "generate",
+    "transcribe",
+    "load",
+    "to_json",
+    "to_srt",
+    "to_vtt",
+    "to_ass",
+]

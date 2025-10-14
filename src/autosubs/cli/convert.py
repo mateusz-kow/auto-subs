@@ -5,7 +5,11 @@ from typing import Annotated
 import typer
 
 from autosubs.api import load
-from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format
+from autosubs.cli.utils import (
+    PathProcessor,
+    SupportedExtension,
+    determine_output_format,
+)
 from autosubs.core import generator
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings

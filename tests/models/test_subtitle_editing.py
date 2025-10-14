@@ -36,7 +36,9 @@ def test_add_word_to_empty_segment(empty_segment: SubtitleSegment) -> None:
     assert empty_segment.words == [word]
 
 
-def test_add_word_maintains_order_and_updates_boundaries(sample_segment: SubtitleSegment) -> None:
+def test_add_word_maintains_order_and_updates_boundaries(
+    sample_segment: SubtitleSegment,
+) -> None:
     """Test adding a word preserves sorting and correctly updates boundaries."""
     # Word that should be inserted in the middle
     middle_word = SubtitleWord("middle", 11.1, 11.4)
@@ -204,7 +206,13 @@ def test_merge_with_empty_segment() -> None:
 
 def test_split_segment() -> None:
     """Test splitting a segment at a valid word index."""
-    seg = SubtitleSegment(words=[SubtitleWord("A", 1, 2), SubtitleWord("B", 3, 4), SubtitleWord("C", 5, 6)])
+    seg = SubtitleSegment(
+        words=[
+            SubtitleWord("A", 1, 2),
+            SubtitleWord("B", 3, 4),
+            SubtitleWord("C", 5, 6),
+        ]
+    )
     subs = Subtitles(segments=[seg])
     subs.split_segment_at_word(0, 1)
     assert len(subs.segments) == 2
@@ -216,7 +224,13 @@ def test_split_segment() -> None:
 @pytest.mark.parametrize("invalid_index", [0, 3])
 def test_split_segment_at_word_invalid_index(invalid_index: int) -> None:
     """Test splitting a segment at an out-of-bounds index raises IndexError."""
-    seg = SubtitleSegment(words=[SubtitleWord("A", 1, 2), SubtitleWord("B", 3, 4), SubtitleWord("C", 5, 6)])
+    seg = SubtitleSegment(
+        words=[
+            SubtitleWord("A", 1, 2),
+            SubtitleWord("B", 3, 4),
+            SubtitleWord("C", 5, 6),
+        ]
+    )
     subs = Subtitles(segments=[seg])
     with pytest.raises(IndexError, match="Split index must be within the bounds"):
         subs.split_segment_at_word(0, invalid_index)

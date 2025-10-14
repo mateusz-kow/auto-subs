@@ -5,7 +5,12 @@ from typing import Annotated
 import typer
 
 from autosubs.api import generate as generate_api
-from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format, parse_ass_settings_from_cli
+from autosubs.cli.utils import (
+    PathProcessor,
+    SupportedExtension,
+    determine_output_format,
+    parse_ass_settings_from_cli,
+)
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings
 
@@ -100,7 +105,10 @@ def generate(
             margin_v,
         )
     elif karaoke:
-        typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
+        typer.secho(
+            "Warning: --karaoke flag is only applicable for ASS format.",
+            fg=typer.colors.YELLOW,
+        )
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
     is_batch = input_path.is_dir()

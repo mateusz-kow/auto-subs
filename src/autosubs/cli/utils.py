@@ -74,7 +74,10 @@ def determine_output_format(
         if suffix in SubtitleFormat.__members__.values():
             return SubtitleFormat(suffix)
 
-    typer.secho(f"No output format specified or inferred. Defaulting to {default.upper()}.", fg=typer.colors.YELLOW)
+    typer.secho(
+        f"No output format specified or inferred. Defaulting to {default.upper()}.",
+        fg=typer.colors.YELLOW,
+    )
     return default
 
 

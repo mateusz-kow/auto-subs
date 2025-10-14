@@ -131,7 +131,14 @@ def test_cli_transcribe_ass_with_style_file(
 
     result = runner.invoke(
         app,
-        ["transcribe", str(fake_media_file), "-f", "ass", "--style-file", str(style_file)],
+        [
+            "transcribe",
+            str(fake_media_file),
+            "-f",
+            "ass",
+            "--style-file",
+            str(style_file),
+        ],
     )
 
     assert result.exit_code == 0

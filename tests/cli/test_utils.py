@@ -109,7 +109,9 @@ def test_determine_output_format_inferred_from_path() -> None:
     assert result == SubtitleFormat.ASS
 
 
-def test_determine_output_format_fallback_to_default(capsys: CaptureFixture[str]) -> None:
+def test_determine_output_format_fallback_to_default(
+    capsys: CaptureFixture[str],
+) -> None:
     """Test that the function falls back to the default when no format can be determined."""
     # Case 1: No output path provided
     result1 = determine_output_format(None, None)
