@@ -268,3 +268,70 @@ def test_generate_word_timings_strategies(strategy: TimingDistribution, expected
         duration = word.end - word.start
         assert pytest.approx(duration) == expected_durations[i]
         current_time += duration
+
+
+def test_complex_editing_sequence_maintains_integrity() -> None:
+    """
+    Performs a chain of editing operations and validates the final state.
+    Any method that modifies segments or words should appear here to ensure the overall integrity
+
+    This test ensures that after multiple manipulations (merge, split, add, shift),
+    the core invariants of the Subtitles and SubtitleSegment models hold true:
+    1. The main segments list is sorted by start time.
+    2. Each segment's word list is sorted by start time.
+    3. Each segment's start/end time correctly reflects its words' boundaries.
+    4. All words have valid start <= end timestamps.
+    """
+    seg_a = SubtitleSegment(words=[SubtitleWord("A", 1.0, 2.0)])
+    seg_b = SubtitleSegment(
+        words=[
+            SubtitleWord("B1", 10.0, 10.5),
+            SubtitleWord("B2", 10.6, 11.0),
+        ]
+    )
+    seg_c = SubtitleSegment(
+        words=[
+            SubtitleWord("C1", 20.0, 20.2),
+            SubtitleWord("C2", 20.3, 20.5),
+            SubtitleWord("C3", 20.6, 21.0),
+        ]
+    )
+    subs = Subtitles(segments=[seg_a, seg_b, seg_c])
+
+    subs.merge_segments(0, 1)
+    subs.split_segment_at_word(segment_index=1, word_index=1)
+
+    word_to_add = SubtitleWord("New", 0.5, 0.9)
+    subs.segments[0].add_word(word_to_add)
+    subs.segments[2].shift_by(5.0)
+
+    subs = Subtitles(segments=subs.segments)
+
+    segment_starts = [s.start for s in subs.segments]
+    assert segment_starts == sorted(segment_starts), "Segments are not sorted by start time."
+
+    for segment in subs.segments:
+        assert segment.words, "A segment should not be empty after these operations."
+        assert segment.start == segment.words[0].start, "Segment start time does not match its first word."
+        assert segment.end == segment.words[-1].end, "Segment end time does not match its last word."
+
+        word_starts = [w.start for w in segment.words]
+        assert word_starts == sorted(word_starts), "Words within a segment are not sorted."
+
+        # Store state, call recalculation, and assert that nothing changed.
+        original_start = segment.start
+        original_end = segment.end
+        original_words = segment.words[:]
+        segment._recalculate_boundaries_full()
+        assert segment.start == original_start, "Recalculation changed the start time unexpectedly."
+        assert segment.end == original_end, "Recalculation changed the end time unexpectedly."
+        assert segment.words == original_words, "Recalculation changed the words list unexpectedly."
+
+        for word in segment.words:
+            assert word.start <= word.end, f"Word '{word.text}' has an invalid timestamp."
+
+    assert len(subs.segments) == 3
+    assert subs.segments[0].text == "New A B1 B2"
+    assert subs.segments[1].text == "C1"
+    assert subs.segments[2].text == "C2 C3"
+    assert pytest.approx(subs.segments[2].start) == 25.3

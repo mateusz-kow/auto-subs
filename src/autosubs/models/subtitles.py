@@ -9,7 +9,7 @@ from autosubs.models.enums import TimingDistribution
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class SubtitleWord:
     """Represents a single word with its text and timing."""
 
@@ -23,7 +23,7 @@ class SubtitleWord:
             raise ValueError(f"SubtitleWord has invalid timestamp: start ({self.start}) > end ({self.end})")
 
 
-@dataclass
+@dataclass(eq=True)
 class SubtitleSegment:
     """Represents a segment of subtitles containing one or more words."""
 
@@ -222,7 +222,7 @@ class SubtitleSegment:
         return " ".join(word.text for word in self.words)
 
 
-@dataclass
+@dataclass(eq=True)
 class Subtitles:
     """Represents a collection of subtitle segments for a piece of media."""
 
