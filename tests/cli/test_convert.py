@@ -27,6 +27,10 @@ def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Pat
     output_dir = tmp_path / "output"
     input_dir.mkdir()
     output_dir.mkdir()
+    ass_file_name = (
+        "very long name that might be too long for some operational systems and "
+        "it even contains spaces and is very very very very very very long.ass"
+    )
 
     tmp_srt_file.rename(input_dir / tmp_srt_file.name)
     tmp_vtt_file.rename(input_dir / tmp_vtt_file.name)
