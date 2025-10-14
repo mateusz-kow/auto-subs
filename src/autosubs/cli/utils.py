@@ -33,9 +33,8 @@ def parse_ass_settings_from_cli(
         with style_file.open("r", encoding="utf-8") as f:
             settings_dict = json.load(f)
 
-    # CLI options override the style file
     cli_opts = {
-        "font": font_name,
+        "font_name": font_name,
         "font_size": font_size,
         "primary_color": primary_color,
         "secondary_color": secondary_color,

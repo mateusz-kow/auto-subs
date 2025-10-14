@@ -5,9 +5,9 @@ from typing import Annotated
 import typer
 
 from autosubs.api import generate as generate_api
-from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format
+from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format, parse_ass_settings_from_cli
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings, AssStyleSettings
+from autosubs.models.settings import AssSettings
 
 
 def generate(
@@ -84,34 +84,23 @@ def generate(
 
     ass_settings: AssSettings | None = None
     if final_output_format == SubtitleFormat.ASS:
-        settings_dict = {}
-        if style_file:
-            with style_file.open("r", encoding="utf-8") as f:
-                settings_dict = json.load(f)
-
-        cli_opts = {
-            "font": font_name,
-            "font_size": font_size,
-            "primary_color": primary_color,
-            "secondary_color": secondary_color,
-            "outline_color": outline_color,
-            "back_color": back_color,
-            "bold": -1 if bold else (0 if bold is False else None),
-            "italic": -1 if italic else (0 if italic is False else None),
-            "underline": -1 if underline else (0 if underline is False else None),
-            "alignment": alignment,
-            "margin_v": margin_v,
-        }
-        settings_dict.update({k: v for k, v in cli_opts.items() if v is not None})
-        ass_settings = AssSettings.model_validate(settings_dict)
-
-        if karaoke:
-            ass_settings.highlight_style = AssStyleSettings()
-    elif karaoke:
-        typer.secho(
-            "Warning: --karaoke flag is only applicable for ASS format.",
-            fg=typer.colors.YELLOW,
+        ass_settings = parse_ass_settings_from_cli(
+            style_file,
+            karaoke,
+            font_name,
+            font_size,
+            primary_color,
+            secondary_color,
+            outline_color,
+            back_color,
+            bold,
+            italic,
+            underline,
+            alignment,
+            margin_v,
         )
+    elif karaoke:
+        typer.secho("Warning: --karaoke flag is only applicable for ASS format.", fg=typer.colors.YELLOW)
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
     is_batch = input_path.is_dir()
