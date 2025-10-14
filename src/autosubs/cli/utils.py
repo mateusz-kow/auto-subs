@@ -1,8 +1,83 @@
+# Add these imports to src/autosubs/cli/utils.py
+import json
 from collections.abc import Generator
 from enum import Enum, auto
 from pathlib import Path
 
 import typer
+
+from autosubs.models.formats import SubtitleFormat
+from autosubs.models.settings import AssSettings, AssStyleSettings
+
+
+# Add this new function to the end of src/autosubs/cli/utils.py
+def parse_ass_settings_from_cli(
+    style_file: Path | None,
+    karaoke: bool,
+    # Pass all the CLI options directly
+    font_name: str | None,
+    font_size: int | None,
+    primary_color: str | None,
+    secondary_color: str | None,
+    outline_color: str | None,
+    back_color: str | None,
+    bold: bool | None,
+    italic: bool | None,
+    underline: bool | None,
+    alignment: int | None,
+    margin_v: int | None,
+) -> AssSettings:
+    """Parses all ASS-related CLI options into an AssSettings object."""
+    settings_dict = {}
+    if style_file:
+        with style_file.open("r", encoding="utf-8") as f:
+            settings_dict = json.load(f)
+
+    # CLI options override the style file
+    cli_opts = {
+        "font": font_name,
+        "font_size": font_size,
+        "primary_color": primary_color,
+        "secondary_color": secondary_color,
+        "outline_color": outline_color,
+        "back_color": back_color,
+        "bold": -1 if bold else (0 if bold is False else None),
+        "italic": -1 if italic else (0 if italic is False else None),
+        "underline": -1 if underline else (0 if underline is False else None),
+        "alignment": alignment,
+        "margin_v": margin_v,
+    }
+    settings_dict.update({k: v for k, v in cli_opts.items() if v is not None})
+    ass_settings = AssSettings.model_validate(settings_dict)
+
+    if karaoke:
+        ass_settings.highlight_style = AssStyleSettings()
+
+    return ass_settings
+
+
+def determine_output_format(
+    output_format_option: SubtitleFormat | None,
+    output_path_option: Path | None,
+    default: SubtitleFormat = SubtitleFormat.SRT,
+) -> SubtitleFormat:
+    """Determines the final subtitle format based on user options.
+
+    The priority is:
+    1. The explicit --format option.
+    2. The extension of the --output path.
+    3. The specified default format.
+    """
+    if output_format_option:
+        return output_format_option
+
+    if output_path_option:
+        suffix = output_path_option.suffix.lower().strip(".")
+        if suffix in SubtitleFormat.__members__.values():
+            return SubtitleFormat(suffix)
+
+    typer.secho(f"No output format specified or inferred. Defaulting to {default.upper()}.", fg=typer.colors.YELLOW)
+    return default
 
 
 class SupportedExtension(Enum):

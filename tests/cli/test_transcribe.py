@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -111,3 +112,36 @@ def test_cli_transcribe_generic_error(mock_transcribe_api: MagicMock, fake_media
     assert result.exit_code == 1
     assert f"An unexpected error occurred while processing {fake_media_file.name}" in result.stdout
     assert "A generic error occurred" in result.stdout
+
+
+@patch("autosubs.cli.transcribe.transcribe_api")
+def test_cli_transcribe_ass_with_style_file(
+    mock_transcribe_api: MagicMock, fake_media_file: Path, tmp_path: Path
+) -> None:
+    """Test that --style-file correctly loads and applies ASS style settings for transcribe."""
+    mock_transcribe_api.return_value = "dummy ass content"
+
+    style_file = tmp_path / "styles.json"
+    custom_styles = {
+        "font_name": "Impact",
+        "font_size": 72,
+        "primary_color": "&H0000FFFF&",  # Yellow
+    }
+    style_file.write_text(json.dumps(custom_styles))
+
+    result = runner.invoke(
+        app,
+        ["transcribe", str(fake_media_file), "-f", "ass", "--style-file", str(style_file)],
+    )
+
+    assert result.exit_code == 0
+    mock_transcribe_api.assert_called_once()
+    _, kwargs = mock_transcribe_api.call_args
+
+    passed_settings = kwargs.get("ass_settings")
+    assert isinstance(passed_settings, AssSettings)
+
+    # Verify that the custom settings from the file were applied
+    assert passed_settings.font == "Impact"
+    assert passed_settings.font_size == 72
+    assert passed_settings.primary_color == "&H0000FFFF&"

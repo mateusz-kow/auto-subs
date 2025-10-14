@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 
 from autosubs.api import generate as generate_api
-from autosubs.cli.utils import PathProcessor, SupportedExtension
+from autosubs.cli.utils import PathProcessor, SupportedExtension, determine_output_format
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings, AssStyleSettings
 
@@ -78,15 +78,7 @@ def generate(
     margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
-    final_output_format = output_format
-    if output_path and not final_output_format:
-        suffix = output_path.suffix.lower().strip(".")
-        if suffix and suffix in SubtitleFormat.__members__.values():
-            final_output_format = SubtitleFormat(suffix)
-
-    if not final_output_format:
-        final_output_format = SubtitleFormat.SRT
-        typer.secho("No output format specified. Defaulting to SRT.", fg=typer.colors.YELLOW)
+    final_output_format = determine_output_format(output_format, output_path)
 
     typer.echo(f"Generating subtitles in {final_output_format.upper()} format...")
 
