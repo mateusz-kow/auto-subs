@@ -236,3 +236,29 @@ def test_check_ffmpeg_installed_failure(mock_which: MagicMock) -> None:
 
     with pytest.raises(Exit):
         check_ffmpeg_installed()
+
+
+@patch("pathlib.Path.resolve")
+@patch("tempfile.NamedTemporaryFile")
+@patch("autosubs.cli.utils.burn_subtitles", side_effect=Exception("A generic filesystem error"))
+def test_handle_burn_operation_generic_exception(
+    mock_burn_subtitles: MagicMock, mock_tempfile: MagicMock, mock_resolve: MagicMock
+) -> None:
+    """Test that a generic Exception in the burn process is caught and handled."""
+    mock_tempfile.return_value.__enter__.return_value.name = "dummy_temp_file.srt"
+    mock_resolve.return_value = Path("dummy_temp_file.srt")
+
+    from autosubs.cli.utils import handle_burn_operation
+    from autosubs.models.formats import SubtitleFormat
+
+    with pytest.raises(Exit) as exc_info:
+        handle_burn_operation(
+            video_input=Path("video.mp4"),
+            video_output=Path("out.mp4"),
+            subtitle_content="dummy",
+            subtitle_format=SubtitleFormat.SRT,
+            styling_options_used=False,
+        )
+
+    assert exc_info.value.exit_code == 1
+    mock_burn_subtitles.assert_called_once()
