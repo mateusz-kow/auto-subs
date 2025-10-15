@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from autosubs.models.ass_styles import AssStyle, WordStyleRange
+from autosubs.models.styles.ass import AssStyle, WordStyleRange
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
 

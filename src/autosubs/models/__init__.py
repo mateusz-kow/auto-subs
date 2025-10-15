@@ -1,7 +1,7 @@
 from pydantic import TypeAdapter
 
-from autosubs.models.ass_styles import AssStyle, WordStyleRange
 from autosubs.models.settings import AssSettings, AssStyleSettings
+from autosubs.models.styles import AssStyle, WordStyleRange
 from autosubs.models.subtitles import (
     AssSubtitles,
     AssSubtitleSegment,

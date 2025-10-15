@@ -1,7 +1,7 @@
 import pytest
 
 from autosubs.core.generator import to_ass
-from autosubs.models.ass_styles import AssStyle, WordStyleRange
+from autosubs.models.styles.ass import AssStyle, WordStyleRange
 from autosubs.models.subtitles import SubtitleWord
 from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 

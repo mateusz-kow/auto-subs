@@ -2,7 +2,7 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core.parser import parse_ass
-from autosubs.models.ass_styles import AssStyle, WordStyleRange
+from autosubs.models.styles.ass import AssStyle, WordStyleRange
 from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
 
