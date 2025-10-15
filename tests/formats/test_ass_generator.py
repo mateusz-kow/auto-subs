@@ -1,9 +1,9 @@
 import pytest
 
 from autosubs.core.generator import to_ass
-from autosubs.models.ass import AssSubtitles, AssSubtitleSegment
 from autosubs.models.ass_styles import AssStyle, WordStyleRange
 from autosubs.models.subtitles import SubtitleWord
+from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
 
 @pytest.mark.xfail(raises=NotImplementedError, reason="Phase 3: ASS generator not implemented")

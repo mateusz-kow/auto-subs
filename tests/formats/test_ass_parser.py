@@ -2,8 +2,8 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core.parser import parse_ass
-from autosubs.models.ass import AssSubtitles, AssSubtitleSegment
 from autosubs.models.ass_styles import AssStyle, WordStyleRange
+from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
 
 @pytest.mark.xfail(raises=NotImplementedError, reason="Phase 3: ASS parser not implemented")

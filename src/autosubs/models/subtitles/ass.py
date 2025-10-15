@@ -5,10 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from autosubs.models.ass_styles import AssStyle, WordStyleRange
-from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
+from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(eq=True)
 class AssSubtitleWord(SubtitleWord):
     """Represents a single word in an ASS file, including rich styling."""
 
