@@ -13,7 +13,10 @@ runner = CliRunner()
 @patch("shutil.which", return_value="/usr/bin/ffmpeg")
 @patch("subprocess.run")
 def test_cli_burn_success_with_output_path(
-    mock_run: MagicMock, mock_which: MagicMock, fake_video_file: Path, tmp_srt_file: Path
+    mock_run: MagicMock,
+    mock_which: MagicMock,
+    fake_video_file: Path,
+    tmp_srt_file: Path,
 ) -> None:
     """Test successful burning when an explicit output path is provided."""
     output_file = fake_video_file.with_suffix(".burned.mp4")
@@ -60,7 +63,10 @@ def test_cli_burn_ffmpeg_not_found(mock_which: MagicMock, fake_video_file: Path,
 )
 @patch("shutil.which", return_value="/usr/bin/ffmpeg")
 def test_cli_burn_ffmpeg_fails(
-    mock_which: MagicMock, mock_run: MagicMock, fake_video_file: Path, tmp_srt_file: Path
+    mock_which: MagicMock,
+    mock_run: MagicMock,
+    fake_video_file: Path,
+    tmp_srt_file: Path,
 ) -> None:
     """Test that the CLI reports an error if the FFmpeg process fails."""
     result = runner.invoke(app, ["burn", str(fake_video_file), str(tmp_srt_file)])

@@ -95,7 +95,17 @@ class SupportedExtension(Enum):
 
 
 _EXTENSION_MAP: dict[SupportedExtension, set[str]] = {
-    SupportedExtension.MEDIA: {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac", ".mov", ".webm"},
+    SupportedExtension.MEDIA: {
+        ".mp3",
+        ".mp4",
+        ".m4a",
+        ".mkv",
+        ".avi",
+        ".wav",
+        ".flac",
+        ".mov",
+        ".webm",
+    },
     SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass"},
     SupportedExtension.JSON: {".json"},
     SupportedExtension.VIDEO: {".mp4", ".mkv", ".avi", ".mov", ".webm"},
@@ -173,7 +183,10 @@ def check_ffmpeg_installed() -> None:
             "installed and available in your system's PATH.",
             fg=typer.colors.RED,
         )
-        typer.secho("Visit https://ffmpeg.org/download.html for installation instructions.", fg=typer.colors.YELLOW)
+        typer.secho(
+            "Visit https://ffmpeg.org/download.html for installation instructions.",
+            fg=typer.colors.YELLOW,
+        )
         raise typer.Exit(code=1)
 
 
@@ -185,7 +198,10 @@ def handle_burn_operation(
     styling_options_used: bool,
 ) -> None:
     """Central handler for burning subtitles into video."""
-    if styling_options_used and subtitle_format in {SubtitleFormat.SRT, SubtitleFormat.VTT}:
+    if styling_options_used and subtitle_format in {
+        SubtitleFormat.SRT,
+        SubtitleFormat.VTT,
+    }:
         typer.secho(
             "Warning: Burning in SRT/VTT format. All styling options (--font-name, --karaoke, etc.) "
             "will be ignored. For styled subtitles, use the ASS format.",
@@ -212,9 +228,15 @@ def handle_burn_operation(
 
         burn_subtitles(video_input, temp_sub_file, video_output)
 
-        typer.secho(f"Successfully burned subtitles into video: {video_output}", fg=typer.colors.GREEN)
+        typer.secho(
+            f"Successfully burned subtitles into video: {video_output}",
+            fg=typer.colors.GREEN,
+        )
     except (FFmpegError, Exception) as e:
-        typer.secho(f"An unexpected error occurred while burning subtitles: {e}", fg=typer.colors.RED)
+        typer.secho(
+            f"An unexpected error occurred while burning subtitles: {e}",
+            fg=typer.colors.RED,
+        )
         raise typer.Exit(code=1) from e
     finally:
         # Guarantee cleanup of the temporary file.

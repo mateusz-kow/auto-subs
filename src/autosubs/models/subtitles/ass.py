@@ -28,6 +28,17 @@ class AssSubtitleSegment(SubtitleSegment):
     margin_v: int = 0
     effect: str = ""
 
+    @property
+    def text(self) -> str:
+        """Returns the segment text by concatenating the parsed chunks.
+
+        This overrides the base implementation to correctly handle ASS text, where
+        parsed words already contain necessary whitespace.
+        """
+        if self.text_override is not None:
+            return self.text_override
+        return "".join(word.text for word in self.words)
+
 
 @dataclass(eq=True)
 class AssSubtitles(Subtitles):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 @dataclass(frozen=True, eq=True)
@@ -18,6 +18,8 @@ class WordStyleRange:
 
 class AssStyle(BaseModel):
     """Represents a single 'Style:' line in the [V4+ Styles] section."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     name: str = Field(..., alias="Name")
     font_name: str = Field("Arial", alias="Fontname")
@@ -42,8 +44,3 @@ class AssStyle(BaseModel):
     margin_r: int = Field(10, alias="MarginR")
     margin_v: int = Field(20, alias="MarginV")
     encoding: int = Field(1, alias="Encoding")
-
-    class Config:
-        """Pydantic model configuration."""
-
-        allow_population_by_field_name = True

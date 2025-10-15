@@ -2,6 +2,7 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core import parser
+from autosubs.models.subtitles import AssSubtitles
 
 
 @pytest.mark.parametrize(
@@ -136,19 +137,20 @@ def test_parse_vtt_handles_malformed_blocks_and_continues() -> None:
 
 def test_parse_ass_success(sample_ass_content: str) -> None:
     """Test successful parsing of a valid ASS file."""
-    segments = parser.parse_ass(sample_ass_content)
-    assert len(segments) == 3
-    assert segments[0].start == 0.5
-    assert segments[0].end == 1.5
-    assert str(segments[0].text) == "Hello world."
-    # Test that style tags are stripped
-    assert segments[1].start == 2.0
-    assert segments[1].end == 3.0
-    assert str(segments[1].text) == "This is a test with bold tags."
+    subs = parser.parse_ass(sample_ass_content)
+    assert isinstance(subs, AssSubtitles)
+    assert len(subs.segments) == 3
+    assert subs.segments[0].start == 0.5
+    assert pytest.approx(subs.segments[0].end) == 1.5
+    assert subs.segments[0].text == "Hello world."
+    # Test that style tags are stripped from the .text property
+    assert subs.segments[1].start == 2.0
+    assert pytest.approx(subs.segments[1].end) == 3.0
+    assert subs.segments[1].text == "This is a test with bold tags."
     # Test that \N is converted to a newline
-    assert segments[2].start == 4.1
-    assert segments[2].end == 5.9
-    assert str(segments[2].text) == r"And a\nnew line."
+    assert subs.segments[2].start == 4.1
+    assert pytest.approx(subs.segments[2].end) == 5.9
+    assert subs.segments[2].text == "And a\nnew line."
 
 
 def test_parse_ass_stops_at_new_section() -> None:
@@ -159,9 +161,9 @@ def test_parse_ass_stops_at_new_section() -> None:
         "[Fonts]\n"
         "Dialogue: 0:00:03.00,0:00:04.00,Should be ignored"
     )
-    segments = parser.parse_ass(content)
-    assert len(segments) == 1
-    assert str(segments[0].text) == "First line"
+    subs = parser.parse_ass(content)
+    assert len(subs.segments) == 1
+    assert str(subs.segments[0].text) == "First line"
 
 
 def test_parse_ass_raises_on_missing_required_format_fields() -> None:
@@ -179,10 +181,10 @@ def test_parse_ass_skips_malformed_dialogue_line() -> None:
         "Dialogue: 0:00:03.00,bad-timestamp,Malformed line\n"
         "Dialogue: 0:00:05.00,0:00:06.00,Third line\n"
     )
-    segments = parser.parse_ass(content)
-    assert len(segments) == 2
-    assert str(segments[0].text) == "First line"
-    assert str(segments[1].text) == "Third line"
+    subs = parser.parse_ass(content)
+    assert len(subs.segments) == 2
+    assert str(subs.segments[0].text) == "First line"
+    assert str(subs.segments[1].text) == "Third line"
 
 
 def test_parse_srt_skips_incomplete_blocks() -> None:
@@ -224,9 +226,9 @@ def test_parse_ass_skips_dialogue_before_format(caplog: LogCaptureFixture) -> No
         "Format: Start, End, Text\n"
         "Dialogue: 0:00:03.00,0:00:04.00,Should be parsed"
     )
-    segments = parser.parse_ass(content)
-    assert len(segments) == 1
-    assert str(segments[0].text) == "Should be parsed"
+    subs = parser.parse_ass(content)
+    assert len(subs.segments) == 1
+    assert str(subs.segments[0].text) == "Should be parsed"
     assert "Skipping Dialogue line found before Format line" in caplog.text
 
 
@@ -238,7 +240,7 @@ def test_parse_ass_skips_inverted_timestamps(caplog: LogCaptureFixture) -> None:
         "Dialogue: 0:00:02.00,0:00:01.00,Inverted timestamp\n"
         "Dialogue: 0:00:03.00,0:00:04.00,Good dialogue"
     )
-    segments = parser.parse_ass(content)
-    assert len(segments) == 1
-    assert str(segments[0].text) == "Good dialogue"
+    subs = parser.parse_ass(content)
+    assert len(subs.segments) == 1
+    assert str(subs.segments[0].text) == "Good dialogue"
     assert "Skipping ASS Dialogue with invalid timestamp (start > end)" in caplog.text

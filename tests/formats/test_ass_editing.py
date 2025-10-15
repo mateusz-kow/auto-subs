@@ -1,10 +1,7 @@
-import pytest
-
 from autosubs.core.generator import to_ass
 from autosubs.core.parser import parse_ass
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="Phase 3: Full implementation not complete")
 def test_ass_round_trip_preserves_data(complex_ass_content: str) -> None:
     """Test that loading and saving a complex ASS file results in a semantically identical file."""
     subs = parse_ass(complex_ass_content)
@@ -20,7 +17,6 @@ def test_ass_round_trip_preserves_data(complex_ass_content: str) -> None:
     assert "{\\k20}Kara{\\k40}oke{\\k50} test." in output_text
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="Phase 3: Full implementation not complete")
 def test_ass_editing_integrity(complex_ass_content: str) -> None:
     """Test that programmatic edits correctly modify the object and the final output."""
     subs = parse_ass(complex_ass_content)
