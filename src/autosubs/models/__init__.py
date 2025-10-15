@@ -1,5 +1,7 @@
 from pydantic import TypeAdapter
 
+from autosubs.models.ass import AssSubtitles, AssSubtitleSegment, AssSubtitleWord
+from autosubs.models.ass_styles import AssStyle, WordStyleRange
 from autosubs.models.settings import AssSettings, AssStyleSettings
 from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
 from autosubs.models.transcription import TranscriptionModel
@@ -14,4 +16,9 @@ __all__ = [
     "AssStyleSettings",
     "TranscriptionModel",
     "TRANSCRIPTION_ADAPTER",
+    "AssSubtitles",
+    "AssSubtitleSegment",
+    "AssStyle",
+    "WordStyleRange",
+    "AssSubtitleWord",
 ]

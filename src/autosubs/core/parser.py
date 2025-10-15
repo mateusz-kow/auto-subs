@@ -3,6 +3,7 @@
 import re
 from logging import getLogger
 
+from autosubs.models import AssSubtitles
 from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
 
 logger = getLogger(__name__)
@@ -159,61 +160,13 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
     return segments
 
 
-def parse_ass(file_content: str) -> list[SubtitleSegment]:
-    """Parses content from an ASS file into subtitle segments.
+def parse_ass(file_content: str) -> AssSubtitles:
+    """Parses content from an ASS file into a rich AssSubtitles object.
 
     Args:
         file_content: The full content of the ASS file.
 
     Returns:
-        A list of parsed subtitle segments.
+        An AssSubtitles object representing the file content.
     """
-    logger.info("Parsing ASS file content.")
-    segments: list[SubtitleSegment] = []
-    in_events = False
-    format_map: dict[str, int] = {}
-
-    for raw_line in file_content.splitlines():
-        line = raw_line.strip()
-        if line.lower() == "[events]":
-            in_events = True
-            continue
-        if not in_events or not line:
-            continue
-        if line.startswith("["):  # Reached another section
-            break
-
-        key, _, value = line.partition(":")
-        key = key.lower()
-        value = value.strip()
-
-        if key == "format" and not format_map:
-            fields = [f.strip() for f in value.split(",")]
-            format_map = {field.lower(): i for i, field in enumerate(fields)}
-            if "start" not in format_map or "end" not in format_map or "text" not in format_map:
-                raise ValueError("ASS 'Format' line is missing required fields: Start, End, Text")
-            continue
-
-        if key == "dialogue":
-            if not format_map:
-                logger.warning("Skipping Dialogue line found before Format line.")
-                continue
-
-            parts = value.split(",", len(format_map) - 1)
-            try:
-                start_time = ass_timestamp_to_seconds(parts[format_map["start"]].strip())
-                end_time = ass_timestamp_to_seconds(parts[format_map["end"]].strip())
-                text = parts[format_map["text"]].strip()
-
-                if start_time > end_time:
-                    logger.warning(f"Skipping ASS Dialogue with invalid timestamp (start > end): {line}")
-                    continue
-
-                clean_text = ASS_STYLE_TAG_REGEX.sub("", text).replace("\\N", "\n")
-
-                word = SubtitleWord(text=clean_text, start=start_time, end=end_time)
-                segments.append(SubtitleSegment(words=[word]))
-            except (ValueError, IndexError) as e:
-                logger.warning(f"Skipping malformed ASS Dialogue line: {line} ({e})")
-                continue
-    return segments
+    raise NotImplementedError("The ASS parser has not been implemented yet.")

@@ -88,3 +88,57 @@ def fake_video_file(tmp_path: Path) -> Path:
     video_file = tmp_path / "test_video.mp4"
     video_file.touch()
     return video_file
+
+
+@pytest.fixture
+def simple_ass_content() -> str:
+    """Provide minimal, valid ASS content for basic parsing tests."""
+    return (
+        "[Script Info]\n"
+        "Title: Test Script\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize\n"
+        "Style: Default,Arial,48\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+        "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello world\n"
+    )
+
+
+@pytest.fixture
+def complex_ass_content() -> str:
+    """Provide complex ASS content with various tags for advanced parsing tests."""
+    return (
+        "[Script Info]\n"
+        "; This is a comment\n"
+        "Title: Complex Test\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour\n"
+        "Style: Default,Arial,48,&H00FFFFFF\n"
+        "Style: Highlight,Impact,52,&H0000FFFF\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+        "Dialogue: 0,0:00:05.10,0:00:08.50,Default,,0,0,0,,This line has {\\b1}bold{\\b0} text.\n"
+        "Dialogue: 1,0:00:10.00,0:00:12.00,Highlight,ActorName,10,10,10,Banner;"
+        "Text banner,Mid-word st{\\i1}y{\\i0}le.\n"
+        "Dialogue: 0,0:00:15.00,0:00:18.00,Default,,0,0,0,,{\\k20}Kara{\\k40}oke{\\k50} test.\n"
+    )
+
+
+@pytest.fixture
+def malformed_ass_content() -> str:
+    """Provide malformed ASS content to test parser robustness."""
+    return (
+        "[Script Info]\n"
+        "Title: Malformed\n"
+        "\n"
+        "[Events]\n"
+        "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,This line is before the Format line.\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Default,This line is good.\n"
+        "Dialogue: 0:00:05.00,bad-time,Default,This line has a bad timestamp.\n"
+    )
