@@ -19,7 +19,7 @@ class AssSubtitleWord(SubtitleWord):
 class AssSubtitleSegment(SubtitleSegment):
     """Represents a Dialogue line in an ASS file, including all metadata."""
 
-    words: list[SubtitleWord] = field(default_factory=list)
+    words: list[AssSubtitleWord] = field(default_factory=list)
     layer: int = 0
     style_name: str = "Default"
     actor_name: str = ""
@@ -47,6 +47,6 @@ class AssSubtitles(Subtitles):
 
     script_info: dict[str, str] = field(default_factory=dict)
     styles: list[AssStyle] = field(default_factory=list)
-    segments: list[SubtitleSegment] = field(default_factory=list)
+    segments: list[AssSubtitleSegment] = field(default_factory=list)
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)

@@ -4,6 +4,7 @@ import pytest
 
 from autosubs.core.parser import parse_ass
 from autosubs.models.styles.ass import WordStyleRange
+from autosubs.models.subtitles.ass import AssSubtitleWord
 
 # --- Test Discovery ---
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "ass"
@@ -37,6 +38,8 @@ def test_parser_handles_trailing_tag_from_bug_report() -> None:
 
     assert len(segment.words) == 2
     word_music, word_trailing_tag = segment.words
+    assert isinstance(word_music, AssSubtitleWord)
+    assert isinstance(word_trailing_tag, AssSubtitleWord)
 
     assert word_music.text == "Music"
     assert word_music.styles == [WordStyleRange(0, 5, "{\\i1}")]

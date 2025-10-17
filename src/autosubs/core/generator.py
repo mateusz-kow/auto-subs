@@ -117,7 +117,7 @@ def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
                 values: list[str] = []
                 for key in style_format_keys:
                     # Use .get() with a default of None to handle keys present in format but not in model
-                    value = style_dict.get(key, None)
+                    value = style_dict.get(key)
                     if isinstance(value, bool):
                         values.append("-1" if value else "0")
                     elif isinstance(value, (float, int)):
@@ -171,7 +171,7 @@ def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
 
     logger.info("Generating subtitles in ASS format from scratch...")
     actual_settings = settings or AssSettings()
-    lines: list[str] = [actual_settings.to_ass_header()]
+    lines = [actual_settings.to_ass_header()]
 
     if actual_settings.highlight_style:
         for segment in subtitles.segments:

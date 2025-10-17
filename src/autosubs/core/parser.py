@@ -2,6 +2,7 @@
 
 import re
 from logging import getLogger
+from typing import Any
 
 from autosubs.models import AssSubtitles, AssSubtitleSegment, AssSubtitleWord
 from autosubs.models.styles import AssStyle, WordStyleRange
@@ -161,14 +162,14 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
     return segments
 
 
-def _parse_dialogue_text(text: str, start: float, end: float) -> list[SubtitleWord]:
+def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitleWord]:
     processed_text = text.replace(r"\N", "\n").replace(r"\n", "\n")
     tokens = [t for t in re.split(r"({[^}]+})", processed_text) if t]
     text_content = ASS_STYLE_TAG_REGEX.sub("", processed_text)
     total_chars = len(text_content)
     duration = end - start
 
-    words: list[SubtitleWord] = []
+    words: list[AssSubtitleWord] = []
     current_time = start
     pending_tags: list[str] = []
 
@@ -228,7 +229,7 @@ def parse_ass(file_content: str) -> AssSubtitles:
                     logger.warning("Skipping Style line found before Format line.")
                     continue
                 style_values = [v.strip() for v in value.split(",", len(subs.style_format_keys) - 1)]
-                style_dict = dict(zip(subs.style_format_keys, style_values, strict=False))
+                style_dict: dict[str, Any] = dict(zip(subs.style_format_keys, style_values, strict=False))
                 for bool_key in ["Bold", "Italic", "Underline", "StrikeOut"]:
                     if bool_key in style_dict:
                         try:
