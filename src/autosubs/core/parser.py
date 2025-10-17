@@ -161,14 +161,14 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
     return segments
 
 
-def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitleWord]:
+def _parse_dialogue_text(text: str, start: float, end: float) -> list[SubtitleWord]:
     processed_text = text.replace(r"\N", "\n").replace(r"\n", "\n")
     tokens = [t for t in re.split(r"({[^}]+})", processed_text) if t]
     text_content = ASS_STYLE_TAG_REGEX.sub("", processed_text)
     total_chars = len(text_content)
     duration = end - start
 
-    words: list[AssSubtitleWord] = []
+    words: list[SubtitleWord] = []
     current_time = start
     pending_tags: list[str] = []
 
@@ -205,11 +205,9 @@ def parse_ass(file_content: str) -> AssSubtitles:
     logger.info("Parsing ASS file content.")
     subs = AssSubtitles()
     current_section = ""
-    style_format_keys: list[str] = []
-    events_format_keys: list[str] = []
 
-    for line in file_content.replace("\r\n", "\n").splitlines():
-        line = line.strip()
+    for raw_line in file_content.replace("\r\n", "\n").splitlines():
+        line = raw_line.strip()
         if not line or line.startswith(";"):
             continue
 
@@ -224,13 +222,13 @@ def parse_ass(file_content: str) -> AssSubtitles:
             subs.script_info[key.strip()] = value
         elif current_section == "[V4+ Styles]":
             if key.lower() == "format":
-                style_format_keys = [k.strip() for k in value.split(",")]
+                subs.style_format_keys = [k.strip() for k in value.split(",")]
             elif key.lower() == "style":
-                if not style_format_keys:
+                if not subs.style_format_keys:
                     logger.warning("Skipping Style line found before Format line.")
                     continue
-                style_values = value.split(",", len(style_format_keys) - 1)
-                style_dict = dict(zip(style_format_keys, style_values, strict=False))
+                style_values = [v.strip() for v in value.split(",", len(subs.style_format_keys) - 1)]
+                style_dict = dict(zip(subs.style_format_keys, style_values, strict=False))
                 for bool_key in ["Bold", "Italic", "Underline", "StrikeOut"]:
                     if bool_key in style_dict:
                         try:
@@ -241,21 +239,22 @@ def parse_ass(file_content: str) -> AssSubtitles:
                 subs.styles.append(AssStyle.model_validate(style_dict, from_attributes=True))
         elif current_section == "[Events]":
             if key.lower() == "format":
-                events_format_keys = [k.strip() for k in value.split(",")]
+                subs.events_format_keys = [k.strip() for k in value.split(",")]
             elif key.lower() == "dialogue":
-                if not events_format_keys:
+                if not subs.events_format_keys:
                     logger.warning("Skipping Dialogue line found before Format line.")
                     continue
 
                 required_fields = {"Start", "End", "Text"}
-                if not required_fields.issubset(events_format_keys):
+                if not required_fields.issubset(subs.events_format_keys):
                     raise ValueError(
-                        f"ASS 'Format' line is missing required fields: {required_fields - set(events_format_keys)}"
+                        f"ASS 'Format' line is missing required fields: "
+                        f"{required_fields - set(subs.events_format_keys)}"
                     )
 
                 try:
-                    dialogue_values = value.split(",", len(events_format_keys) - 1)
-                    dialogue_dict = dict(zip(events_format_keys, dialogue_values, strict=False))
+                    dialogue_values = [v.strip() for v in value.split(",", len(subs.events_format_keys) - 1)]
+                    dialogue_dict = dict(zip(subs.events_format_keys, dialogue_values, strict=False))
 
                     start_time = ass_timestamp_to_seconds(dialogue_dict["Start"])
                     end_time = ass_timestamp_to_seconds(dialogue_dict["End"])

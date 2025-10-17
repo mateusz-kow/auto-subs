@@ -8,7 +8,7 @@ import pytest
 @pytest.fixture
 def sample_transcription() -> dict[str, Any]:
     """Load a sample transcription from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample_transcription.json"
+    path = Path(__file__).parent / "fixtures" / "transcription" / "sample_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
 
@@ -16,7 +16,7 @@ def sample_transcription() -> dict[str, Any]:
 @pytest.fixture
 def empty_transcription() -> dict[str, Any]:
     """Load an empty transcription from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "empty_transcription.json"
+    path = Path(__file__).parent / "fixtures" / "transcription" / "empty_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
 
@@ -24,7 +24,7 @@ def empty_transcription() -> dict[str, Any]:
 @pytest.fixture
 def inverted_timestamps_transcription() -> dict[str, Any]:
     """Load a sample transcription with inverted timestamps."""
-    path = Path(__file__).parent / "fixtures" / "inverted_timestamps_transcription.json"
+    path = Path(__file__).parent / "fixtures" / "transcription" / "inverted_timestamps_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
 
@@ -40,21 +40,84 @@ def fake_media_file(tmp_path: Path) -> Path:
 @pytest.fixture
 def sample_srt_content() -> str:
     """Load sample SRT content from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample.srt"
+    path = Path(__file__).parent / "fixtures" / "srt" / "sample.srt"
     return path.read_text(encoding="utf-8")
 
 
 @pytest.fixture
 def sample_vtt_content() -> str:
     """Load sample VTT content from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample.vtt"
+    path = Path(__file__).parent / "fixtures" / "vtt" / "sample.vtt"
     return path.read_text(encoding="utf-8")
 
 
 @pytest.fixture
 def sample_ass_content() -> str:
     """Load sample ASS content from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample.ass"
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample2_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample2.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample2.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample3_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample3.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample3.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample4_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample4.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample4.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample5_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample5.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample5.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample6_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample6.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample6.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample7_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample7.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample7.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample8_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample8.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample8.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample9_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample9.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample9.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample10_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample10.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample10.ass"
     return path.read_text(encoding="utf-8")
 
 
@@ -142,21 +205,3 @@ def malformed_ass_content() -> str:
         "Dialogue: 0:00:03.00,0:00:04.00,Default,This line is good.\n"
         "Dialogue: 0:00:05.00,bad-time,Default,This line has a bad timestamp.\n"
     )
-
-
-@pytest.fixture
-def weird_ass_content() -> str:
-    return r"""[Script Info]
-PlayResY: 600
-WrapStyle: 1
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Code, monospace,20,&H00B0B0B0,&H00B0B0B0,&H00303030,&H80000008,-1,0,0,0,100,100,0.00,0.00,1,1.00,2.00, 7 ,30,10,30,0
-Style: Expl, Arial,28,&H00FFB0B0,&H00B0B0B0,&H00303030,&H80000008,-1,0,0,0,100,100,0.00,0.00,1,1.00,2.00, 7 ,30,10,30,0
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,00:00:00.00,00:03:00.00,Expl, NTP,0,0,0,,{\pos(20,20)}To split audio stream into several bands, you can use `lowpass', `bandpass', `highpass', etc., but in recent ffmpeg you can also use `acrossover'.\N\NThough it is unclear how to use it due to the lack of explanation of the official document, it seems to be used like this.
-Dialogue: 0,00:00:00.00,00:03:00.00,Code, NTP,0,0,0,,{\pos(40,160)}#! /bin/sh\Nifn="Air on the G String (from Orchestral Suite no. 3, BWV 1068).mp3"\Nifnb="`basename \"$\{ifn\}\" .mp3`"\Npref="`basename $0 .sh`"\N#\N"/c/Program Files/ffmpeg-4.1-win64-shared/bin/ffmpeg" -y \\N    -i "$\{ifn\}" -filter_complex "\N\N[0:a]acrossover=split='500 2000'[div1][div2][div3];\N\N[div1]asplit[div1_1][div1_2];\N[div2]asplit[div2_1][div2_2];\N[div3]asplit[div3_1][div3_2];\N\N[div1_2]showcqt=s=1920x1080[v1];\N[div2_2]showcqt=s=1920x1080[v2];\N[div3_2]showcqt=s=1920x1080[v3]" \\N    -map '[v1]' -map '[div1_1]' "$\{pref\}_$\{ifnb\}_1.mp4" \\N    -map '[v2]' -map '[div2_1]' "$\{pref\}_$\{ifnb\}_2.mp4" \\N    -map '[v3]' -map '[div3_1]' "$\{pref\}_$\{ifnb\}_3.mp4"
-Dialogue: 0,00:00:00.00,00:03:00.00,Expl, NTP,0,0,0,,{\pos(20,550)}(Note: Uploaded video is of `div2'.)"""

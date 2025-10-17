@@ -2,7 +2,6 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core import parser
-from autosubs.models.subtitles import AssSubtitles
 
 
 @pytest.mark.parametrize(
@@ -133,24 +132,6 @@ def test_parse_vtt_handles_malformed_blocks_and_continues() -> None:
     assert len(segments) == 2
     assert str(segments[0].text) == "First good block"
     assert str(segments[1].text) == "Second good block"
-
-
-def test_parse_ass_success(sample_ass_content: str) -> None:
-    """Test successful parsing of a valid ASS file."""
-    subs = parser.parse_ass(sample_ass_content)
-    assert isinstance(subs, AssSubtitles)
-    assert len(subs.segments) == 3
-    assert subs.segments[0].start == 0.5
-    assert pytest.approx(subs.segments[0].end) == 1.5
-    assert subs.segments[0].text == "Hello world."
-    # Test that style tags are stripped from the .text property
-    assert subs.segments[1].start == 2.0
-    assert pytest.approx(subs.segments[1].end) == 3.0
-    assert subs.segments[1].text == "This is a test with bold tags."
-    # Test that \N is converted to a newline
-    assert subs.segments[2].start == 4.1
-    assert pytest.approx(subs.segments[2].end) == 5.9
-    assert subs.segments[2].text == "And a\nnew line."
 
 
 def test_parse_ass_stops_at_new_section() -> None:

@@ -104,58 +104,67 @@ def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
 
         lines.append("[V4+ Styles]")
         if subtitles.styles:
-            style_format_keys = [field.alias or name for name, field in subtitles.styles[0].model_fields.items()]
+            style_format_keys = subtitles.style_format_keys
+            if not style_format_keys:
+                # Fallback for programmatically created objects
+                style_format_keys = [
+                    field.alias or name for name, field in type(subtitles.styles[0]).model_fields.items()
+                ]
             lines.append(f"Format: {', '.join(style_format_keys)}")
 
             for style in subtitles.styles:
                 style_dict = style.model_dump(by_alias=True)
                 values: list[str] = []
                 for key in style_format_keys:
-                    value = style_dict.get(key)
+                    # Use .get() with a default of None to handle keys present in format but not in model
+                    value = style_dict.get(key, None)
                     if isinstance(value, bool):
                         values.append("-1" if value else "0")
                     elif isinstance(value, (float, int)):
                         values.append(_format_ass_number(value))
                     else:
-                        values.append(str(value))
+                        values.append(str(value) if value is not None else "")
                 lines.append(f"Style: {','.join(values)}")
         lines.append("")
 
         lines.append("[Events]")
         if subtitles.segments:
-            events_format_keys = [
-                "Layer",
-                "Start",
-                "End",
-                "Style",
-                "Name",
-                "MarginL",
-                "MarginR",
-                "MarginV",
-                "Effect",
-                "Text",
-            ]
+            events_format_keys = subtitles.events_format_keys
+            if not events_format_keys:
+                # Fallback for programmatically created objects
+                events_format_keys = [
+                    "Layer",
+                    "Start",
+                    "End",
+                    "Style",
+                    "Name",
+                    "MarginL",
+                    "MarginR",
+                    "MarginV",
+                    "Effect",
+                    "Text",
+                ]
             lines.append(f"Format: {', '.join(events_format_keys)}")
 
             for segment in subtitles.segments:
                 if not isinstance(segment, AssSubtitleSegment):
                     continue
-
                 start_ts = format_ass_timestamp(segment.start)
                 end_ts = format_ass_timestamp(segment.end)
                 text = _reconstruct_dialogue_text(segment)
-                values = [
-                    str(segment.layer),
-                    start_ts,
-                    end_ts,
-                    segment.style_name,
-                    segment.actor_name,
-                    str(segment.margin_l),
-                    str(segment.margin_r),
-                    str(segment.margin_v),
-                    segment.effect,
-                    text,
-                ]
+                dialogue_data = {
+                    "Layer": str(segment.layer),
+                    "Start": start_ts,
+                    "End": end_ts,
+                    "Style": segment.style_name,
+                    "Name": segment.actor_name,
+                    "MarginL": str(segment.margin_l),
+                    "MarginR": str(segment.margin_r),
+                    "MarginV": str(segment.margin_v),
+                    "Effect": segment.effect,
+                    "Text": text,
+                }
+                values = [dialogue_data.get(key, "") for key in events_format_keys]
                 lines.append(f"Dialogue: {','.join(values)}")
 
         return "\n".join(lines) + "\n"

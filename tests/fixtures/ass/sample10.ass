@@ -1,0 +1,23 @@
+[Script Info]
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, Alignment, Encoding
+Style: S1, Arial,70,&HB0FFB0,1,0
+
+[Events]
+Format: Start, End, Style, Effect, Text
+Dialogue: 0:00:00.00,0:00:10.00,S1,Scroll up;300;100;0,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:00:10.00,0:00:20.00,S1,Scroll up;300;100;1,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:00:20.00,0:00:30.00,S1,Scroll up;300;100;10,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:00:30.00,0:00:40.00,S1,Scroll up;300;100;50,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:00:40.00,0:00:50.00,S1,Scroll down;100;300;0,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:00:50.00,0:01:00.00,S1,Scroll down;100;300;1,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:01:00.00,0:01:10.00,S1,Scroll down;100;300;10,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:01:10.00,0:01:20.00,S1,Scroll down;100;300;50,The quick brown fox jumps over a lazy dog.
+Dialogue: 0:01:20.00,0:01:30.00,S1,Banner;0,The quick brown fox jumps over a lazy dog. Sphinx of black quartz, judge my vow.
+Dialogue: 0:01:30.00,0:01:40.00,S1,Banner;1,The quick brown fox jumps over a lazy dog. Sphinx of black quartz, judge my vow.
+Dialogue: 0:01:40.00,0:01:50.00,S1,Banner;2,The quick brown fox jumps over a lazy dog. Sphinx of black quartz, judge my vow.
+Dialogue: 0:01:50.00,0:02:00.00,S1,Banner;5,The quick brown fox jumps over a lazy dog. Sphinx of black quartz, judge my vow.

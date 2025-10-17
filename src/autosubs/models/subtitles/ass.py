@@ -19,7 +19,7 @@ class AssSubtitleWord(SubtitleWord):
 class AssSubtitleSegment(SubtitleSegment):
     """Represents a Dialogue line in an ASS file, including all metadata."""
 
-    words: list[AssSubtitleWord] = field(default_factory=list)
+    words: list[SubtitleWord] = field(default_factory=list)
     layer: int = 0
     style_name: str = "Default"
     actor_name: str = ""
@@ -30,13 +30,14 @@ class AssSubtitleSegment(SubtitleSegment):
 
     @property
     def text(self) -> str:
-        """Returns the segment text by concatenating the parsed chunks.
+        """Returns the segment's plain text content, stripping all style tags.
 
-        This overrides the base implementation to correctly handle ASS text, where
-        parsed words already contain necessary whitespace.
+        If `text_override` is set, it returns that value. Otherwise, it
+        concatenates the text of its constituent words.
         """
         if self.text_override is not None:
             return self.text_override
+        # In an ASS context, parsed words already contain necessary whitespace.
         return "".join(word.text for word in self.words)
 
 
@@ -46,4 +47,6 @@ class AssSubtitles(Subtitles):
 
     script_info: dict[str, str] = field(default_factory=dict)
     styles: list[AssStyle] = field(default_factory=list)
-    segments: list[AssSubtitleSegment] = field(default_factory=list)
+    segments: list[SubtitleSegment] = field(default_factory=list)
+    style_format_keys: list[str] = field(default_factory=list)
+    events_format_keys: list[str] = field(default_factory=list)
