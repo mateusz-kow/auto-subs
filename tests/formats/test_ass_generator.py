@@ -9,9 +9,10 @@ from autosubs.models.subtitles.ass import (
 
 def test_generate_ass_from_basic_object() -> None:
     """Test that a basic AssSubtitles object is generated into a valid file string."""
+    style = AssStyle.model_validate({"Name": "Default", "Fontname": "Arial", "Fontsize": 28})
     subs = AssSubtitles(
         script_info={"Title": "Generated", "ScriptType": "v4.00+"},
-        styles=[AssStyle(Name="Default", Fontname="Arial", Fontsize=28)],
+        styles=[style],
         segments=[
             AssSubtitleSegment(
                 words=[AssSubtitleWord(text="Hello world.", start=1.0, end=3.5)],
