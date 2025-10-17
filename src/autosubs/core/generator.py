@@ -117,13 +117,13 @@ def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
                 values: list[str] = []
                 for key in style_format_keys:
                     # Use .get() with a default of None to handle keys present in format but not in model
-                    value = style_dict.get(key)
-                    if isinstance(value, bool):
-                        values.append("-1" if value else "0")
-                    elif isinstance(value, (float, int)):
-                        values.append(_format_ass_number(value))
+                    style_value: Any = style_dict.get(key)
+                    if isinstance(style_value, bool):
+                        values.append("-1" if style_value else "0")
+                    elif isinstance(style_value, (float, int)):
+                        values.append(_format_ass_number(style_value))
                     else:
-                        values.append(str(value) if value is not None else "")
+                        values.append(str(style_value) if style_value is not None else "")
                 lines.append(f"Style: {','.join(values)}")
         lines.append("")
 
@@ -147,8 +147,6 @@ def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
             lines.append(f"Format: {', '.join(events_format_keys)}")
 
             for segment in subtitles.segments:
-                if not isinstance(segment, AssSubtitleSegment):
-                    continue
                 start_ts = format_ass_timestamp(segment.start)
                 end_ts = format_ass_timestamp(segment.end)
                 text = _reconstruct_dialogue_text(segment)
@@ -174,18 +172,18 @@ def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
     lines = [actual_settings.to_ass_header()]
 
     if actual_settings.highlight_style:
-        for segment in subtitles.segments:
-            start = format_ass_timestamp(segment.start)
-            end = format_ass_timestamp(segment.end)
+        for seg in subtitles.segments:
+            start = format_ass_timestamp(seg.start)
+            end = format_ass_timestamp(seg.end)
             karaoke_text = "".join(
-                f"{{\\k{int(round((word.end - word.start) * 100))}}}{word.text} " for word in segment.words
+                f"{{\\k{int(round((word.end - word.start) * 100))}}}{word.text} " for word in seg.words
             ).rstrip()
             lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{karaoke_text}")
     else:
-        for segment in subtitles.segments:
-            start = format_ass_timestamp(segment.start)
-            end = format_ass_timestamp(segment.end)
-            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment.text.replace(chr(10), ASS_NEWLINE)}")
+        for seg in subtitles.segments:
+            start = format_ass_timestamp(seg.start)
+            end = format_ass_timestamp(seg.end)
+            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{seg.text.replace(chr(10), ASS_NEWLINE)}")
 
     result = "\n".join(lines)
     return f"{result}\n" if subtitles.segments else result
