@@ -8,7 +8,7 @@ import pytest
 @pytest.fixture
 def sample_transcription() -> dict[str, Any]:
     """Load a sample transcription from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample_transcription.json"
+    path = Path(__file__).parent / "fixtures" / "transcription" / "sample_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
 
@@ -16,7 +16,7 @@ def sample_transcription() -> dict[str, Any]:
 @pytest.fixture
 def empty_transcription() -> dict[str, Any]:
     """Load an empty transcription from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "empty_transcription.json"
+    path = Path(__file__).parent / "fixtures" / "transcription" / "empty_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
 
@@ -24,7 +24,7 @@ def empty_transcription() -> dict[str, Any]:
 @pytest.fixture
 def inverted_timestamps_transcription() -> dict[str, Any]:
     """Load a sample transcription with inverted timestamps."""
-    path = Path(__file__).parent / "fixtures" / "inverted_timestamps_transcription.json"
+    path = Path(__file__).parent / "fixtures" / "transcription" / "inverted_timestamps_transcription.json"
     with path.open("r", encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
 
@@ -40,21 +40,84 @@ def fake_media_file(tmp_path: Path) -> Path:
 @pytest.fixture
 def sample_srt_content() -> str:
     """Load sample SRT content from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample.srt"
+    path = Path(__file__).parent / "fixtures" / "srt" / "sample.srt"
     return path.read_text(encoding="utf-8")
 
 
 @pytest.fixture
 def sample_vtt_content() -> str:
     """Load sample VTT content from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample.vtt"
+    path = Path(__file__).parent / "fixtures" / "vtt" / "sample.vtt"
     return path.read_text(encoding="utf-8")
 
 
 @pytest.fixture
 def sample_ass_content() -> str:
     """Load sample ASS content from a fixture file."""
-    path = Path(__file__).parent / "fixtures" / "sample.ass"
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample2_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample2.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample2.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample3_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample3.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample3.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample4_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample4.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample4.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample5_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample5.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample5.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample6_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample6.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample6.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample7_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample7.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample7.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample8_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample8.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample8.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample9_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample9.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample9.ass"
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def sample10_ass_content() -> str:
+    """Load sample ASS content from a fixture file (sample10.ass)."""
+    path = Path(__file__).parent / "fixtures" / "ass" / "sample10.ass"
     return path.read_text(encoding="utf-8")
 
 
@@ -88,3 +151,57 @@ def fake_video_file(tmp_path: Path) -> Path:
     video_file = tmp_path / "test_video.mp4"
     video_file.touch()
     return video_file
+
+
+@pytest.fixture
+def simple_ass_content() -> str:
+    """Provide minimal, valid ASS content for basic parsing tests."""
+    return (
+        "[Script Info]\n"
+        "Title: Test Script\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize\n"
+        "Style: Default,Arial,48\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+        "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello world\n"
+    )
+
+
+@pytest.fixture
+def complex_ass_content() -> str:
+    """Provide complex ASS content with various tags for advanced parsing tests."""
+    return (
+        "[Script Info]\n"
+        "; This is a comment\n"
+        "Title: Complex Test\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour\n"
+        "Style: Default,Arial,48,&H00FFFFFF\n"
+        "Style: Highlight,Impact,52,&H0000FFFF\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+        "Dialogue: 0,0:00:05.10,0:00:08.50,Default,,0,0,0,,This line has {\\b1}bold{\\b0} text.\n"
+        "Dialogue: 1,0:00:10.00,0:00:12.00,Highlight,ActorName,10,10,10,Banner;"
+        "Text banner,Mid-word st{\\i1}y{\\i0}le.\n"
+        "Dialogue: 0,0:00:15.00,0:00:18.00,Default,,0,0,0,,{\\k20}Kara{\\k40}oke{\\k50} test.\n"
+    )
+
+
+@pytest.fixture
+def malformed_ass_content() -> str:
+    """Provide malformed ASS content to test parser robustness."""
+    return (
+        "[Script Info]\n"
+        "Title: Malformed\n"
+        "\n"
+        "[Events]\n"
+        "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,This line is before the Format line.\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Default,This line is good.\n"
+        "Dialogue: 0:00:05.00,bad-time,Default,This line has a bad timestamp.\n"
+    )

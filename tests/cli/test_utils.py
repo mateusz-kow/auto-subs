@@ -240,7 +240,10 @@ def test_check_ffmpeg_installed_failure(mock_which: MagicMock) -> None:
 
 @patch("pathlib.Path.resolve")
 @patch("tempfile.NamedTemporaryFile")
-@patch("autosubs.cli.utils.burn_subtitles", side_effect=Exception("A generic filesystem error"))
+@patch(
+    "autosubs.cli.utils.burn_subtitles",
+    side_effect=Exception("A generic filesystem error"),
+)
 def test_handle_burn_operation_generic_exception(
     mock_burn_subtitles: MagicMock, mock_tempfile: MagicMock, mock_resolve: MagicMock
 ) -> None:

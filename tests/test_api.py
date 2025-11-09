@@ -93,7 +93,7 @@ def test_load_api_success(tmp_srt_file: Path, tmp_vtt_file: Path, tmp_ass_file: 
         subtitles = load(file_path)
         assert isinstance(subtitles, Subtitles)
         assert len(subtitles.segments) > 0
-        assert "Hello world" in str(subtitles)
+        assert "Hello world" in subtitles.text
 
 
 def test_load_api_file_not_found() -> None:

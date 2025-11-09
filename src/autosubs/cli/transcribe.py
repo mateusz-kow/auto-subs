@@ -156,7 +156,10 @@ def transcribe(
             if burn:
                 video_extensions = _EXTENSION_MAP[SupportedExtension.VIDEO]
                 if in_file.suffix.lower() not in video_extensions:
-                    typer.secho(f"Skipping non-video file for burning: {in_file.name}", fg=typer.colors.YELLOW)
+                    typer.secho(
+                        f"Skipping non-video file for burning: {in_file.name}",
+                        fg=typer.colors.YELLOW,
+                    )
                     continue
 
                 if is_batch:
@@ -179,7 +182,10 @@ def transcribe(
 
                 out_file.parent.mkdir(parents=True, exist_ok=True)
                 out_file.write_text(content, encoding="utf-8")
-                typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
+                typer.secho(
+                    f"Successfully saved subtitles to: {out_file}",
+                    fg=typer.colors.GREEN,
+                )
         except (ImportError, FileNotFoundError) as e:
             typer.secho(f"Error: {e}", fg=typer.colors.RED)
             typer.secho(

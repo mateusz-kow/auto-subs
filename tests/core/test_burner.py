@@ -36,7 +36,10 @@ def test_burn_subtitles_success(mock_run: MagicMock, tmp_path: Path) -> None:
     assert expected_path_str in command[5]
 
 
-@patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "ffmpeg", stderr="Test error"))
+@patch(
+    "subprocess.run",
+    side_effect=subprocess.CalledProcessError(1, "ffmpeg", stderr="Test error"),
+)
 def test_burn_subtitles_ffmpeg_fails_raises_ffmpeg_error(mock_run: MagicMock, tmp_path: Path) -> None:
     """Test that a CalledProcessError from subprocess is caught and re-raised as FFmpegError."""
     with pytest.raises(FFmpegError) as exc_info:

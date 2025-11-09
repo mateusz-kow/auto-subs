@@ -9,7 +9,7 @@ from autosubs.models.enums import TimingDistribution
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(eq=True)
 class SubtitleWord:
     """Represents a single word with its text and timing."""
 
@@ -21,6 +21,17 @@ class SubtitleWord:
         """Validates the word's timestamps after initialization."""
         if self.start > self.end:
             raise ValueError(f"SubtitleWord has invalid timestamp: start ({self.start}) > end ({self.end})")
+
+    def shift_by(self, offset: float) -> SubtitleWord:
+        """Shifts the entire segment and all its words by a time offset.
+
+        Returns:
+            The segment itself, for method chaining.
+        """
+        self.start += offset
+        self.end += offset
+
+        return self
 
 
 @dataclass(eq=True)
@@ -83,7 +94,9 @@ class SubtitleSegment:
             return self
         self.start += offset
         self.end += offset
-        self.words = [SubtitleWord(text=w.text, start=w.start + offset, end=w.end + offset) for w in self.words]
+        for word in self.words:
+            word.shift_by(offset)
+
         return self
 
     def resize(self, new_start: float, new_end: float) -> SubtitleSegment:
@@ -100,16 +113,12 @@ class SubtitleSegment:
 
         old_duration = self.end - self.start
         new_duration = new_end - new_start
-        scale = new_duration / old_duration if old_duration > 0 else 0
+        scale = new_duration / old_duration if old_duration > 0 else 0.0
 
-        self.words = [
-            SubtitleWord(
-                text=w.text,
-                start=new_start + ((w.start - self.start) * scale),
-                end=new_start + ((w.end - self.start) * scale),
-            )
-            for w in self.words
-        ]
+        for w in self.words:
+            w.start = new_start + (w.start - self.start) * scale
+            w.end = new_start + (w.end - self.start) * scale
+
         self.start, self.end = new_start, new_end
         return self
 

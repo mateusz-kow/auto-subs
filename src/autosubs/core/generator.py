@@ -1,11 +1,14 @@
 import json
 from logging import getLogger
+from typing import Any, overload
 
 from autosubs.core.builder import create_dict_from_subtitles
 from autosubs.models.settings import AssSettings
 from autosubs.models.subtitles import Subtitles
+from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
 logger = getLogger(__name__)
+ASS_NEWLINE = r"\\N"  # Can't put these in f-strings for compatibility issues with python 3.11
 
 
 def format_srt_timestamp(seconds: float) -> str:
@@ -57,32 +60,130 @@ def format_ass_timestamp(seconds: float) -> str:
     return f"{h}:{m:02}:{s:02}.{cs:02}"
 
 
-def to_ass(subtitles: Subtitles, settings: AssSettings) -> str:
+def _reconstruct_dialogue_text(segment: AssSubtitleSegment) -> str:
+    parts: list[str] = []
+    for word in segment.words:
+        tag_string = "".join(style.ass_tag for style in word.styles)
+        text = word.text.replace("\n", r"\N")
+        parts.append(f"{tag_string}{text}")
+    return "".join(parts)
+
+
+def _format_ass_number(value: Any) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+@overload
+def to_ass(subtitles: AssSubtitles) -> str: ...
+@overload
+def to_ass(subtitles: Subtitles, settings: AssSettings) -> str: ...
+def to_ass(subtitles: Subtitles, settings: AssSettings | None = None) -> str:
     """Generate the content for an ASS subtitle file.
 
+    This function is overloaded. If given an AssSubtitles object, it performs
+    a lossless regeneration. If given a generic Subtitles object, it generates
+    a new ASS file from scratch using the provided settings.
+
     Args:
-        subtitles: The Subtitles object containing the segments.
-        settings: The settings for the ASS file.
+        subtitles: The Subtitles or AssSubtitles object.
+        settings: Settings for generation from scratch. Ignored for AssSubtitles.
 
     Returns:
         The full content of the .ass file as a string.
     """
-    logger.info("Generating subtitles in ASS format...")
-    lines: list[str] = [settings.to_ass_header()]
+    if isinstance(subtitles, AssSubtitles):
+        logger.info("Regenerating subtitles from AssSubtitles object (lossless)...")
+        lines: list[str] = []
 
-    if settings.highlight_style:
-        for segment in subtitles.segments:
-            start = format_ass_timestamp(segment.start)
-            end = format_ass_timestamp(segment.end)
+        lines.append("[Script Info]")
+        for key, value in sorted(subtitles.script_info.items()):
+            lines.append(f"{key}: {value}")
+        lines.append("")
+
+        lines.append("[V4+ Styles]")
+        if subtitles.styles:
+            style_format_keys = subtitles.style_format_keys
+            if not style_format_keys:
+                # Fallback for programmatically created objects
+                style_format_keys = [
+                    field.alias or name for name, field in type(subtitles.styles[0]).model_fields.items()
+                ]
+            lines.append(f"Format: {', '.join(style_format_keys)}")
+
+            for style in subtitles.styles:
+                style_dict = style.model_dump(by_alias=True)
+                values: list[str] = []
+                for key in style_format_keys:
+                    # Use .get() with a default of None to handle keys present in format but not in model
+                    style_value: Any = style_dict.get(key)
+                    if isinstance(style_value, bool):
+                        values.append("-1" if style_value else "0")
+                    elif isinstance(style_value, (float, int)):
+                        values.append(_format_ass_number(style_value))
+                    else:
+                        values.append(str(style_value) if style_value is not None else "")
+                lines.append(f"Style: {','.join(values)}")
+        lines.append("")
+
+        lines.append("[Events]")
+        if subtitles.segments:
+            events_format_keys = subtitles.events_format_keys
+            if not events_format_keys:
+                # Fallback for programmatically created objects
+                events_format_keys = [
+                    "Layer",
+                    "Start",
+                    "End",
+                    "Style",
+                    "Name",
+                    "MarginL",
+                    "MarginR",
+                    "MarginV",
+                    "Effect",
+                    "Text",
+                ]
+            lines.append(f"Format: {', '.join(events_format_keys)}")
+
+            for segment in subtitles.segments:
+                start_ts = format_ass_timestamp(segment.start)
+                end_ts = format_ass_timestamp(segment.end)
+                text = _reconstruct_dialogue_text(segment)
+                dialogue_data = {
+                    "Layer": str(segment.layer),
+                    "Start": start_ts,
+                    "End": end_ts,
+                    "Style": segment.style_name,
+                    "Name": segment.actor_name,
+                    "MarginL": str(segment.margin_l),
+                    "MarginR": str(segment.margin_r),
+                    "MarginV": str(segment.margin_v),
+                    "Effect": segment.effect,
+                    "Text": text,
+                }
+                values = [dialogue_data.get(key, "") for key in events_format_keys]
+                lines.append(f"Dialogue: {','.join(values)}")
+
+        return "\n".join(lines) + "\n"
+
+    logger.info("Generating subtitles in ASS format from scratch...")
+    actual_settings = settings or AssSettings()
+    lines = [actual_settings.to_ass_header()]
+
+    if actual_settings.highlight_style:
+        for seg in subtitles.segments:
+            start = format_ass_timestamp(seg.start)
+            end = format_ass_timestamp(seg.end)
             karaoke_text = "".join(
-                f"{{\\k{int(round((word.end - word.start) * 100))}}}{word.text} " for word in segment.words
+                f"{{\\k{int(round((word.end - word.start) * 100))}}}{word.text} " for word in seg.words
             ).rstrip()
             lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{karaoke_text}")
     else:
-        for segment in subtitles.segments:
-            start = format_ass_timestamp(segment.start)
-            end = format_ass_timestamp(segment.end)
-            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{segment.text}")
+        for seg in subtitles.segments:
+            start = format_ass_timestamp(seg.start)
+            end = format_ass_timestamp(seg.end)
+            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{seg.text.replace(chr(10), ASS_NEWLINE)}")
 
     result = "\n".join(lines)
     return f"{result}\n" if subtitles.segments else result

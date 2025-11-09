@@ -1,0 +1,29 @@
+[Script Info]
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Alignment, Encoding
+Style: S1, Arial,60,&HFFB0B0,&HFFFF00,&H998877,&H773030,7,0
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 00:00:00.00,00:00:10.00,S1,{\pos(60,100)}The quick {\b1}brown{\b0} fox jumps over a lazy dog.
+Dialogue: 00:00:10.00,00:00:20.00,S1,{\pos(60,100)}The quick {\i1}brown{\i0} fox jumps over a lazy dog.
+Dialogue: 00:00:20.00,00:00:30.00,S1,{\pos(60,100)}The quick {\u1}brown{\u0} fox jumps over a lazy dog.
+Dialogue: 00:00:30.00,00:00:40.00,S1,{\pos(60,100)}The quick {\s1}brown{\s0} fox jumps over a lazy dog.
+Dialogue: 00:00:40.00,00:00:50.00,S1,{\pos(60,100)}The quick {\s1}brown{\r} fox jumps over a lazy dog.
+Dialogue: 00:00:50.00,00:01:00.00,S1,{\pos(60,100)}\bord uses {\bord3}OutlineColour{\r} in [V4+ Styles] section as a border.
+Dialogue: 00:01:00.00,00:01:10.00,S1,{\pos(60,100)}\shad uses {\shad5}BackColour{\r} in [V4+ Styles] section as a shade.
+Dialogue: 00:01:10.00,00:01:20.00,S1,{\pos(60,100)}The quick {\fnCourier New}brown{\r} fox jumps over a lazy dog.
+Dialogue: 00:01:20.00,00:01:30.00,S1,{\pos(60,100)}{\fs80}T{\r}he quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:30.00,00:01:40.00,S1,{\pos(60,100)}{\fscy200}T{\r}he quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:40.00,00:01:50.00,S1,{\pos(60,100)}The quick brown fox jumps over a {\fscx250}lazy{\r} dog.
+Dialogue: 00:01:50.00,00:02:00.00,S1,{\pos(60,100)}The quick brown fox jumps over a{\fsp20} lazy {\r}dog.
+Dialogue: 00:02:00.00,00:02:10.00,S1,{\pos(60,100)}{\frx350}The quick brown fox jumps over a lazy dog.{\r}
+Dialogue: 00:02:10.00,00:02:20.00,S1,{\pos(60,100)}{\fry350}The quick brown fox jumps over a lazy dog.{\r}
+Dialogue: 00:02:20.00,00:02:30.00,S1,{\pos(60,100)}{\frz350}The quick brown fox jumps over a lazy dog.{\r}
+Dialogue: 00:02:30.00,00:02:40.00,S1,{\pos(60,100)}The quick brown {\c&HFF0000&}fox{\r} {\c&HFF}jumps{\r} over a lazy {\c&FF00&}dog{\r}.
+Dialogue: 00:02:40.00,00:02:50.00,S1,{\pos(60,100)}{\k150}\k {\k150}uses {\k300}PrimaryColour {\k100}and {\k300}SecondaryColour.
+Dialogue: 00:02:50.00,00:03:00.00,S1,{\pos(60,100)}{\K150}\K {\K150}uses {\K300}PrimaryColour {\K100}and {\K300}SecondaryColour.

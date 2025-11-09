@@ -1,0 +1,28 @@
+[Script Info]
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, Alignment, Encoding
+Style: A1, Arial,34,&H3030FF,1,0
+Style: A2, Arial,34,&H3030FF,2,0
+Style: A3, Arial,34,&H3030FF,3,0
+Style: A4, Arial,34,&H3030FF,4,0
+Style: A5, Arial,34,&H3030FF,5,0
+Style: A6, Arial,34,&H3030FF,6,0
+Style: A7, Arial,34,&H3030FF,7,0
+Style: A8, Arial,34,&H3030FF,8,0
+Style: A9, Arial,34,&H3030FF,9,0
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 0:00:00.00,0:00:10.00,A1,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:00:10.00,0:00:20.00,A2,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:00:20.00,0:00:30.00,A3,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:00:30.00,0:00:40.00,A4,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:00:40.00,0:00:50.00,A5,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:00:50.00,0:01:00.00,A6,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:01:00.00,0:01:10.00,A7,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:01:10.00,0:01:20.00,A8,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
+Dialogue: 0:01:20.00,0:01:30.00,A9,{\pos(600,400)}The quick brown fox jumps over a lazy dog.\NSphinx of black quartz, judge my vow.
