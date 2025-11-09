@@ -4,6 +4,7 @@ from typing import Annotated
 import typer
 
 from autosubs import __version__
+from autosubs.cli.burn import burn
 from autosubs.cli.convert import convert
 from autosubs.cli.generate import generate
 from autosubs.cli.transcribe import transcribe
@@ -20,6 +21,7 @@ app = typer.Typer(
 app.command()(generate)
 app.command()(convert)
 app.command()(transcribe)
+app.command()(burn)
 
 
 def version_callback(value: bool) -> None:

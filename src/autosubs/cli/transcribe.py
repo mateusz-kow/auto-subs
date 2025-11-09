@@ -5,9 +5,12 @@ import typer
 
 from autosubs.api import transcribe as transcribe_api
 from autosubs.cli.utils import (
+    _EXTENSION_MAP,
     PathProcessor,
     SupportedExtension,
+    check_ffmpeg_installed,
     determine_output_format,
+    handle_burn_operation,
     parse_ass_settings_from_cli,
 )
 from autosubs.models.formats import SubtitleFormat
@@ -84,11 +87,33 @@ def transcribe(
         typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center)."),
     ] = None,
     margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
+    burn: Annotated[bool, typer.Option(help="Burn the subtitles directly into a video file.")] = False,
 ) -> None:
     """Transcribe a media file and generate subtitles."""
+    if burn:
+        check_ffmpeg_installed()
+
     final_output_format = determine_output_format(output_format, output_path)
 
     ass_settings: AssSettings | None = None
+    styling_options_used = any(
+        [
+            karaoke,
+            style_file,
+            font_name,
+            font_size,
+            primary_color,
+            secondary_color,
+            outline_color,
+            back_color,
+            bold,
+            italic,
+            underline,
+            alignment,
+            margin_v,
+        ]
+    )
+
     if final_output_format == SubtitleFormat.ASS:
         ass_settings = parse_ass_settings_from_cli(
             style_file,
@@ -105,9 +130,9 @@ def transcribe(
             alignment,
             margin_v,
         )
-    elif karaoke:
+    elif styling_options_used:
         typer.secho(
-            "Warning: --karaoke flag is only applicable for ASS format.",
+            "Warning: ASS styling options are only applicable for ASS format.",
             fg=typer.colors.YELLOW,
         )
 
@@ -116,14 +141,8 @@ def transcribe(
     has_errors = False
 
     for in_file, out_file_base in processor.process():
-        typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
-
-        if is_batch:
-            out_file = out_file_base.with_name(f"{in_file.stem}.{final_output_format.value}")
-        else:
-            out_file = out_file_base.with_suffix(f".{final_output_format.value}")
-
         try:
+            typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
             content = transcribe_api(
                 in_file,
                 output_format=final_output_format,
@@ -133,9 +152,40 @@ def transcribe(
                 max_lines=max_lines,
                 ass_settings=ass_settings,
             )
-            out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding="utf-8")
-            typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
+
+            if burn:
+                video_extensions = _EXTENSION_MAP[SupportedExtension.VIDEO]
+                if in_file.suffix.lower() not in video_extensions:
+                    typer.secho(
+                        f"Skipping non-video file for burning: {in_file.name}",
+                        fg=typer.colors.YELLOW,
+                    )
+                    continue
+
+                if is_batch:
+                    video_output_path = out_file_base.with_suffix(in_file.suffix)
+                else:
+                    video_output_path = output_path or in_file.with_stem(f"{in_file.stem}_burned")
+
+                handle_burn_operation(
+                    video_input=in_file,
+                    video_output=video_output_path,
+                    subtitle_content=content,
+                    subtitle_format=final_output_format,
+                    styling_options_used=styling_options_used,
+                )
+            else:
+                if is_batch:
+                    out_file = out_file_base.with_name(f"{in_file.stem}.{final_output_format.value}")
+                else:
+                    out_file = out_file_base.with_suffix(f".{final_output_format.value}")
+
+                out_file.parent.mkdir(parents=True, exist_ok=True)
+                out_file.write_text(content, encoding="utf-8")
+                typer.secho(
+                    f"Successfully saved subtitles to: {out_file}",
+                    fg=typer.colors.GREEN,
+                )
         except (ImportError, FileNotFoundError) as e:
             typer.secho(f"Error: {e}", fg=typer.colors.RED)
             typer.secho(

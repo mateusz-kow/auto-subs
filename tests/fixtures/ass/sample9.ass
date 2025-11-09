@@ -1,0 +1,19 @@
+[Script Info]
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Alignment, Encoding
+Style: S1, Arial,60,&HFFB0B0,&HFFFF00,&H998877,&H773030,7,0
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 00:00:00.00,00:00:10.00,S1,{\pos(60,100)}{\t(0,10000,0.5,\fscy200)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:10.00,00:00:20.00,S1,{\pos(60,100)}{\t(0,10000,1,\fscy200)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:20.00,00:00:30.00,S1,{\pos(60,100)}{\t(0,10000,2,\fscy200)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:30.00,00:00:40.00,S1,{\pos(60,100)}{\t(0,5000,0.5,\fscy200)}{\t(5000,10000,2,\c&HFF&)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:40.00,00:00:50.00,S1,{\move(60,100,150,250,0,5000)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:50.00,00:01:00.00,S1,{\move(60,100,150,250,1000,10000)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:00.00,00:01:10.00,S1,{\pos(60,100)}{\fade(255,0,255,0,4000,6000,10000)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:10.00,00:01:20.00,S1,{\pos(60,100)}{\fad(4000,4000)}The quick brown fox jumps over a lazy dog.

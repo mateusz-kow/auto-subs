@@ -11,7 +11,7 @@ from autosubs.core.transcriber import run_transcription
 from autosubs.models.enums import TimingDistribution
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.settings import AssSettings
-from autosubs.models.subtitles import Subtitles
+from autosubs.models.subtitles import AssSubtitles, Subtitles
 
 # Factory mapping subtitle formats to their respective generator functions.
 _format_map: dict[SubtitleFormat, Callable[..., str]] = {
@@ -144,7 +144,7 @@ def load(
         timing_strategy: The strategy to use for generating word timings.
 
     Returns:
-        A Subtitles object representing the parsed file content.
+        A Subtitles object (or AssSubtitles for .ass files) representing the parsed file content.
 
     Raises:
         FileNotFoundError: If the specified file does not exist.
@@ -157,21 +157,23 @@ def load(
     suffix = path.suffix.lower()
     content = path.read_text(encoding="utf-8")
 
-    segments = []
+    subtitles: Subtitles
+
     supported_formats = {f".{fmt}" for fmt in SubtitleFormat if fmt != SubtitleFormat.JSON}
     if suffix == ".srt":
         segments = parser.parse_srt(content)
+        subtitles = Subtitles(segments=segments)
     elif suffix == ".vtt":
         segments = parser.parse_vtt(content)
+        subtitles = Subtitles(segments=segments)
     elif suffix == ".ass":
-        segments = parser.parse_ass(content)
+        subtitles = parser.parse_ass(content)
     else:
         raise ValueError(
             f"Unsupported subtitle format: {suffix}. Must be one of: {', '.join(sorted(supported_formats))}."
         )
 
-    subtitles = Subtitles(segments=segments)
-    if generate_word_timings:
+    if generate_word_timings and not isinstance(subtitles, AssSubtitles):
         for segment in subtitles.segments:
             segment.generate_word_timings(strategy=timing_strategy)
 

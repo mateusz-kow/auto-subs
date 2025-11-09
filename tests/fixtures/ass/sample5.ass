@@ -1,0 +1,38 @@
+[Script Info]
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, BorderStyle, Outline, Shadow, Alignment, Encoding
+Style: S01, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 0, 0, 0, 7, 0
+Style: S02, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 1, 0, 7, 0
+Style: S03, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 2, 0, 7, 0
+Style: S04, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 3, 0, 7, 0
+Style: S05, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 4, 0, 7, 0
+Style: S06, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 0, 1, 7, 0
+Style: S07, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 0, 2, 7, 0
+Style: S08, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 0, 3, 7, 0
+Style: S09, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 0, 4, 7, 0
+Style: S10, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 4, 2, 7, 0
+Style: S11, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 1, 2, 4, 7, 0
+Style: S12, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 3, 0, 0, 7, 0
+Style: S13, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 3, 1, 0, 7, 0
+Style: S14, Arial, 70, &HFFFFFF, &HFF0000, &H555555, 3, 0, 1, 7, 0
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 00:00:00.00,00:00:10.00,S01,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:10.00,00:00:20.00,S02,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:20.00,00:00:30.00,S03,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:30.00,00:00:40.00,S04,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:40.00,00:00:50.00,S05,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:00:50.00,00:01:00.00,S06,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:00.00,00:01:10.00,S07,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:10.00,00:01:20.00,S08,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:20.00,00:01:30.00,S09,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:30.00,00:01:40.00,S10,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:40.00,00:01:50.00,S11,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:01:50.00,00:02:00.00,S12,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:02:00.00,00:02:10.00,S13,{\pos(20,40)}The quick brown fox jumps over a lazy dog.
+Dialogue: 00:02:10.00,00:02:20.00,S14,{\pos(20,40)}The quick brown fox jumps over a lazy dog.

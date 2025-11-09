@@ -26,6 +26,7 @@
 ## Key Features
 
 -   **🚀 End-to-End Transcription**: Go from an audio or video file directly to perfectly timed subtitles in one command.
+-   **🔥 Hardsubbing (Video Burning)**: Burn generated subtitles directly into a video file with a simple `--burn` flag.
 -   **📝 Rich Programmatic Editing**: A powerful, in-memory API to programmatically edit subtitles—shift timing, adjust duration, merge/split segments, and more.
 -   **🔄 Versatile Format Conversion**: Easily convert existing subtitle files between supported formats.
 -   **🧠 Intelligent Word Segmentation**: Automatically splits word-level transcriptions into perfectly timed subtitle lines based on character limits and natural punctuation breaks.
@@ -40,25 +41,32 @@
 # For subtitle generation and conversion
 pip install auto-subs
 
-# To include direct transcription capabilities
+# To include direct transcription and burning capabilities
 pip install auto-subs[transcribe]
 ```
+
+*Hardsubbing requires [FFmpeg](https://ffmpeg.org/download.html) to be installed and available in your system's PATH.*
 
 ## Quickstart
 
 ### As a Command-Line Tool (CLI)
 
-`auto-subs` provides three powerful commands: `transcribe`, `generate`, and `convert`.
+`auto-subs` provides four powerful commands: `transcribe`, `generate`, `convert`, and `burn`.
+
+> **Note:** Global options like `-q` (quiet) or `-v` (verbose) must be placed *before* the command name (e.g., `auto-subs -q transcribe ...`).
 
 ```bash
-# 1. Transcribe a media file directly to a VTT subtitle file
-auto-subs transcribe video.mp4 -f vtt --model small
+# 1. Transcribe a video and burn the subtitles directly into a new file
+auto-subs transcribe video.mp4 --model small --burn
 
 # 2. Generate a styled ASS file from an existing transcription JSON
 auto-subs generate input.json -f ass -o styled.ass --max-chars 42 --karaoke
 
 # 3. Convert an existing SRT file to ASS format
 auto-subs convert subtitles.srt -f ass
+
+# 4. Burn an existing subtitle file into a video
+auto-subs burn video.mp4 styled.ass -o final_video.mp4
 ```
 
 ### As a Python Library
@@ -117,7 +125,7 @@ if len(subs.segments) >= 3:
 ass_settings = AssSettings(highlight_style=AssStyleSettings())
 karaoke_ass = to_ass(subs, ass_settings)
 
-with open("output.ass", "w", encoding="utf-8") as f:
+with open("output.ass", "w") as f:
     f.write(karaoke_ass)
 ```
 
