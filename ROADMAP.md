@@ -12,7 +12,7 @@ These features form the stable foundation of `auto-subs` and are available today
 
 -   **✅ End-to-End Transcription**: Go from an audio/video file directly to subtitles in a single command.
 -   **✅ Hardsubbing (Video Burning)**: Burn generated subtitles directly into a new video file using FFmpeg.
--   **✅ Streaming & Parallel Transcription**: Real-time feedback and dramatically faster processing for long media files, achieved via FFmpeg-based **Voice Activity Detection (VAD)** for intelligent chunking and multi-process parallelization.
+-   **✅ Progress Feedback for Long Transcriptions**: A `--stream` flag provides a real-time activity indicator for long transcription jobs, improving user experience.
 -   **✅ Rich Programmatic Editing API**: A powerful, in-memory object model for subtitle manipulation, including methods to `shift_by()`, `resize()`, `set_duration()`, `merge_segments()`, and `split_segment_at_word()`.
 -   **✅ Versatile Format Conversion**: Convert between SRT, VTT, and ASS formats.
 -   **✅ Intelligent Word Segmentation**: Generate perfectly timed, multi-line subtitle segments from word-level timestamps.
