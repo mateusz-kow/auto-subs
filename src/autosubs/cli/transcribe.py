@@ -58,6 +58,10 @@ def transcribe(
         int,
         typer.Option(help="Maximum number of lines per subtitle segment."),
     ] = 2,
+    stream: Annotated[
+        bool,
+        typer.Option(help="Enable streaming and parallel transcription. Requires 'auto-subs[stream]' to be installed."),
+    ] = False,
     # ASS Options
     karaoke: Annotated[
         bool,
@@ -90,7 +94,7 @@ def transcribe(
     burn: Annotated[bool, typer.Option(help="Burn the subtitles directly into a video file.")] = False,
 ) -> None:
     """Transcribe a media file and generate subtitles."""
-    if burn:
+    if burn or stream:
         check_ffmpeg_installed()
 
     final_output_format = determine_output_format(output_format, output_path)
@@ -151,6 +155,7 @@ def transcribe(
                 min_words=min_words,
                 max_lines=max_lines,
                 ass_settings=ass_settings,
+                stream=stream,
             )
 
             if burn:

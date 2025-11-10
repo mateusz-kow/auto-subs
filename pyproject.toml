@@ -31,8 +31,14 @@ Repository = "https://github.com/mateusz-kow/auto-subs"
 auto-subs = "autosubs.cli.main:app"
 
 [project.optional-dependencies]
+stream = [
+    "silero-vad",
+    "torch",
+    "soundfile"
+]
 transcribe = [
-    "openai-whisper"
+    "openai-whisper",
+    "auto-subs[stream]"
 ]
 dev = [
     "ruff~=0.14.0",

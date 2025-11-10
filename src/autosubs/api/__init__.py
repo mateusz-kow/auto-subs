@@ -92,6 +92,7 @@ def transcribe(
     min_words: int = 1,
     max_lines: int = 2,
     ass_settings: AssSettings | None = None,
+    stream: bool = False,
 ) -> str:
     """Transcribe a media file and generate subtitle content.
 
@@ -106,6 +107,8 @@ def transcribe(
         min_words: The minimum number of words per subtitle line (punctuation breaks).
         max_lines: The maximum number of lines per subtitle segment.
         ass_settings: Optional settings for ASS format generation.
+        stream: If True, uses a parallel, VAD-based transcription method that is
+                significantly faster for long files. Requires FFmpeg.
 
     Returns:
         A string containing the generated subtitle content.
@@ -119,7 +122,13 @@ def transcribe(
     if not media_path.exists():
         raise FileNotFoundError(f"Media file not found at: {media_path}")
 
-    transcription_dict = run_transcription(media_path, model_name)
+    if stream:
+        from autosubs.core.streamer import run_streaming_transcription
+
+        transcription_dict = run_streaming_transcription(media_path, model_name)
+    else:
+        transcription_dict = run_transcription(media_path, model_name)
+
     return generate(
         transcription_dict,
         output_format,
