@@ -43,8 +43,6 @@ def burn(
     ] = None,
 ) -> None:
     """Burn an existing subtitle file into a video."""
-    check_ffmpeg_installed()
-
     video_extensions = _EXTENSION_MAP[SupportedExtension.VIDEO]
     if video_input.suffix.lower() not in video_extensions:
         error_message = f"Error: Input video must be one of: {', '.join(sorted(video_extensions))}"
@@ -56,6 +54,8 @@ def burn(
         error_message = f"Error: Input subtitle must be one of: {', '.join(sorted(subtitle_extensions))}"
         typer.secho(error_message, fg=typer.colors.RED)
         raise typer.Exit(code=1)
+
+    check_ffmpeg_installed()
 
     final_output_path = output_path if output_path else video_input.with_stem(f"{video_input.stem}_burned")
     final_output_path.parent.mkdir(parents=True, exist_ok=True)
