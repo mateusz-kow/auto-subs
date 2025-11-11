@@ -20,11 +20,21 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Set up uv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Install dependencies
-        run: uv pip install --system -e .[dev]
+      - name: Install dependencies from lock file
+        run: |
+          uv pip sync uv.lock
+          uv pip install --system -e .
 
       - name: Lint with ruff
         run: uv run ruff check .
@@ -60,15 +70,24 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Set up uv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-
+
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Install dependencies
-        run: uv pip install --system -e .[dev]
+      - name: Install dependencies from lock file
+        run: |
+          uv pip sync uv.lock
+          uv pip install --system -e .
 
       - name: Run pytest with coverage
         run: uv run pytest --cov=autosubs --cov-report=xml
-        continue-on-error: ${{ matrix.experimental || false }}
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
