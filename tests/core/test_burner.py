@@ -54,3 +54,28 @@ def test_burn_subtitles_ffmpeg_not_found_raises_ffmpeg_error(mock_run: MagicMock
     """Test that a FileNotFoundError is caught and re-raised as FFmpegError."""
     with pytest.raises(FFmpegError, match="ffmpeg command not found"):
         burn_subtitles(tmp_path / "in.mp4", tmp_path / "in.ass", tmp_path / "out.mp4")
+
+
+@patch("subprocess.run")
+@patch("pathlib.Path.resolve")
+@patch("sys.platform", "win32")
+def test_burn_subtitles_escapes_windows_path_colon(
+    mock_resolve: MagicMock, mock_run: MagicMock, tmp_path: Path
+) -> None:
+    """Test that the colon in a Windows drive letter is correctly escaped for the ffmpeg filter."""
+    video_in = tmp_path / "in.mp4"
+    subs_in = tmp_path / "in.ass"
+    video_out = tmp_path / "out.mp4"
+
+    # Simulate a resolved Windows path
+    mock_resolve.return_value = Path("C:\\Users\\test\\sub.ass")
+
+    burn_subtitles(video_in, subs_in, video_out)
+
+    mock_run.assert_called_once()
+    args, _ = mock_run.call_args
+    command = args[0]
+    filter_string = command[5]
+
+    # The key assertion: C\: and \\
+    assert "subtitles=filename='C\\:\\\\Users\\\\test\\\\sub.ass'" in filter_string

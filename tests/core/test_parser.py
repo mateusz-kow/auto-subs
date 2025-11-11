@@ -225,3 +225,22 @@ def test_parse_ass_skips_inverted_timestamps(caplog: LogCaptureFixture) -> None:
     assert len(subs.segments) == 1
     assert str(subs.segments[0].text) == "Good dialogue"
     assert "Skipping ASS Dialogue with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_ass_skips_style_before_format_line(caplog: LogCaptureFixture) -> None:
+    """Test that an ASS Style line appearing before its Format line is skipped with a warning."""
+    content = "[V4+ Styles]\nStyle: Bad,Arial,20\nFormat: Name,Fontname,Fontsize\nStyle: Good,Impact,40\n"
+    subs = parser.parse_ass(content)
+    assert len(subs.styles) == 1
+    assert subs.styles[0].name == "Good"
+    assert "Skipping Style line found before Format line" in caplog.text
+
+
+def test_parse_ass_handles_invalid_boolean_value(caplog: LogCaptureFixture) -> None:
+    """Test that an invalid boolean value in an ASS style is handled gracefully."""
+    content = "[V4+ Styles]\nFormat: Name,Bold\nStyle: Default,not-a-boolean\n"
+    subs = parser.parse_ass(content)
+    assert len(subs.styles) == 1
+    # Should fall back to the default value of False
+    assert subs.styles[0].bold is False
+    assert "Could not parse boolean value for Bold: not-a-boolean" in caplog.text

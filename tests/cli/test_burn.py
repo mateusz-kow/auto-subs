@@ -149,3 +149,25 @@ def test_cli_burn_output_path_is_a_directory(
 
     assert result.exit_code == 1
     assert "An unexpected error occurred" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("video_name", "subtitle_name", "expected_error"),
+    [
+        ("video.mp4", "subtitle.txt", "Input subtitle must be one of: .ass, .srt, .vtt"),
+        ("video.txt", "subtitle.srt", "Input video must be one of: .avi, .mkv, .mov, .mp4, .webm"),
+    ],
+)
+def test_cli_burn_invalid_file_extensions(
+    tmp_path: Path, video_name: str, subtitle_name: str, expected_error: str
+) -> None:
+    """Test that the burn command fails with BadParameter for unsupported file extensions."""
+    video_file = tmp_path / video_name
+    subtitle_file = tmp_path / subtitle_name
+    video_file.touch()
+    subtitle_file.touch()
+
+    result = runner.invoke(app, ["burn", str(video_file), str(subtitle_file)])
+
+    assert result.exit_code == 2  # Typer's exit code for BadParameter
+    assert expected_error in result.stderr
