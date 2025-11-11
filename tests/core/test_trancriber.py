@@ -20,7 +20,9 @@ def test_run_transcription_success(fake_media_file: Path) -> None:
         result = run_transcription(fake_media_file, "base")
 
     mock_whisper.load_model.assert_called_once_with("base")
-    mock_whisper.load_model.return_value.transcribe.assert_called_once_with(str(fake_media_file), word_timestamps=True)
+    mock_whisper.load_model.return_value.transcribe.assert_called_once_with(
+        str(fake_media_file), word_timestamps=True, verbose=None
+    )
     assert result == {"text": "hello", "segments": []}
 
 

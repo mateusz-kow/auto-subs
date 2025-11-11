@@ -58,6 +58,14 @@ def transcribe(
         int,
         typer.Option(help="Maximum number of lines per subtitle segment."),
     ] = 2,
+    stream: Annotated[
+        bool,
+        typer.Option("--stream", help="Display a progress bar during transcription."),
+    ] = False,
+    whisper_verbose: Annotated[
+        bool,
+        typer.Option(help="Enable Whisper's detailed, real-time transcription output."),
+    ] = False,
     # ASS Options
     karaoke: Annotated[
         bool,
@@ -136,13 +144,21 @@ def transcribe(
             fg=typer.colors.YELLOW,
         )
 
+    verbose_level: bool | None = None
+    if whisper_verbose:
+        verbose_level = True
+    elif stream:
+        verbose_level = False
+
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
     is_batch = media_path.is_dir()
     has_errors = False
 
     for in_file, out_file_base in processor.process():
         try:
-            typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
+            if verbose_level is None:
+                typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
+
             content = transcribe_api(
                 in_file,
                 output_format=final_output_format,
@@ -151,6 +167,7 @@ def transcribe(
                 min_words=min_words,
                 max_lines=max_lines,
                 ass_settings=ass_settings,
+                verbose=verbose_level,
             )
 
             if burn:

@@ -68,7 +68,7 @@ def test_transcribe_api_success(
 
     result = transcribe(fake_media_file, "srt", model_name="base")
 
-    mock_run_transcription.assert_called_once_with(fake_media_file, "base")
+    mock_run_transcription.assert_called_once_with(fake_media_file, "base", verbose=None)
     assert "This is a test transcription" in result
     assert "-->" in result
 

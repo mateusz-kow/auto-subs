@@ -92,6 +92,7 @@ def transcribe(
     min_words: int = 1,
     max_lines: int = 2,
     ass_settings: AssSettings | None = None,
+    verbose: bool | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content.
 
@@ -106,6 +107,8 @@ def transcribe(
         min_words: The minimum number of words per subtitle line (punctuation breaks).
         max_lines: The maximum number of lines per subtitle segment.
         ass_settings: Optional settings for ASS format generation.
+        verbose: Controls Whisper's output. None for no output, False for a progress
+                 bar, True for detailed transcription text.
 
     Returns:
         A string containing the generated subtitle content.
@@ -119,7 +122,8 @@ def transcribe(
     if not media_path.exists():
         raise FileNotFoundError(f"Media file not found at: {media_path}")
 
-    transcription_dict = run_transcription(media_path, model_name)
+    transcription_dict = run_transcription(media_path, model_name, verbose=verbose)
+
     return generate(
         transcription_dict,
         output_format,

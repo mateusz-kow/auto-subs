@@ -3,7 +3,7 @@
 from autosubs.api import generate, load, transcribe
 from autosubs.core import to_ass, to_json, to_srt, to_vtt
 
-__version__ = "0.6.0"
+__version__ = "0.6.2"
 
 __all__ = [
     "__version__",

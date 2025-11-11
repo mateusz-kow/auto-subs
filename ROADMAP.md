@@ -12,6 +12,7 @@ These features form the stable foundation of `auto-subs` and are available today
 
 -   **✅ End-to-End Transcription**: Go from an audio/video file directly to subtitles in a single command.
 -   **✅ Hardsubbing (Video Burning)**: Burn generated subtitles directly into a new video file using FFmpeg.
+-   **✅ Progress Feedback for Long Transcriptions**: A `--stream` flag provides a real-time activity indicator for long transcription jobs, improving user experience.
 -   **✅ Rich Programmatic Editing API**: A powerful, in-memory object model for subtitle manipulation, including methods to `shift_by()`, `resize()`, `set_duration()`, `merge_segments()`, and `split_segment_at_word()`.
 -   **✅ Versatile Format Conversion**: Convert between SRT, VTT, and ASS formats.
 -   **✅ Intelligent Word Segmentation**: Generate perfectly timed, multi-line subtitle segments from word-level timestamps.
@@ -28,17 +29,17 @@ These features form the stable foundation of `auto-subs` and are available today
 
 These are the high-impact features planned for upcoming releases to significantly expand the library's capabilities.
 
--   **🎯 Streaming & Parallel Transcription**: Enable real-time feedback and dramatically faster processing for long media files. This involves a `stream_transcribe()` API, **Voice Activity Detection (VAD)** for intelligent chunking, and multi-process parallelization.
+-   **🎯 Context-Aware & Time-Aware Layered Styling Engine**: Introduce a modular, rule-based, and time-aware styling engine to enable Aegisub-level visual fidelity with modern, programmable control, establishing `auto-subs` as a true subtitle generation engine.
 
 ### Future Goals & Advanced Features
 
 These features are aimed at achieving feature parity with established tools and introducing unique, powerful capabilities.
 
--   **🎯 Context-Aware & Time-Aware Layered Styling Engine**: Introduce a modular, rule-based, and time-aware styling engine to enable Aegisub-level visual fidelity with modern, programmable control, establishing `auto-subs` as a true subtitle generation engine.
 -   **🎯 Advanced Retiming and Utilities**: Add powerful retiming capabilities like `transform_framerate()` and `map_timestamps(func)` for non-linear adjustments.
 -   **🎯 Strategic Format Expansion**: Add parsers and writers for other key subtitle formats like **TTML** and the frame-based **MicroDVD (`.sub`)** format for broader compatibility.
 -   **🎯 Handling ASS Attachments**: Implement logic to read, store, and write back `[Fonts]` and `[Graphics]` sections from ASS files for full Aegisub compatibility.
 -   **🎯 Advanced Styling and Tag Support**: Preserve unknown ASS tags during parsing and implement style management methods like `import_styles()` and `rename_style()`.
+-   **🎯 Performance Optimization with Rust**: Post-1.0, investigate rewriting performance-critical, CPU-bound "hot paths" (e.g., subtitle parsing, timestamp math) in Rust using PyO3 for near-native speed, where profiling shows a clear benefit.
 
 ### Polish & Production Readiness
 
