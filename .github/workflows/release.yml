@@ -35,7 +35,7 @@ jobs:
         run: uv pip install --system hatchling twine
 
       - name: Build package
-        run: uv run hatchling build
+        run: uv build
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
