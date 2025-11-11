@@ -32,9 +32,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies from lock file
-        run: |
-          uv pip sync uv.lock
-          uv pip install --system -e .
+        run: uv pip sync
 
       - name: Lint with ruff
         run: uv run ruff check .
@@ -82,9 +80,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies from lock file
-        run: |
-          uv pip sync uv.lock
-          uv pip install --system -e .
+        run: uv pip sync
 
       - name: Run pytest with coverage
         run: uv run pytest --cov=autosubs --cov-report=xml
