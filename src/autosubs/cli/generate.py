@@ -67,6 +67,17 @@ def generate(
             help="[ASS] Path to a JSON file with ASS style settings.",
         ),
     ] = None,
+    style_config: Annotated[
+        Path | None,
+        typer.Option(
+            "--style-config",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="[ASS] Path to a JSON file with the style engine configuration.",
+        ),
+    ] = None,
     font_name: Annotated[str | None, typer.Option(help="[ASS] Font name.")] = None,
     font_size: Annotated[int | None, typer.Option(help="[ASS] Font size.")] = None,
     primary_color: Annotated[str | None, typer.Option(help="[ASS] Primary color.")] = None,
@@ -132,6 +143,7 @@ def generate(
                 min_words=min_words,
                 max_lines=max_lines,
                 ass_settings=ass_settings,
+                style_config_path=style_config,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
             out_file.write_text(content, encoding="utf-8")

@@ -1,3 +1,15 @@
-from autosubs.models.styles.ass import AssStyle, WordStyleRange
+from autosubs.models.styles.domain import (
+    KaraokeSettings,
+    StyleEngineConfig,
+    StyleOverride,
+    StyleRule,
+)
+from autosubs.models.styles.schemas import StyleEngineConfigSchema
 
-__all__ = ["AssStyle", "WordStyleRange"]
+__all__ = [
+    "StyleEngineConfig",
+    "StyleRule",
+    "StyleOverride",
+    "KaraokeSettings",
+    "StyleEngineConfigSchema",
+]
