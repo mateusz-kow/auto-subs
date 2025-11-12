@@ -3,6 +3,7 @@ from autosubs.models.styles.domain import (
     StyleEngineConfig,
     StyleOverride,
     StyleRule,
+    WordStyleRange,
 )
 from autosubs.models.styles.schemas import StyleEngineConfigSchema
 
@@ -12,4 +13,5 @@ __all__ = [
     "StyleOverride",
     "KaraokeSettings",
     "StyleEngineConfigSchema",
+    "WordStyleRange",
 ]

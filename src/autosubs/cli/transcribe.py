@@ -11,10 +11,8 @@ from autosubs.cli.utils import (
     check_ffmpeg_installed,
     determine_output_format,
     handle_burn_operation,
-    parse_ass_settings_from_cli,
 )
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings
 from autosubs.models.whisper import WhisperModel
 
 
@@ -66,35 +64,17 @@ def transcribe(
         bool,
         typer.Option(help="Enable Whisper's detailed, real-time transcription output."),
     ] = False,
-    # ASS Options
-    karaoke: Annotated[
-        bool,
-        typer.Option(help="[ASS] Enable karaoke-style word highlighting."),
-    ] = False,
-    style_file: Annotated[
+    style_config: Annotated[
         Path | None,
         typer.Option(
+            "--style-config",
             exists=True,
             file_okay=True,
             dir_okay=False,
             readable=True,
-            help="[ASS] Path to a JSON file with ASS style settings.",
+            help="[ASS] Path to a JSON file with the style engine configuration.",
         ),
     ] = None,
-    font_name: Annotated[str | None, typer.Option(help="[ASS] Font name.")] = None,
-    font_size: Annotated[int | None, typer.Option(help="[ASS] Font size.")] = None,
-    primary_color: Annotated[str | None, typer.Option(help="[ASS] Primary color.")] = None,
-    secondary_color: Annotated[str | None, typer.Option(help="[ASS] Secondary color.")] = None,
-    outline_color: Annotated[str | None, typer.Option(help="[ASS] Outline color.")] = None,
-    back_color: Annotated[str | None, typer.Option(help="[ASS] Back color (shadow).")] = None,
-    bold: Annotated[bool | None, typer.Option(help="[ASS] Enable bold text.")] = None,
-    italic: Annotated[bool | None, typer.Option(help="[ASS] Enable italic text.")] = None,
-    underline: Annotated[bool | None, typer.Option(help="[ASS] Enable underlined text.")] = None,
-    alignment: Annotated[
-        int | None,
-        typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center)."),
-    ] = None,
-    margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
     burn: Annotated[bool, typer.Option(help="Burn the subtitles directly into a video file.")] = False,
 ) -> None:
     """Transcribe a media file and generate subtitles."""
@@ -102,47 +82,6 @@ def transcribe(
         check_ffmpeg_installed()
 
     final_output_format = determine_output_format(output_format, output_path)
-
-    ass_settings: AssSettings | None = None
-    styling_options_used = any(
-        [
-            karaoke,
-            style_file,
-            font_name,
-            font_size,
-            primary_color,
-            secondary_color,
-            outline_color,
-            back_color,
-            bold,
-            italic,
-            underline,
-            alignment,
-            margin_v,
-        ]
-    )
-
-    if final_output_format == SubtitleFormat.ASS:
-        ass_settings = parse_ass_settings_from_cli(
-            style_file,
-            karaoke,
-            font_name,
-            font_size,
-            primary_color,
-            secondary_color,
-            outline_color,
-            back_color,
-            bold,
-            italic,
-            underline,
-            alignment,
-            margin_v,
-        )
-    elif styling_options_used:
-        typer.secho(
-            "Warning: ASS styling options are only applicable for ASS format.",
-            fg=typer.colors.YELLOW,
-        )
 
     verbose_level: bool | None = None
     if whisper_verbose:
@@ -166,7 +105,7 @@ def transcribe(
                 max_chars=max_chars,
                 min_words=min_words,
                 max_lines=max_lines,
-                ass_settings=ass_settings,
+                style_config_path=style_config,
                 verbose=verbose_level,
             )
 
@@ -189,7 +128,7 @@ def transcribe(
                     video_output=video_output_path,
                     subtitle_content=content,
                     subtitle_format=final_output_format,
-                    styling_options_used=styling_options_used,
+                    styling_options_used=bool(style_config),
                 )
             else:
                 if is_batch:

@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import tempfile
@@ -10,52 +9,6 @@ import typer
 
 from autosubs.core.burner import FFmpegError, burn_subtitles
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings, AssStyleSettings
-
-
-# Add this new function to the end of src/autosubs/cli/utils.py
-def parse_ass_settings_from_cli(
-    style_file: Path | None,
-    karaoke: bool,
-    # Pass all the CLI options directly
-    font_name: str | None,
-    font_size: int | None,
-    primary_color: str | None,
-    secondary_color: str | None,
-    outline_color: str | None,
-    back_color: str | None,
-    bold: bool | None,
-    italic: bool | None,
-    underline: bool | None,
-    alignment: int | None,
-    margin_v: int | None,
-) -> AssSettings:
-    """Parses all ASS-related CLI options into an AssSettings object."""
-    settings_dict = {}
-    if style_file:
-        with style_file.open("r", encoding="utf-8") as f:
-            settings_dict = json.load(f)
-
-    cli_opts = {
-        "font_name": font_name,
-        "font_size": font_size,
-        "primary_color": primary_color,
-        "secondary_color": secondary_color,
-        "outline_color": outline_color,
-        "back_color": back_color,
-        "bold": -1 if bold else (0 if bold is False else None),
-        "italic": -1 if italic else (0 if italic is False else None),
-        "underline": -1 if underline else (0 if underline is False else None),
-        "alignment": alignment,
-        "margin_v": margin_v,
-    }
-    settings_dict.update({k: v for k, v in cli_opts.items() if v is not None})
-    ass_settings = AssSettings.model_validate(settings_dict)
-
-    if karaoke:
-        ass_settings.highlight_style = AssStyleSettings()
-
-    return ass_settings
 
 
 def determine_output_format(
@@ -63,13 +16,7 @@ def determine_output_format(
     output_path_option: Path | None,
     default: SubtitleFormat = SubtitleFormat.SRT,
 ) -> SubtitleFormat:
-    """Determines the final subtitle format based on user options.
-
-    The priority is:
-    1. The explicit --format option.
-    2. The extension of the --output path.
-    3. The specified default format.
-    """
+    """Determines the final subtitle format based on user options."""
     if output_format_option:
         return output_format_option
 
@@ -121,14 +68,13 @@ class PathProcessor:
         output_path: Path | None,
         extension_type: SupportedExtension,
     ):
-        """Handles processing of input and output paths for CLI commands."""
+        """Initializes the path processor."""
         self.input_path = input_path
         self.output_path = output_path
         self.extensions = _EXTENSION_MAP[extension_type]
         self._validate_paths()
 
     def _validate_paths(self) -> None:
-        """Validates that if input is a dir, output is also a dir."""
         if self.input_path.is_dir() and self.output_path and not self.output_path.is_dir():
             typer.secho(
                 "Error: If input is a directory, output must also be a directory.",
@@ -137,7 +83,6 @@ class PathProcessor:
             raise typer.Exit(code=1)
 
     def _get_files_from_dir(self) -> list[Path]:
-        """Gathers and sorts all files with supported extensions from a directory."""
         files: list[Path] = []
         for ext in self.extensions:
             files.extend(self.input_path.glob(f"*{ext}"))
@@ -150,11 +95,7 @@ class PathProcessor:
         return sorted(files)
 
     def process(self) -> Generator[tuple[Path, Path], None, None]:
-        """Yields tuples of (input_file, output_file_base) for processing.
-
-        The `output_file_base` is the intended output file path before the
-        final extension is applied by the command.
-        """
+        """Yields tuples of (input_file, output_file_base) for processing."""
         files_to_process: list[Path] = []
         if self.input_path.is_dir():
             files_to_process.extend(self._get_files_from_dir())
@@ -198,12 +139,9 @@ def handle_burn_operation(
     styling_options_used: bool,
 ) -> None:
     """Central handler for burning subtitles into video."""
-    if styling_options_used and subtitle_format in {
-        SubtitleFormat.SRT,
-        SubtitleFormat.VTT,
-    }:
+    if styling_options_used and subtitle_format in {SubtitleFormat.SRT, SubtitleFormat.VTT}:
         typer.secho(
-            "Warning: Burning in SRT/VTT format. All styling options (--font-name, --karaoke, etc.) "
+            "Warning: Burning in SRT/VTT format. All styling options from --style-config "
             "will be ignored. For styled subtitles, use the ASS format.",
             fg=typer.colors.YELLOW,
         )
@@ -216,13 +154,7 @@ def handle_burn_operation(
     temp_sub_file = None
     try:
         suffix = f".{subtitle_format.value}"
-        # Create a temporary file, ensuring it's closed before FFmpeg accesses it.
-        with tempfile.NamedTemporaryFile(
-            "w",
-            suffix=suffix,
-            delete=False,
-            encoding="utf-8",
-        ) as f:
+        with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False, encoding="utf-8") as f:
             temp_sub_file = Path(f.name)
             f.write(subtitle_content)
 
@@ -239,6 +171,5 @@ def handle_burn_operation(
         )
         raise typer.Exit(code=1) from e
     finally:
-        # Guarantee cleanup of the temporary file.
         if temp_sub_file and temp_sub_file.exists():
             os.remove(temp_sub_file)

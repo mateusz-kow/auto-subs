@@ -11,7 +11,6 @@ from autosubs.core.styler import StylerEngine
 from autosubs.core.transcriber import run_transcription
 from autosubs.models.enums import TimingDistribution
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings
 from autosubs.models.styles.schemas import StyleEngineConfigSchema
 from autosubs.models.subtitles import AssSubtitles, Subtitles
 
@@ -22,6 +21,37 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.JSON: generator.to_json,
 }
 
+_DEFAULT_STYLE_CONFIG = StyleEngineConfigSchema(
+    styles=[
+        {
+            "Name": "Default",
+            "Fontname": "Arial",
+            "Fontsize": 48,
+            "PrimaryColour": "&H00FFFFFF",
+            "SecondaryColour": "&H000000FF",
+            "OutlineColour": "&H00000000",
+            "BackColour": "&H00000000",
+            "Bold": 0,
+            "Italic": 0,
+            "Underline": 0,
+            "StrikeOut": 0,
+            "ScaleX": 100,
+            "ScaleY": 100,
+            "Spacing": 0,
+            "Angle": 0,
+            "BorderStyle": 1,
+            "Outline": 2,
+            "Shadow": 1,
+            "Alignment": 2,
+            "MarginL": 10,
+            "MarginR": 10,
+            "MarginV": 20,
+            "Encoding": 1,
+        }
+    ],
+    rules=[],
+)
+
 
 def generate(
     transcription_source: dict[str, Any] | str | Path,
@@ -29,7 +59,6 @@ def generate(
     max_chars: int = 35,
     min_words: int = 1,
     max_lines: int = 1,
-    ass_settings: AssSettings | None = None,
     style_config_path: str | Path | None = None,
 ) -> str:
     """Generate subtitle content from a transcription dictionary.
@@ -40,9 +69,8 @@ def generate(
         max_chars: The maximum number of characters per subtitle line.
         min_words: The minimum number of words per line before a punctuation break.
         max_lines: The maximum number of lines per subtitle segment.
-        ass_settings: Optional settings for ASS format generation. Ignored if
-                      style_config_path is provided.
         style_config_path: Optional path to a JSON file for the dynamic style engine.
+                           Required for ASS output.
 
     Returns:
         A string containing the generated subtitle content.
@@ -65,20 +93,17 @@ def generate(
         ) from e
 
     subtitles = create_subtitles_from_transcription(
-        transcription_dict,
-        max_chars=max_chars,
-        min_words=min_words,
-        max_lines=max_lines,
+        transcription_dict, max_chars=max_chars, min_words=min_words, max_lines=max_lines
     )
 
     if format_enum == SubtitleFormat.ASS:
-        styler_engine = None
+        schema = _DEFAULT_STYLE_CONFIG
         if style_config_path:
             config_path = Path(style_config_path)
             schema = StyleEngineConfigSchema.model_validate_json(config_path.read_text(encoding="utf-8"))
-            domain_config = schema.to_domain()
-            styler_engine = StylerEngine(domain_config)
-        return writer_func(subtitles, ass_settings or AssSettings(), styler_engine=styler_engine)
+        domain_config = schema.to_domain()
+        styler_engine = StylerEngine(domain_config)
+        return writer_func(subtitles, styler_engine=styler_engine)
     return writer_func(subtitles)
 
 
@@ -89,7 +114,7 @@ def transcribe(
     max_chars: int = 35,
     min_words: int = 1,
     max_lines: int = 2,
-    ass_settings: AssSettings | None = None,
+    style_config_path: str | Path | None = None,
     verbose: bool | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content."""
@@ -103,7 +128,7 @@ def transcribe(
         max_chars=max_chars,
         min_words=min_words,
         max_lines=max_lines,
-        ass_settings=ass_settings,
+        style_config_path=style_config_path,
     )
 
 
@@ -128,7 +153,7 @@ def load(
     elif suffix == ".ass":
         subtitles = parser.parse_ass(content)
     else:
-        supported = ", ".join(f".{fmt.value}" for fmt in SubtitleFormat if fmt != "json")
+        supported = ", ".join(f".{fmt}" for fmt in SubtitleFormat if fmt != "json")
         raise ValueError(f"Unsupported format: {suffix}. Supported: {supported}.")
 
     if generate_word_timings and not isinstance(subtitles, AssSubtitles):

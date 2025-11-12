@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
-from autosubs.models.subtitles.ass import (
+from autosubs.models import (
     AssSubtitleSegment,
     AssSubtitleWord,
     WordStyleRange,

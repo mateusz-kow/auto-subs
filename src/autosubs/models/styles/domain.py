@@ -4,6 +4,15 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 
+@dataclass(frozen=True, eq=True)
+class WordStyleRange:
+    """Represents a style tag applied to a range of characters within a word."""
+
+    start_char_index: int
+    end_char_index: int
+    ass_tag: str
+
+
 @dataclass(frozen=True)
 class StyleOverride:
     """Represents a set of overrides for a base style."""

@@ -4,7 +4,6 @@ from typing import Any, overload
 
 from autosubs.core.builder import create_dict_from_subtitles
 from autosubs.core.styler import StylerEngine
-from autosubs.models.settings import AssSettings
 from autosubs.models.subtitles import Subtitles
 from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
@@ -61,18 +60,10 @@ def to_ass(subtitles: AssSubtitles) -> str: ...
 
 
 @overload
-def to_ass(
-    subtitles: Subtitles,
-    settings: AssSettings,
-    styler_engine: StylerEngine | None = None,
-) -> str: ...
+def to_ass(subtitles: Subtitles, styler_engine: StylerEngine) -> str: ...
 
 
-def to_ass(
-    subtitles: Subtitles,
-    settings: AssSettings | None = None,
-    styler_engine: StylerEngine | None = None,
-) -> str:
+def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> str:
     """Generate the content for an ASS subtitle file."""
     if isinstance(subtitles, AssSubtitles):
         logger.info("Regenerating subtitles from AssSubtitles object (lossless)...")
@@ -109,46 +100,29 @@ def to_ass(
                 lines.append(f"Dialogue: {','.join(str(data.get(key, '')) for key in keys)}")
         return "\n".join(lines) + "\n"
 
-    if styler_engine:
-        logger.info("Generating ASS file using the StylerEngine.")
-        config = styler_engine.config
-        lines = ["[Script Info]"]
-        lines.extend(f"{key}: {value}" for key, value in config.script_info.items())
-        lines.append("\n[V4+ Styles]")
-        if config.styles:
-            style_format_keys = list(config.styles[0].keys())
-            lines.append(f"Format: {', '.join(style_format_keys)}")
-            for style_dict in config.styles:
-                lines.append(
-                    f"Style: {','.join(_format_ass_number(style_dict.get(key, '')) for key in style_format_keys)}"
-                )
-        lines.append("\n[Events]")
-        lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
+    if not styler_engine:
+        raise ValueError("StylerEngine is required to generate an ASS file from scratch.")
 
-        default_style = config.styles[0].get("Name", "Default") if config.styles else "Default"
-        for seg in subtitles.segments:
-            styled_segment = styler_engine.process_segment(seg, default_style)
-            start, end = format_ass_timestamp(styled_segment.start), format_ass_timestamp(styled_segment.end)
-            text = " ".join(
-                _reconstruct_dialogue_text(AssSubtitleSegment(words=[word])) for word in styled_segment.words
-            )
-            lines.append(f"Dialogue: 0,{start},{end},{styled_segment.style_name},,0,0,0,,{text}")
-        return "\n".join(lines) + "\n"
+    logger.info("Generating ASS file using the StylerEngine.")
+    config = styler_engine.config
+    lines = ["[Script Info]"]
+    lines.extend(f"{key}: {value}" for key, value in config.script_info.items())
+    lines.append("\n[V4+ Styles]")
+    if config.styles:
+        style_format_keys = list(config.styles[0].keys())
+        lines.append(f"Format: {', '.join(style_format_keys)}")
+        for style_dict in config.styles:
+            lines.append(f"Style: {','.join(_format_ass_number(style_dict.get(key, '')) for key in style_format_keys)}")
+    lines.append("\n[Events]")
+    lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
 
-    logger.info("Generating subtitles in ASS format from scratch (legacy mode)...")
-    actual_settings = settings or AssSettings()
-    lines = [actual_settings.to_ass_header()]
-    if actual_settings.highlight_style:
-        for seg in subtitles.segments:
-            start, end = format_ass_timestamp(seg.start), format_ass_timestamp(seg.end)
-            karaoke_text = "".join(f"{{\\k{int(round((w.end - w.start) * 100))}}}{w.text} " for w in seg.words).rstrip()
-            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{karaoke_text}")
-    else:
-        for seg in subtitles.segments:
-            start, end = format_ass_timestamp(seg.start), format_ass_timestamp(seg.end)
-            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{seg.text.replace(chr(10), ASS_NEWLINE)}")
-    result = "\n".join(lines)
-    return f"{result}\n" if subtitles.segments else result
+    default_style = config.styles[0].get("Name", "Default") if config.styles else "Default"
+    for seg in subtitles.segments:
+        styled_segment = styler_engine.process_segment(seg, default_style)
+        start, end = format_ass_timestamp(styled_segment.start), format_ass_timestamp(styled_segment.end)
+        text = " ".join(_reconstruct_dialogue_text(AssSubtitleSegment(words=[word])) for word in styled_segment.words)
+        lines.append(f"Dialogue: 0,{start},{end},{styled_segment.style_name},,0,0,0,,{text}")
+    return "\n".join(lines) + "\n"
 
 
 def to_srt(subtitles: Subtitles) -> str:

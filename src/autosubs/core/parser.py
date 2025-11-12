@@ -3,8 +3,14 @@
 import re
 from logging import getLogger
 
-from autosubs.models import AssSubtitles, AssSubtitleSegment, AssSubtitleWord
-from autosubs.models.subtitles import SubtitleSegment, SubtitleWord, WordStyleRange
+from autosubs.models import (
+    AssSubtitles,
+    AssSubtitleSegment,
+    AssSubtitleWord,
+    SubtitleSegment,
+    SubtitleWord,
+    WordStyleRange,
+)
 
 logger = getLogger(__name__)
 
