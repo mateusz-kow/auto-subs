@@ -8,7 +8,7 @@ from autosubs.models.subtitles import Subtitles
 from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
 logger = getLogger(__name__)
-ASS_NEWLINE = r"\\N"
+ASS_NEWLINE = r"\N"
 
 
 def format_srt_timestamp(seconds: float) -> str:
@@ -34,17 +34,26 @@ def format_ass_timestamp(seconds: float) -> str:
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)
-    cs = int((seconds - s - m * 3600 * 60) * 100 + 0.5)
+    cs = int((seconds - s - m * 60 - h * 3600) * 100 + 0.5)
     return f"{h}:{m:02}:{s:02}.{cs:02}"
 
 
-def _reconstruct_dialogue_text(segment: AssSubtitleSegment) -> str:
+def _reconstruct_dialogue_text_from_engine(segment: AssSubtitleSegment) -> str:
     parts: list[str] = []
-    for word in segment.words:
-        tag_string = "".join(style.ass_tag for style in word.styles)
-        text = word.text.replace("\n", r"\N").replace(" ", " ")
-        parts.append(f"{tag_string}{text}")
-    return "".join(parts).replace("} ", "}").strip()
+    for i, word in enumerate(segment.words):
+        sorted_styles = sorted(word.styles, key=lambda s: (s.start_char_index, -s.end_char_index))
+
+        text = word.text
+        offset = 0
+        for style in sorted_styles:
+            pos = style.start_char_index + offset
+            text = text[:pos] + style.ass_tag + text[pos:]
+            offset += len(style.ass_tag)
+
+        if i > 0:
+            parts.append(" ")
+        parts.append(text)
+    return "".join(parts).replace("\n", ASS_NEWLINE)
 
 
 def _format_ass_number(value: Any) -> str:
@@ -84,18 +93,24 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> s
                 "Text",
             ]
             lines.append(f"Format: {', '.join(keys)}")
-            for seg in subtitles.segments:
+            for styled_segment in subtitles.segments:
+                text_parts = []
+                for word in styled_segment.words:
+                    tags = "".join(style.ass_tag for style in word.styles)
+                    text_parts.append(f"{tags}{word.text}")
+                reconstructed_text = "".join(text_parts).replace("\n", ASS_NEWLINE)
+
                 data = {
-                    "Layer": seg.layer,
-                    "Start": format_ass_timestamp(seg.start),
-                    "End": format_ass_timestamp(seg.end),
-                    "Style": seg.style_name,
-                    "Name": seg.actor_name,
-                    "MarginL": seg.margin_l,
-                    "MarginR": seg.margin_r,
-                    "MarginV": seg.margin_v,
-                    "Effect": seg.effect,
-                    "Text": _reconstruct_dialogue_text(seg),
+                    "Layer": styled_segment.layer,
+                    "Start": format_ass_timestamp(styled_segment.start),
+                    "End": format_ass_timestamp(styled_segment.end),
+                    "Style": styled_segment.style_name,
+                    "Name": styled_segment.actor_name,
+                    "MarginL": styled_segment.margin_l,
+                    "MarginR": styled_segment.margin_r,
+                    "MarginV": styled_segment.margin_v,
+                    "Effect": styled_segment.effect,
+                    "Text": reconstructed_text,
                 }
                 lines.append(f"Dialogue: {','.join(str(data.get(key, '')) for key in keys)}")
         return "\n".join(lines) + "\n"
@@ -117,11 +132,11 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> s
     lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
 
     default_style = config.styles[0].get("Name", "Default") if config.styles else "Default"
-    for seg in subtitles.segments:
-        styled_segment = styler_engine.process_segment(seg, default_style)
-        start, end = format_ass_timestamp(styled_segment.start), format_ass_timestamp(styled_segment.end)
-        text = " ".join(_reconstruct_dialogue_text(AssSubtitleSegment(words=[word])) for word in styled_segment.words)
-        lines.append(f"Dialogue: 0,{start},{end},{styled_segment.style_name},,0,0,0,,{text}")
+    for raw_seg in subtitles.segments:
+        seg = styler_engine.process_segment(raw_seg, default_style)
+        start, end = format_ass_timestamp(seg.start), format_ass_timestamp(seg.end)
+        text = _reconstruct_dialogue_text_from_engine(seg)
+        lines.append(f"Dialogue: 0,{start},{end},{seg.style_name},,0,0,0,,{text}")
     return "\n".join(lines) + "\n"
 
 

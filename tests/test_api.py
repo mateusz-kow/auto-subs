@@ -6,13 +6,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from autosubs.api import generate, load, transcribe
-from autosubs.models.settings import AssSettings, AssStyleSettings
 from autosubs.models.subtitles import Subtitles
 
 
 def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
     """Verify that an unsupported format raises a ValueError."""
-    with pytest.raises(ValueError, match="Invalid output format specified"):
+    with pytest.raises(ValueError, match="Invalid output format"):
         generate(transcription_source=sample_transcription, output_format="invalid-format")
 
 
@@ -30,31 +29,27 @@ def test_generate_valid_formats(output_format: str, sample_transcription: dict[s
 
     if output_format == "srt":
         assert "1\n00:00:00,100 --> 00:00:04,200" in result
-        assert "{\\k" not in result
     elif output_format == "ass":
         assert "[Script Info]" in result
         assert "Dialogue: 0," in result
-        assert "{\\k" not in result  # Karaoke should be off by default
     elif output_format == "vtt":
         assert "WEBVTT" in result
         assert "00:00:00.100 --> 00:00:04.200" in result
-        assert "{\\k" not in result
 
 
-def test_ass_output_with_karaoke(sample_transcription: dict[str, Any]) -> None:
-    """Verify that enabling karaoke mode for ASS format adds timing tags."""
-    ass_settings = AssSettings(highlight_style=AssStyleSettings())
+def test_ass_output_with_style_config(sample_transcription: dict[str, Any], tmp_style_config_file: Path) -> None:
+    """Verify that a style config correctly modifies the ASS output."""
     result = generate(
         transcription_source=sample_transcription,
         output_format="ass",
-        ass_settings=ass_settings,
+        style_config_path=tmp_style_config_file,
     )
 
     assert "[Script Info]" in result
-    assert "Dialogue: 0," in result
-    assert "{\\k" in result  # The key assertion for karaoke mode
-    assert "{\\k20}This" in result
-    assert "{\\k10}is" in result
+    assert "Title: Styled by Engine" in result
+    assert "Style: Highlight,Impact,52" in result
+    assert r"{\c&H0000FFFF&}{\b1}test{\b0}{\c}" in result
+    assert r"{\c&H0000FFFF&}{\b1}library.{\b0}{\c}" in result
 
 
 @patch("autosubs.api.run_transcription")
@@ -107,7 +102,7 @@ def test_load_api_unsupported_format(tmp_path: Path) -> None:
     """Test that `load` raises ValueError for unsupported file formats."""
     unsupported_file = tmp_path / "test.txt"
     unsupported_file.touch()
-    with pytest.raises(ValueError, match="Unsupported subtitle format"):
+    with pytest.raises(ValueError, match="Unsupported format"):
         load(unsupported_file)
 
 
@@ -131,21 +126,18 @@ def test_generate_api_file_not_found() -> None:
 
 def test_load_api_with_word_timing_generation(tmp_srt_file: Path) -> None:
     """Test that `load` with generate_word_timings=True splits segments into words."""
-    # First, load normally. Each segment should have only one "word" (the whole line).
     subs_no_timings = load(tmp_srt_file)
     assert len(subs_no_timings.segments[0].words) == 1
     assert subs_no_timings.segments[0].words[0].text == "Hello world."
     assert len(subs_no_timings.segments[1].words) == 1
     assert subs_no_timings.segments[1].words[0].text == "This is a test."
 
-    # Now, load with word timing generation.
     subs_with_timings = load(tmp_srt_file, generate_word_timings=True)
-    assert len(subs_with_timings.segments[0].words) == 2  # "Hello", "world."
+    assert len(subs_with_timings.segments[0].words) == 2
     assert subs_with_timings.segments[0].words[0].text == "Hello"
-    assert len(subs_with_timings.segments[1].words) == 4  # "This", "is", "a", "test."
+    assert len(subs_with_timings.segments[1].words) == 4
     assert subs_with_timings.segments[1].words[0].text == "This"
 
-    # Check that word timings are within segment boundaries
     first_word = subs_with_timings.segments[0].words[0]
     segment = subs_with_timings.segments[0]
     assert segment.start <= first_word.start < first_word.end <= segment.end

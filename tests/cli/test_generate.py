@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
 
 from autosubs.cli import app
-from autosubs.models.settings import AssSettings
 
 runner = CliRunner()
 
@@ -74,7 +73,6 @@ def test_cli_invalid_json(tmp_path: Path) -> None:
 def test_cli_validation_error(tmp_path: Path) -> None:
     """Test error handling for JSON that fails schema validation."""
     input_file = tmp_path / "invalid_schema.json"
-    # Valid JSON, but invalid transcription schema (missing 'segments')
     input_file.write_text(json.dumps({"text": "hello", "language": "en"}))
 
     result = runner.invoke(app, ["generate", str(input_file)])
@@ -87,7 +85,6 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: dict[str, Any]) -
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
 
-    # Create a directory where the file should be, causing an OSError on write
     (input_file.with_suffix(".srt")).mkdir()
 
     result = runner.invoke(app, ["generate", str(input_file), "-f", "srt"])
@@ -97,69 +94,23 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: dict[str, Any]) -
 
 
 @patch("autosubs.cli.generate.generate_api")
-def test_cli_generate_karaoke_with_ass(
-    mock_generate_api: MagicMock, tmp_path: Path, sample_transcription: dict[str, Any]
+def test_cli_generate_ass_with_style_config(
+    mock_generate_api: MagicMock,
+    tmp_path: Path,
+    sample_transcription: dict[str, Any],
+    tmp_style_config_file: Path,
 ) -> None:
-    """Test --karaoke flag correctly applies ASS karaoke style."""
+    """Test that --style-config correctly passes the path to the API."""
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(sample_transcription))
-    mock_generate_api.return_value = "[Script Info]\nDialogue: Test"
-
-    result = runner.invoke(app, ["generate", str(input_file), "-f", "ass", "--karaoke"])
-
-    assert result.exit_code == 0
-    mock_generate_api.assert_called_once()
-    _, kwargs = mock_generate_api.call_args
-    assert isinstance(kwargs["ass_settings"], AssSettings)
-    assert kwargs["ass_settings"].highlight_style is not None
-
-
-@patch("autosubs.cli.generate.generate_api")
-def test_cli_generate_karaoke_non_ass(
-    mock_generate_api: MagicMock, tmp_path: Path, sample_transcription: dict[str, Any]
-) -> None:
-    """Test --karaoke flag with non-ASS format shows a warning and still generates output."""
-    input_file = tmp_path / "input.json"
-    input_file.write_text(json.dumps(sample_transcription))
-    mock_generate_api.return_value = "1\n00:00:00,000 --> 00:00:02,000\nHello"
-
-    result = runner.invoke(app, ["generate", str(input_file), "-f", "srt", "--karaoke"])
-
-    assert result.exit_code == 0
-    assert "Warning: --karaoke flag is only applicable for ASS format." in result.stdout
-    assert "Successfully saved subtitles" in result.stdout
-    _, kwargs = mock_generate_api.call_args
-    assert kwargs["ass_settings"] is None
-
-
-@patch("autosubs.cli.generate.generate_api")
-def test_cli_generate_ass_with_style_file(
-    mock_generate_api: MagicMock, tmp_path: Path, sample_transcription: dict[str, Any]
-) -> None:
-    """Test that --style-file correctly loads and applies ASS style settings."""
-    input_file = tmp_path / "input.json"
-    input_file.write_text(json.dumps(sample_transcription))
-
-    style_file = tmp_path / "styles.json"
-    custom_styles = {
-        "font_name": "Impact",
-        "font_size": 72,
-        "primary_color": "&H0000FFFF&",  # Yellow
-    }
-    style_file.write_text(json.dumps(custom_styles))
-
     mock_generate_api.return_value = "dummy ass content"
 
-    result = runner.invoke(app, ["generate", str(input_file), "-f", "ass", "--style-file", str(style_file)])
+    result = runner.invoke(
+        app,
+        ["generate", str(input_file), "-f", "ass", "--style-config", str(tmp_style_config_file)],
+    )
 
     assert result.exit_code == 0
     mock_generate_api.assert_called_once()
     _, kwargs = mock_generate_api.call_args
-
-    passed_settings = kwargs.get("ass_settings")
-    assert isinstance(passed_settings, AssSettings)
-
-    # Verify that the custom settings from the file were applied
-    assert passed_settings.font == "Impact"
-    assert passed_settings.font_size == 72
-    assert passed_settings.primary_color == "&H0000FFFF&"
+    assert kwargs.get("style_config_path") == tmp_style_config_file

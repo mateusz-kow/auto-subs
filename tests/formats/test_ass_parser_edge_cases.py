@@ -1,7 +1,7 @@
 import pytest
 
 from autosubs.core.parser import parse_ass
-from autosubs.models.styles.ass import WordStyleRange
+from autosubs.models.styles import WordStyleRange
 
 
 @pytest.fixture

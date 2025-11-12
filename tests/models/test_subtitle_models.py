@@ -25,7 +25,6 @@ def test_subtitle_segment_properties_and_validation() -> None:
     assert segment.end == 1.5
     assert segment.text == "Hello world."
 
-    # Test that empty segment is now allowed and initializes correctly
     empty_segment = SubtitleSegment(words=[])
     assert empty_segment.start == 0.0
     assert empty_segment.end == 0.0
@@ -41,16 +40,13 @@ def test_subtitles_sorting_and_overlap_warning(caplog: LogCaptureFixture) -> Non
     seg2 = SubtitleSegment(words=[SubtitleWord(text="A", start=0.0, end=1.0)])
     seg3 = SubtitleSegment(words=[SubtitleWord(text="Overlap", start=2.5, end=3.5)])
 
-    # Segments are out of order and one overlaps
     with caplog.at_level(logging.WARNING):
         subtitles = Subtitles(segments=[seg1, seg2, seg3])
 
-    # Check sorting
     assert subtitles.segments[0] is seg2
     assert subtitles.segments[1] is seg1
     assert subtitles.segments[2] is seg3
 
-    # Check for warning log
     assert len(caplog.records) == 1
     assert "Overlap detected" in caplog.text
     assert "ending at 3.000s overlaps with segment starting at 2.500s" in caplog.text

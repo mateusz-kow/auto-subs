@@ -6,6 +6,41 @@ import pytest
 
 
 @pytest.fixture
+def sample_style_config() -> dict[str, Any]:
+    """Provides a sample style engine configuration dictionary."""
+    return {
+        "script_info": {"Title": "Styled by Engine"},
+        "styles": [
+            {"Name": "Default", "Fontname": "Arial", "Fontsize": "48", "PrimaryColour": "&H00FFFFFF", "Alignment": "2"},
+            {
+                "Name": "Highlight",
+                "Fontname": "Impact",
+                "Fontsize": "52",
+                "PrimaryColour": "&H0000FFFF",
+                "Alignment": "2",
+            },
+        ],
+        "rules": [
+            {
+                "name": "Highlight specific word",
+                "pattern": r"\b(library|test)\b",
+                "priority": 10,
+                "style_override": {"primary_color": "&H0000FFFF&", "bold": True},
+            }
+        ],
+        "effects": {"jump": r"{\move(0,0,0, -10, 0, 200)\move(0,-10,0,0,200,400)}"},
+    }
+
+
+@pytest.fixture
+def tmp_style_config_file(tmp_path: Path, sample_style_config: dict[str, Any]) -> Path:
+    """Creates a temporary JSON file for a style engine configuration."""
+    config_file = tmp_path / "style_config.json"
+    config_file.write_text(json.dumps(sample_style_config), encoding="utf-8")
+    return config_file
+
+
+@pytest.fixture
 def sample_transcription() -> dict[str, Any]:
     """Load a sample transcription from a fixture file."""
     path = Path(__file__).parent / "fixtures" / "transcription" / "sample_transcription.json"
