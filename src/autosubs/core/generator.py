@@ -66,44 +66,29 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine) -> str: ...
 def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> str:
     """Generate the content for an ASS subtitle file."""
     if isinstance(subtitles, AssSubtitles):
-        logger.info("Regenerating subtitles from AssSubtitles object (lossless)...")
+        logger.info("Regenerating ASS file from AssSubtitles object...")
         lines: list[str] = []
 
         lines.append("[Script Info]")
-        for key, value in sorted(subtitles.script_info.items()):
-            lines.append(f"{key}: {value}")
+        lines.extend(f"{key}: {value}" for key, value in sorted(subtitles.script_info.items()))
         lines.append("")
 
         lines.append("[V4+ Styles]")
-        if subtitles.styles:
-            style_format_keys = subtitles.style_format_keys
-            if not style_format_keys:
-                # Fallback for programmatically created objects
-                style_format_keys = [
-                    field.alias or name for name, field in type(subtitles.styles[0]).model_fields.items()
-                ]
+        if styler_engine and styler_engine.config.styles:
+            config = styler_engine.config
+            style_format_keys = list(config.styles[0].keys())
             lines.append(f"Format: {', '.join(style_format_keys)}")
-
-            for style in subtitles.styles:
-                style_dict = style.model_dump(by_alias=True)
-                values: list[str] = []
-                for key in style_format_keys:
-                    # Use .get() with a default of None to handle keys present in format but not in model
-                    style_value: Any = style_dict.get(key)
-                    if isinstance(style_value, bool):
-                        values.append("-1" if style_value else "0")
-                    elif isinstance(style_value, (float, int)):
-                        values.append(_format_ass_number(style_value))
-                    else:
-                        values.append(str(style_value) if style_value is not None else "")
+            for style_dict in config.styles:
+                values = [_format_ass_number(style_dict.get(key, "")) for key in style_format_keys]
                 lines.append(f"Style: {','.join(values)}")
+        else:
+            logger.warning("No StylerEngine or styles provided; [V4+ Styles] section will be empty.")
         lines.append("")
 
         lines.append("[Events]")
         if subtitles.segments:
             events_format_keys = subtitles.events_format_keys
             if not events_format_keys:
-                # Fallback for programmatically created objects
                 events_format_keys = [
                     "Layer",
                     "Start",
@@ -119,22 +104,19 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> s
             lines.append(f"Format: {', '.join(events_format_keys)}")
 
             for segment in subtitles.segments:
-                start_ts = format_ass_timestamp(segment.start)
-                end_ts = format_ass_timestamp(segment.end)
-                text = _reconstruct_dialogue_text(segment)
                 dialogue_data = {
-                    "Layer": str(segment.layer),
-                    "Start": start_ts,
-                    "End": end_ts,
+                    "Layer": segment.layer,
+                    "Start": format_ass_timestamp(segment.start),
+                    "End": format_ass_timestamp(segment.end),
                     "Style": segment.style_name,
                     "Name": segment.actor_name,
-                    "MarginL": str(segment.margin_l),
-                    "MarginR": str(segment.margin_r),
-                    "MarginV": str(segment.margin_v),
+                    "MarginL": segment.margin_l,
+                    "MarginR": segment.margin_r,
+                    "MarginV": segment.margin_v,
                     "Effect": segment.effect,
-                    "Text": text,
+                    "Text": _reconstruct_dialogue_text(segment),
                 }
-                values = [dialogue_data.get(key, "") for key in events_format_keys]
+                values = [str(dialogue_data.get(key, "")) for key in events_format_keys]
                 lines.append(f"Dialogue: {','.join(values)}")
 
         return "\n".join(lines) + "\n"
