@@ -49,7 +49,6 @@ class _SafeAstValidator(ast.NodeVisitor):
         ast.Expression,
         ast.BinOp,
         ast.UnaryOp,
-        ast.Num,
         ast.Constant,
         ast.Call,
         ast.Name,
