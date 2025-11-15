@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from autosubs.models.styles.ass import AssStyle, WordStyleRange
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
+
+
+@dataclass(frozen=True, eq=True)
+class WordStyleRange:
+    """Represents a style tag applied to a range of characters within a word."""
+
+    start_char_index: int
+    end_char_index: int
+    ass_tag: str
 
 
 @dataclass(eq=True)
@@ -28,16 +36,17 @@ class AssSubtitleSegment(SubtitleSegment):
     margin_v: int = 0
     effect: str = ""
 
+    @classmethod
+    def from_generic(cls, segment: SubtitleSegment) -> AssSubtitleSegment:
+        """Creates an AssSubtitleSegment from a generic SubtitleSegment."""
+        ass_words = [AssSubtitleWord(text=w.text, start=w.start, end=w.end) for w in segment.words]
+        return cls(words=ass_words)
+
     @property
     def text(self) -> str:
-        """Returns the segment's plain text content, stripping all style tags.
-
-        If `text_override` is set, it returns that value. Otherwise, it
-        concatenates the text of its constituent words.
-        """
+        """Returns the segment's plain text content, stripping all style tags."""
         if self.text_override is not None:
             return self.text_override
-        # In an ASS context, parsed words already contain necessary whitespace.
         return "".join(word.text for word in self.words)
 
 
@@ -46,7 +55,6 @@ class AssSubtitles(Subtitles):
     """Represents a complete ASS file, including headers, styles, and events."""
 
     script_info: dict[str, str] = field(default_factory=dict)
-    styles: list[AssStyle] = field(default_factory=list)
     segments: list[AssSubtitleSegment] = field(default_factory=list)  # type: ignore[assignment]
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)

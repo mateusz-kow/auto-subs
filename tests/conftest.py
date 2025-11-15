@@ -6,6 +6,76 @@ import pytest
 
 
 @pytest.fixture
+def sample_style_config() -> dict[str, Any]:
+    """
+    Provides a sample style engine configuration compatible with
+    the new Style Engine Schema v2.
+    """
+    return {
+        "script_info": {
+            "Title": "Styled by Auto Subs",
+            "ScriptType": "v4.00+",
+            "PlayResX": 1920,
+            "PlayResY": 1080,
+        },
+        "styles": [
+            {
+                "Name": "Default",
+                "Fontname": "Arial",
+                "Fontsize": 48,
+                "PrimaryColour": "&H00FFFFFF",
+                "SecondaryColour": "&H00000000",
+                "OutlineColour": "&H00000000",
+                "BackColour": "&H00000000",
+                "Bold": -1,
+                "BorderStyle": 1,
+                "Outline": 3,
+                "Shadow": 0,
+                "Alignment": 2,
+            },
+            {
+                "Name": "Highlight",
+                "Fontname": "Impact",
+                "Fontsize": 52,
+                "PrimaryColour": "&H0000FFFF",
+                "SecondaryColour": "&H00000000",
+                "OutlineColour": "&H00000000",
+                "BackColour": "&H00000000",
+                "Bold": -1,
+                "BorderStyle": 1,
+                "Outline": 3,
+                "Shadow": 0,
+                "Alignment": 2,
+            },
+        ],
+        "rules": [
+            {
+                "name": "Highlight specific word",
+                "priority": 10,
+                "apply_to": "word",
+                "regex": r"(library|test)",
+                "operators": [{"target": "word", "regex": r"(library|test)"}],
+                "style_override": {"primary_color": "&H0000FFFF", "bold": True},
+                "transforms": [
+                    {"start": 0, "end": 150, "scale_x": 110, "scale_y": 110},
+                    {"start": 150, "end": 300, "scale_x": 100, "scale_y": 100},
+                ],
+            }
+        ],
+        "effects": [],
+        "karaoke": {"type": "word-by-word", "style_name": "Default"},
+    }
+
+
+@pytest.fixture
+def tmp_style_config_file(tmp_path: Path, sample_style_config: dict[str, Any]) -> Path:
+    """Creates a temporary JSON file for a style engine configuration."""
+    config_file = tmp_path / "style_config.json"
+    config_file.write_text(json.dumps(sample_style_config), encoding="utf-8")
+    return config_file
+
+
+@pytest.fixture
 def sample_transcription() -> dict[str, Any]:
     """Load a sample transcription from a fixture file."""
     path = Path(__file__).parent / "fixtures" / "transcription" / "sample_transcription.json"

@@ -1,3 +1,30 @@
-from autosubs.models.styles.ass import AssStyle, WordStyleRange
+"""Exports for the styles module."""
 
-__all__ = ["AssStyle", "WordStyleRange"]
+from autosubs.models.styles.domain import (
+    Clip,
+    Effect,
+    KaraokeSettings,
+    RuleOperator,
+    ScriptInfo,
+    StyleEngineConfig,
+    StyleOverride,
+    StylePreset,
+    StyleRule,
+    Transform,
+)
+from autosubs.models.styles.schemas import StyleEngineConfigSchema
+
+__all__ = [
+    "StyleEngineConfig",
+    "StyleRule",
+    "StyleOverride",
+    "KaraokeSettings",
+    "StyleEngineConfigSchema",
+    "WordStyleRange",
+    "Clip",
+    "Effect",
+    "RuleOperator",
+    "ScriptInfo",
+    "StylePreset",
+    "Transform",
+]
