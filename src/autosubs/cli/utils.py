@@ -139,7 +139,10 @@ def handle_burn_operation(
     styling_options_used: bool,
 ) -> None:
     """Central handler for burning subtitles into video."""
-    if styling_options_used and subtitle_format in {SubtitleFormat.SRT, SubtitleFormat.VTT}:
+    if styling_options_used and subtitle_format in {
+        SubtitleFormat.SRT,
+        SubtitleFormat.VTT,
+    }:
         typer.secho(
             "Warning: Burning in SRT/VTT format. All styling options from --style-config "
             "will be ignored. For styled subtitles, use the ASS format.",

@@ -12,7 +12,7 @@ ASS_NEWLINE = r"\N"
 
 
 def format_srt_timestamp(seconds: float) -> str:
-    # ... bez zmian
+    """Formats srt timestamps."""
     hrs = int(seconds // 3600)
     mins = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
@@ -21,7 +21,7 @@ def format_srt_timestamp(seconds: float) -> str:
 
 
 def format_vtt_timestamp(seconds: float) -> str:
-    # ... bez zmian
+    """Formats vtt timestamps."""
     hrs = int(seconds // 3600)
     mins = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
@@ -30,7 +30,7 @@ def format_vtt_timestamp(seconds: float) -> str:
 
 
 def format_ass_timestamp(seconds: float) -> str:
-    # ... bez zmian
+    """Formats ass timestamps."""
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)

@@ -107,7 +107,14 @@ def test_cli_generate_ass_with_style_config(
 
     result = runner.invoke(
         app,
-        ["generate", str(input_file), "-f", "ass", "--style-config", str(tmp_style_config_file)],
+        [
+            "generate",
+            str(input_file),
+            "-f",
+            "ass",
+            "--style-config",
+            str(tmp_style_config_file),
+        ],
     )
 
     assert result.exit_code == 0

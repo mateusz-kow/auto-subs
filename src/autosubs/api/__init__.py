@@ -93,7 +93,10 @@ def generate(
         ) from e
 
     subtitles = create_subtitles_from_transcription(
-        transcription_dict, max_chars=max_chars, min_words=min_words, max_lines=max_lines
+        transcription_dict,
+        max_chars=max_chars,
+        min_words=min_words,
+        max_lines=max_lines,
     )
 
     if format_enum == SubtitleFormat.ASS:

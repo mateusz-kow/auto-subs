@@ -16,7 +16,16 @@ def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file:
 
     result = runner.invoke(
         app,
-        ["transcribe", str(fake_media_file), "-f", "vtt", "--model", "tiny", "-o", str(output_file)],
+        [
+            "transcribe",
+            str(fake_media_file),
+            "-f",
+            "vtt",
+            "--model",
+            "tiny",
+            "-o",
+            str(output_file),
+        ],
     )
 
     assert result.exit_code == 0
@@ -88,7 +97,14 @@ def test_cli_transcribe_ass_with_style_config(
 
     result = runner.invoke(
         app,
-        ["transcribe", str(fake_media_file), "-f", "ass", "--style-config", str(tmp_style_config_file)],
+        [
+            "transcribe",
+            str(fake_media_file),
+            "-f",
+            "ass",
+            "--style-config",
+            str(tmp_style_config_file),
+        ],
     )
 
     assert result.exit_code == 0

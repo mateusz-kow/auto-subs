@@ -11,7 +11,13 @@ def sample_style_config() -> dict[str, Any]:
     return {
         "script_info": {"Title": "Styled by Auto Subs"},
         "styles": [
-            {"Name": "Default", "Fontname": "Arial", "Fontsize": "48", "PrimaryColour": "&H00FFFFFF", "Alignment": "2"},
+            {
+                "Name": "Default",
+                "Fontname": "Arial",
+                "Fontsize": "48",
+                "PrimaryColour": "&H00FFFFFF",
+                "Alignment": "2",
+            },
             {
                 "Name": "Highlight",
                 "Fontname": "Impact",
