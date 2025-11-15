@@ -1,6 +1,5 @@
 from pydantic import TypeAdapter
 
-from autosubs.models.styles import WordStyleRange
 from autosubs.models.subtitles import (
     AssSubtitles,
     AssSubtitleSegment,
@@ -8,6 +7,7 @@ from autosubs.models.subtitles import (
     Subtitles,
     SubtitleSegment,
     SubtitleWord,
+    WordStyleRange,
 )
 from autosubs.models.transcription import TranscriptionModel
 

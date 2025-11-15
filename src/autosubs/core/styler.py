@@ -1,11 +1,82 @@
 from __future__ import annotations
 
-import re
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+from autosubs.models.styles.domain import RuleOperator, StyleOverride, Transform
 
 if TYPE_CHECKING:
     from autosubs.models.styles.domain import StyleEngineConfig, StyleRule
     from autosubs.models.subtitles import SubtitleSegment
+
+
+@dataclass
+class CharContext:
+    """Holds the contextual information for a single character in a segment."""
+
+    char: str
+    char_index_line: int
+    char_index_word: int
+    word_index_line: int
+    word_text: str
+    word_start: float
+    word_end: float
+    line_start: float
+    line_end: float
+    is_first_word: bool
+    is_last_word: bool
+    is_first_char: bool
+    is_last_char: bool
+
+
+@dataclass
+class AppliedStyles:
+    """Represents the final, combined style properties for a character."""
+
+    style_override: StyleOverride | None = None
+    transforms: list[Transform] = field(default_factory=list)
+    raw_prefix: str = ""
+    raw_suffix: str = ""
+
+    def to_ass_tags(self, context: CharContext) -> str:
+        """Converts the applied styles into an ASS tag block."""
+        tags = []
+        if self.style_override and self.style_override.blur is not None:
+            tags.append(f"\\blur{self.style_override.blur}")
+
+        for transform in self.transforms:
+            parts = []
+            if transform.start is not None and transform.end is not None:
+                parts.append(str(int(transform.start)))
+                parts.append(str(int(transform.end)))
+            elif transform.end is not None:
+                parts.append(f"0,{int(transform.end)}")
+
+            if transform.accel is not None:
+                parts.append(str(transform.accel))
+
+            transform_tags = []
+            if transform.scale_x is not None or transform.scale_y is not None:
+                sx = transform.scale_x or 100
+                sy = transform.scale_y or 100
+                transform_tags.append(f"\\fscx{sx}\\fscy{sy}")
+            if transform.primary_color:
+                transform_tags.append(f"\\1c{transform.primary_color}")
+            if transform.secondary_color:
+                transform_tags.append(f"\\2c{transform.secondary_color}")
+            if transform.outline_color:
+                transform_tags.append(f"\\3c{transform.outline_color}")
+            if transform.shadow_color:
+                transform_tags.append(f"\\4c{transform.shadow_color}")
+
+            if transform_tags:
+                parts.append("".join(transform_tags))
+                tags.append(f"\\t({','.join(parts)})")
+
+        tag_str = "".join(tags)
+        if not tag_str:
+            return ""
+        return f"{{{self.raw_prefix}{tag_str}{self.raw_suffix}}}"
 
 
 class StylerEngine:
@@ -14,69 +85,169 @@ class StylerEngine:
     def __init__(self, config: StyleEngineConfig):
         """Initializes the engine with a validated style configuration."""
         self.config = config
-        self.line_rules: list[dict[str, Any]] = []
-        self.word_rules: list[dict[str, Any]] = []
+        self.sorted_rules = sorted(config.rules, key=lambda r: r.priority, reverse=True)
+        # Initialize state attributes to prevent errors and state leakage.
+        self.last_line_check_result: bool = False
+        self.last_word_check_result: bool = False
 
-        # Sort rules once by priority for efficient processing later.
-        sorted_rules = sorted(config.rules, key=lambda r: r.priority, reverse=True)
+    def _get_char_contexts(self, segment: SubtitleSegment) -> list[CharContext]:
+        """Generates a context object for each character in the segment."""
+        contexts = []
+        char_index_line = 0
+        for word_i, word in enumerate(segment.words):
+            for char_i, char in enumerate(word.text):
+                contexts.append(
+                    CharContext(
+                        char=char,
+                        char_index_line=char_index_line,
+                        char_index_word=char_i,
+                        word_index_line=word_i,
+                        word_text=word.text,
+                        word_start=word.start,
+                        word_end=word.end,
+                        line_start=segment.start,
+                        line_end=segment.end,
+                        is_first_word=(word_i == 0),
+                        is_last_word=(word_i == len(segment.words) - 1),
+                        is_first_char=(char_i == 0),
+                        is_last_char=(char_i == len(word.text) - 1),
+                    )
+                )
+                char_index_line += 1
+        return contexts
 
-        for rule in sorted_rules:
-            compiled_rule = {
-                "rule": rule,
-                "pattern": (re.compile(rule.pattern) if hasattr(rule, "pattern") and rule.pattern else None),
-            }
-            if rule.apply_to == "line":
-                self.line_rules.append(compiled_rule)
-            else:
-                self.word_rules.append(compiled_rule)
+    def _check_operator(self, op: RuleOperator, context: CharContext, line_text: str) -> bool:
+        """Evaluates a single rule operator against a character's context."""
+        match = True
+        target_text, target_index, target_is_first, target_is_last = "", 0, False, False
 
-    def _rule_matches(self, rule_def: StyleRule, text: str, start_time: float) -> bool:
-        """Checks if a rule's conditions match the given context.
+        if op.target == "line":
+            target_text, target_index, target_is_first, target_is_last = line_text, 0, True, True
+        elif op.target == "word":
+            target_text, target_index, target_is_first, target_is_last = (
+                context.word_text,
+                context.word_index_line,
+                context.is_first_word,
+                context.is_last_word,
+            )
+        elif op.target == "char":
+            target_text, target_index, target_is_first, target_is_last = (
+                context.char,
+                context.char_index_word,
+                context.is_first_char,
+                context.is_last_char,
+            )
 
-        Note: This is a simplified implementation for backward compatibility.
-        A full implementation would evaluate the `operators` field.
-        """
-        # Time-based matching
-        if rule_def.time_from is not None and start_time < rule_def.time_from:
-            return False
-        if rule_def.time_to is not None and start_time >= rule_def.time_to:
-            return False
+        if op.index is not None and target_index != op.index:
+            match = False
+        if op.index_from is not None and target_index < op.index_from:
+            match = False
+        if op.index_to is not None and target_index > op.index_to:
+            match = False
+        if op.is_first is not None and target_is_first != op.is_first:
+            match = False
+        if op.is_last is not None and target_is_last != op.is_last:
+            match = False
+        if op.regex and not op.regex.search(target_text):
+            match = False
+        if op.rules:
+            match = any(self._rule_matches_char(rule, context, line_text) for rule in op.rules)
 
-        # Pattern-based matching (legacy)
-        if rule_def.pattern and not re.search(rule_def.pattern, text):
-            return False
+        return match if not op.negate else not match
 
-        # Regex-based matching (new)
-        return not (hasattr(rule_def, "regex") and rule_def.regex and not re.search(rule_def.regex, text))
+    def _rule_matches_char(self, rule: StyleRule | RuleOperator, context: CharContext, line_text: str) -> bool:
+        """Checks if a rule or operator matches a character's context."""
+        if isinstance(rule, RuleOperator):
+            return self._check_operator(rule, context, line_text)
+
+        # Base rule checks (optimization to avoid re-checking every character)
+        if rule.apply_to == "line" and context.char_index_line > 0:
+            return self.last_line_check_result
+        if rule.apply_to == "word" and context.char_index_word > 0:
+            return self.last_word_check_result
+
+        check_text = ""
+        if rule.apply_to == "line":
+            check_text = line_text
+        elif rule.apply_to in {"word", "char", "syllable"}:
+            check_text = context.word_text
+
+        match = True
+        if rule.regex and not rule.regex.search(check_text):
+            match = False
+        if match and rule.operators:
+            match = all(self._check_operator(op, context, line_text) for op in rule.operators)
+
+        # Cache the result for subsequent characters in the same scope.
+        if rule.apply_to == "line":
+            self.last_line_check_result = match
+        if rule.apply_to == "word":
+            self.last_word_check_result = match
+
+        return match
+
+    def _get_styles_for_char(self, context: CharContext, line_text: str) -> AppliedStyles:
+        """Finds the highest-priority matching rule and returns its styles."""
+        for rule in self.sorted_rules:
+            if self._rule_matches_char(rule, context, line_text):
+                style_override = rule.style_override
+                transforms = rule.transforms or []
+
+                raw_prefix = ""
+                if style_override and style_override.tags and "raw_prefix" in style_override.tags:
+                    raw_prefix = style_override.tags["raw_prefix"]
+
+                # If operators provided transforms, merge them
+                if rule.operators:
+                    for op in rule.operators:
+                        if self._check_operator(op, context, line_text) and hasattr(op, "transforms"):
+                            transforms.extend(op.transforms or [])
+
+                return AppliedStyles(style_override, transforms, raw_prefix)
+        return AppliedStyles()
 
     def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> tuple[str, str]:
         """Processes a segment and returns a tuple of (style_name, dialogue_text)."""
+        # CRITICAL FIX: Reset state for each new segment to prevent rule leakage.
+        self.last_line_check_result = False
+        self.last_word_check_result = False
+
+        if not segment.words:
+            return default_style_name, ""
+
+        line_text = " ".join(w.text for w in segment.words)
+        char_contexts = self._get_char_contexts(segment)
+
+        # Determine base style name from line-level rules
         style_name = default_style_name
-        for compiled_rule in self.line_rules:
-            rule_def: StyleRule = compiled_rule["rule"]
-            if self._rule_matches(rule_def, segment.text, segment.start):
-                if rule_def.style_name:
-                    style_name = rule_def.style_name
-                # Note: Overrides/effects on 'line' rules are not yet applied in this version.
+        for rule in self.sorted_rules:
+            if rule.apply_to == "line" and self._rule_matches_char(rule, char_contexts[0], line_text):
+                if rule.style_name:
+                    style_name = rule.style_name
                 break
 
+        # Generate per-character styles and render final text
         dialogue_parts = []
-        for word in segment.words:
-            effect_tag = ""
-            # Find the highest priority rule that matches this word
-            for compiled_rule in self.word_rules:
-                rule_def: StyleRule = compiled_rule["rule"]
-                if self._rule_matches(rule_def, word.text, word.start):
-                    effect_name = rule_def.effect
-                    if effect_name and effect_name in self.config.effects:
-                        # This is a placeholder for a much more complex effect-building system.
-                        # For now, we assume effects are simple templates, which is incorrect
-                        # based on the new domain models but maintains prior behavior.
-                        # A full implementation would build tags from the Effect and Transform models.
-                        effect_tag = f"\\{effect_name}"  # Simplified representation
-                    break  # Apply only the first (highest priority) matching rule
+        last_tags = ""
+        current_word_index = -1
 
-            dialogue_parts.append(f"{effect_tag}{word.text}")
+        for context in char_contexts:
+            if context.word_index_line != current_word_index:
+                if current_word_index != -1:
+                    dialogue_parts.append(" ")
+                current_word_index = context.word_index_line
 
-        dialogue_text = " ".join(dialogue_parts)
-        return style_name, dialogue_text
+            styles = self._get_styles_for_char(context, line_text)
+            current_tags = styles.to_ass_tags(context)
+
+            if current_tags != last_tags:
+                dialogue_parts.append(current_tags)
+                last_tags = current_tags
+
+            dialogue_parts.append(context.char)
+
+        # Add a reset tag at the end if any tags were active
+        if last_tags:
+            dialogue_parts.append(r"{\r}")
+
+        return style_name, "".join(dialogue_parts)

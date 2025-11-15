@@ -1,3 +1,5 @@
+"""Exports for the styles module."""
+
 from autosubs.models.styles.domain import (
     Clip,
     Effect,
@@ -11,7 +13,6 @@ from autosubs.models.styles.domain import (
     Transform,
 )
 from autosubs.models.styles.schemas import StyleEngineConfigSchema
-from autosubs.models.subtitles.ass import WordStyleRange
 
 __all__ = [
     "StyleEngineConfig",

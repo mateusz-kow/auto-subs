@@ -40,6 +40,10 @@ class Transform:
     move_y2: ExpressionOrNumber | None = None
     move_t1: ExpressionOrNumber | None = None
     move_t2: ExpressionOrNumber | None = None
+    primary_color: str | None = None
+    secondary_color: str | None = None
+    outline_color: str | None = None
+    shadow_color: str | None = None
 
 
 @dataclass(frozen=True)

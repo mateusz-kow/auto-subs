@@ -4,8 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from autosubs.models.styles.domain import WordStyleRange
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
+
+
+@dataclass(frozen=True, eq=True)
+class WordStyleRange:
+    """Represents a style tag applied to a range of characters within a word."""
+
+    start_char_index: int
+    end_char_index: int
+    ass_tag: str
 
 
 @dataclass(eq=True)
