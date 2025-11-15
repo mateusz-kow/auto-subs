@@ -2,15 +2,18 @@
 
 import re
 from logging import getLogger
-from typing import Any
 
-from autosubs.models import AssSubtitles, AssSubtitleSegment, AssSubtitleWord
-from autosubs.models.styles import AssStyle, WordStyleRange
-from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
+from autosubs.models import (
+    AssSubtitles,
+    AssSubtitleSegment,
+    AssSubtitleWord,
+    SubtitleSegment,
+    SubtitleWord,
+    WordStyleRange,
+)
 
 logger = getLogger(__name__)
 
-# Regex for timestamps
 SRT_TIMESTAMP_REGEX = re.compile(r"(\d{2}):(\d{2}):(\d{2}),(\d{3})")
 VTT_TIMESTAMP_REGEX = re.compile(r"(?:(\d{1,2}):)?(\d{2}):(\d{2})\.(\d{3})")
 ASS_TIMESTAMP_REGEX = re.compile(r"(\d+):(\d{2}):(\d{2})\.(\d{2})")
@@ -18,17 +21,7 @@ ASS_STYLE_TAG_REGEX = re.compile(r"{[^}]+}")
 
 
 def srt_timestamp_to_seconds(timestamp: str) -> float:
-    """Converts an SRT timestamp string to seconds.
-
-    Args:
-        timestamp: The timestamp string in hh:mm:ss,ms format.
-
-    Returns:
-        The time in seconds.
-
-    Raises:
-        ValueError: If the timestamp format is invalid.
-    """
+    """Converts an SRT timestamp string to seconds."""
     match = SRT_TIMESTAMP_REGEX.match(timestamp)
     if not match:
         raise ValueError(f"Invalid SRT timestamp format: {timestamp}")
@@ -37,17 +30,7 @@ def srt_timestamp_to_seconds(timestamp: str) -> float:
 
 
 def vtt_timestamp_to_seconds(timestamp: str) -> float:
-    """Converts a VTT timestamp string to seconds.
-
-    Args:
-        timestamp: The timestamp string in [hh:]mm:ss.ms format.
-
-    Returns:
-        The time in seconds.
-
-    Raises:
-        ValueError: If the timestamp format is invalid.
-    """
+    """Converts a VTT timestamp string to seconds."""
     match = VTT_TIMESTAMP_REGEX.match(timestamp)
     if not match:
         raise ValueError(f"Invalid VTT timestamp format: {timestamp}")
@@ -58,17 +41,7 @@ def vtt_timestamp_to_seconds(timestamp: str) -> float:
 
 
 def ass_timestamp_to_seconds(timestamp: str) -> float:
-    """Converts an ASS timestamp string to seconds.
-
-    Args:
-        timestamp: The timestamp string in h:mm:ss.cs format.
-
-    Returns:
-        The time in seconds.
-
-    Raises:
-        ValueError: If the timestamp format is invalid.
-    """
+    """Converts an ASS timestamp string to seconds."""
     match = ASS_TIMESTAMP_REGEX.match(timestamp)
     if not match:
         raise ValueError(f"Invalid ASS timestamp format: {timestamp}")
@@ -77,14 +50,7 @@ def ass_timestamp_to_seconds(timestamp: str) -> float:
 
 
 def parse_srt(file_content: str) -> list[SubtitleSegment]:
-    """Parses content from an SRT file into subtitle segments.
-
-    Args:
-        file_content: The full content of the SRT file.
-
-    Returns:
-        A list of parsed subtitle segments.
-    """
+    """Parses content from an SRT file into subtitle segments."""
     logger.info("Parsing SRT file content.")
     segments: list[SubtitleSegment] = []
     blocks = file_content.strip().replace("\r\n", "\n").split("\n\n")
@@ -118,14 +84,7 @@ def parse_srt(file_content: str) -> list[SubtitleSegment]:
 
 
 def parse_vtt(file_content: str) -> list[SubtitleSegment]:
-    """Parses content from a VTT file into subtitle segments.
-
-    Args:
-        file_content: The full content of the VTT file.
-
-    Returns:
-        A list of parsed subtitle segments.
-    """
+    """Parses content from a VTT file into subtitle segments."""
     logger.info("Parsing VTT file content.")
     segments: list[SubtitleSegment] = []
     content = re.sub(r"^WEBVTT.*\n", "", file_content).strip()
@@ -195,14 +154,7 @@ def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitl
 
 
 def parse_ass(file_content: str) -> AssSubtitles:
-    """Parses content from an ASS file into a rich AssSubtitles object.
-
-    Args:
-        file_content: The full content of the ASS file.
-
-    Returns:
-        An AssSubtitles object representing the file content.
-    """
+    """Parses content from an ASS file into a rich AssSubtitles object."""
     logger.info("Parsing ASS file content.")
     subs = AssSubtitles()
     current_section = ""
@@ -225,19 +177,7 @@ def parse_ass(file_content: str) -> AssSubtitles:
             if key.lower() == "format":
                 subs.style_format_keys = [k.strip() for k in value.split(",")]
             elif key.lower() == "style":
-                if not subs.style_format_keys:
-                    logger.warning("Skipping Style line found before Format line.")
-                    continue
-                style_values = [v.strip() for v in value.split(",", len(subs.style_format_keys) - 1)]
-                style_dict: dict[str, Any] = dict(zip(subs.style_format_keys, style_values, strict=False))
-                for bool_key in ["Bold", "Italic", "Underline", "StrikeOut"]:
-                    if bool_key in style_dict:
-                        try:
-                            style_dict[bool_key] = bool(int(style_dict[bool_key]))
-                        except (ValueError, TypeError):
-                            logger.warning(f"Could not parse boolean value for {bool_key}: {style_dict[bool_key]}")
-                            style_dict.pop(bool_key)
-                subs.styles.append(AssStyle.model_validate(style_dict, from_attributes=True))
+                logger.warning("Parsing of [V4+ Styles] is deprecated and will be removed.")
         elif current_section == "[Events]":
             if key.lower() == "format":
                 subs.events_format_keys = [k.strip() for k in value.split(",")]

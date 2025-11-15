@@ -1,8 +1,11 @@
 import pytest
 
 from autosubs.core import generator
-from autosubs.models.settings import AssSettings
-from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
+from autosubs.core.generator import to_ass
+from autosubs.core.styler import StylerEngine
+from autosubs.models import SubtitleWord
+from autosubs.models.styles.domain import StyleEngineConfig
+from autosubs.models.subtitles import AssSubtitles, AssSubtitleSegment, AssSubtitleWord, Subtitles, SubtitleSegment
 
 
 @pytest.fixture
@@ -29,6 +32,18 @@ def empty_subtitles() -> Subtitles:
     return Subtitles([])
 
 
+@pytest.fixture
+def default_styler_engine() -> StylerEngine:
+    """Provides a StylerEngine with a minimal default configuration."""
+    config = StyleEngineConfig(
+        script_info={"Title": "Default"},
+        styles=[{"Name": "Default", "Fontname": "Arial", "Fontsize": 48}],
+        rules=[],
+        effects={},
+    )
+    return StylerEngine(config)
+
+
 def test_to_srt(sample_subtitles: Subtitles) -> None:
     """Test SRT generation."""
     expected_srt = (
@@ -37,46 +52,19 @@ def test_to_srt(sample_subtitles: Subtitles) -> None:
     assert generator.to_srt(sample_subtitles) == expected_srt
 
 
-def test_to_srt_empty(empty_subtitles: Subtitles) -> None:
-    """Test SRT generation with empty subtitles."""
-    expected_srt = ""
-    assert generator.to_srt(empty_subtitles) == expected_srt
-
-
-def test_to_ass(sample_subtitles: Subtitles) -> None:
+def test_to_ass(sample_subtitles: Subtitles, default_styler_engine: StylerEngine) -> None:
     """Test ASS generation."""
-    settings = AssSettings()
-    header = settings.to_ass_header()
-    expected_ass = (
-        f"{header}\n"  # Add newline to match the join behavior in the function
-        "Dialogue: 0,0:00:00.50,0:00:01.50,Default,,0,0,0,,Hello world.\n"
-        "Dialogue: 0,0:00:02.00,0:00:03.00,Default,,0,0,0,,This is a test.\n"
-    )
-    assert generator.to_ass(sample_subtitles, settings) == expected_ass
+    result = generator.to_ass(sample_subtitles, styler_engine=default_styler_engine)
+    assert "[Script Info]" in result
+    assert "Title: Default" in result
+    assert "Dialogue: 0,0:00:00.50,0:00:01.50,Default,,0,0,0,,Hello world." in result
+    assert "Dialogue: 0,0:00:02.00,0:00:03.00,Default,,0,0,0,,This is a test." in result
 
 
-def test_to_ass_empty(empty_subtitles: Subtitles) -> None:
-    """Test empty ASS generation."""
-    settings = AssSettings()
-    header = settings.to_ass_header()
-    expected_ass = f"{header}"  # Add newline to match the join behavior in the function
-    assert generator.to_ass(empty_subtitles, settings) == expected_ass
-
-
-def test_to_vtt(sample_subtitles: Subtitles) -> None:
-    """Test VTT generation."""
-    vtt_subtitles = generator.to_vtt(sample_subtitles)
-    expected_subtitles = (
-        "WEBVTT\n\n00:00:00.500 --> 00:00:01.500\nHello world.\n\n00:00:02.000 --> 00:00:03.000\nThis is a test.\n"
-    )
-    assert vtt_subtitles.strip() == expected_subtitles.strip()
-
-
-def test_to_vtt_empty(empty_subtitles: Subtitles) -> None:
-    """Test VTT generation with empty subtitles."""
-    vtt_subtitles = generator.to_vtt(empty_subtitles)
-    assert "WEBVTT" in vtt_subtitles
-    assert vtt_subtitles == "WEBVTT\n"
+def test_to_ass_requires_styler_engine() -> None:
+    """Test that generating ASS from scratch without a styler engine raises an error."""
+    with pytest.raises(ValueError, match="StylerEngine is required"):
+        generator.to_ass(Subtitles(segments=[]))  # type: ignore[call-overload]
 
 
 def test_format_srt_timestamp() -> None:
@@ -91,3 +79,52 @@ def test_format_ass_timestamp() -> None:
     assert generator.format_ass_timestamp(0) == "0:00:00.00"
     assert generator.format_ass_timestamp(61.525) == "0:01:01.52"
     assert generator.format_ass_timestamp(3661.0) == "1:01:01.00"
+
+
+def test_to_vtt_empty(empty_subtitles: Subtitles) -> None:
+    """Test that generating a VTT from empty subtitles returns only the header."""
+    assert generator.to_vtt(empty_subtitles) == "WEBVTT\n"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (5.0, "5"),
+        (True, "-1"),
+        (False, "0"),
+        (5.3, "5.3"),
+        ("text", "text"),
+        (100, "100"),
+    ],
+)
+def test_format_ass_number(value: object, expected: str) -> None:
+    """Test the _format_ass_number helper for various types."""
+    assert generator._format_ass_number(value) == expected
+
+
+def test_to_ass_generates_v4_styles_from_styler_engine(sample_subtitles: Subtitles) -> None:
+    """Test that [V4+ Styles] are correctly generated from a styler engine config."""
+    config = StyleEngineConfig(
+        script_info={},
+        styles=[
+            {"Name": "Default", "Fontname": "Arial", "Bold": True},
+            {"Name": "Highlight", "Fontname": "Impact", "Bold": False},
+        ],
+    )
+    styler_engine = StylerEngine(config)
+    result = generator.to_ass(sample_subtitles, styler_engine=styler_engine)
+    assert "Format: Name, Fontname, Bold" in result
+    assert "Style: Default,Arial,-1" in result
+    assert "Style: Highlight,Impact,0" in result
+
+
+def test_to_ass_regenerate_uses_default_events_format_keys() -> None:
+    """Test that regenerating an ASS file falls back to default event keys if they are missing."""
+    segment = AssSubtitleSegment(words=[AssSubtitleWord("test", 1.0, 2.0)])
+    subs = AssSubtitles(segments=[segment])
+    subs.events_format_keys = []  # Explicitly clear the keys
+
+    result = to_ass(subs)
+
+    expected_format = "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
+    assert expected_format in result

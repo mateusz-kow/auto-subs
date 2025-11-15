@@ -4,22 +4,28 @@ from typing import Annotated
 
 import typer
 
-from autosubs.api import load
+from autosubs.api import _DEFAULT_STYLE_CONFIG, load
 from autosubs.cli.utils import (
     PathProcessor,
     SupportedExtension,
     determine_output_format,
 )
 from autosubs.core import generator
+from autosubs.core.styler import StylerEngine
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings
 from autosubs.models.subtitles import Subtitles
 
-# Factory mapping formats to their generator functions
+
+def _get_default_styler_engine() -> StylerEngine:
+    """Creates a StylerEngine with a minimal default configuration."""
+    domain_config = _DEFAULT_STYLE_CONFIG.to_domain()
+    return StylerEngine(domain_config)
+
+
 _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.SRT: generator.to_srt,
     SubtitleFormat.VTT: generator.to_vtt,
-    SubtitleFormat.ASS: lambda subs: generator.to_ass(subs, AssSettings()),
+    SubtitleFormat.ASS: lambda subs: generator.to_ass(subs, styler_engine=_get_default_styler_engine()),
     SubtitleFormat.JSON: generator.to_json,
 }
 
@@ -67,10 +73,8 @@ def convert(
         typer.echo(f"Processing: {in_file.name}")
 
         if is_batch:
-            # Batch mode: append extension to avoid collisions
             out_file = out_file_base.with_name(f"{in_file.name}.{final_output_format.value}")
         else:
-            # Single file mode: just replace the extension
             out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:

@@ -9,10 +9,8 @@ from autosubs.cli.utils import (
     PathProcessor,
     SupportedExtension,
     determine_output_format,
-    parse_ass_settings_from_cli,
 )
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings
 
 
 def generate(
@@ -52,63 +50,22 @@ def generate(
         int,
         typer.Option(help="Maximum number of lines per subtitle segment."),
     ] = 1,
-    # ASS Options
-    karaoke: Annotated[
-        bool,
-        typer.Option(help="[ASS] Enable karaoke-style word highlighting."),
-    ] = False,
-    style_file: Annotated[
+    style_config: Annotated[
         Path | None,
         typer.Option(
+            "--style-config",
             exists=True,
             file_okay=True,
             dir_okay=False,
             readable=True,
-            help="[ASS] Path to a JSON file with ASS style settings.",
+            help="[ASS] Path to a JSON file with the style engine configuration.",
         ),
     ] = None,
-    font_name: Annotated[str | None, typer.Option(help="[ASS] Font name.")] = None,
-    font_size: Annotated[int | None, typer.Option(help="[ASS] Font size.")] = None,
-    primary_color: Annotated[str | None, typer.Option(help="[ASS] Primary color.")] = None,
-    secondary_color: Annotated[str | None, typer.Option(help="[ASS] Secondary color.")] = None,
-    outline_color: Annotated[str | None, typer.Option(help="[ASS] Outline color.")] = None,
-    back_color: Annotated[str | None, typer.Option(help="[ASS] Back color (shadow).")] = None,
-    bold: Annotated[bool | None, typer.Option(help="[ASS] Enable bold text.")] = None,
-    italic: Annotated[bool | None, typer.Option(help="[ASS] Enable italic text.")] = None,
-    underline: Annotated[bool | None, typer.Option(help="[ASS] Enable underlined text.")] = None,
-    alignment: Annotated[
-        int | None,
-        typer.Option(help="[ASS] Numpad alignment (e.g., 2 for bottom-center)."),
-    ] = None,
-    margin_v: Annotated[int | None, typer.Option(help="[ASS] Vertical margin.")] = None,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
     final_output_format = determine_output_format(output_format, output_path)
 
     typer.echo(f"Generating subtitles in {final_output_format.upper()} format...")
-
-    ass_settings: AssSettings | None = None
-    if final_output_format == SubtitleFormat.ASS:
-        ass_settings = parse_ass_settings_from_cli(
-            style_file,
-            karaoke,
-            font_name,
-            font_size,
-            primary_color,
-            secondary_color,
-            outline_color,
-            back_color,
-            bold,
-            italic,
-            underline,
-            alignment,
-            margin_v,
-        )
-    elif karaoke:
-        typer.secho(
-            "Warning: --karaoke flag is only applicable for ASS format.",
-            fg=typer.colors.YELLOW,
-        )
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
     is_batch = input_path.is_dir()
@@ -131,7 +88,7 @@ def generate(
                 max_chars=max_chars,
                 min_words=min_words,
                 max_lines=max_lines,
-                ass_settings=ass_settings,
+                style_config_path=style_config,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
             out_file.write_text(content, encoding="utf-8")

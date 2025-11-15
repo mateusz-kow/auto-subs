@@ -154,13 +154,25 @@ def test_cli_burn_output_path_is_a_directory(
 @pytest.mark.parametrize(
     ("video_name", "subtitle_name", "expected_error"),
     [
-        ("video.mp4", "subtitle.txt", "Error: Input subtitle must be one of: .ass, .srt, .vtt"),
-        ("video.txt", "subtitle.srt", "Error: Input video must be one of: .avi, .mkv, .mov, .mp4, .webm"),
+        (
+            "video.mp4",
+            "subtitle.txt",
+            "Error: Input subtitle must be one of: .ass, .srt, .vtt",
+        ),
+        (
+            "video.txt",
+            "subtitle.srt",
+            "Error: Input video must be one of: .avi, .mkv, .mov, .mp4, .webm",
+        ),
     ],
 )
-@patch("autosubs.cli.burn.check_ffmpeg_installed")  # --- FIX: Mock the ffmpeg check ---
+@patch("autosubs.cli.burn.check_ffmpeg_installed")
 def test_cli_burn_invalid_file_extensions(
-    mock_check_ffmpeg: MagicMock, tmp_path: Path, video_name: str, subtitle_name: str, expected_error: str
+    mock_check_ffmpeg: MagicMock,
+    tmp_path: Path,
+    video_name: str,
+    subtitle_name: str,
+    expected_error: str,
 ) -> None:
     """Test that the burn command fails for unsupported file extensions."""
     video_file = tmp_path / video_name

@@ -80,6 +80,7 @@ def test_remove_boundary_word_recalculates_segment_boundaries() -> None:
     assert segment.end == 4.5
 
     # Remove the first word, forcing a start time recalculation
+
     segment.remove_word(word1)
     assert segment.start == 2.5
     assert segment.end == 4.5

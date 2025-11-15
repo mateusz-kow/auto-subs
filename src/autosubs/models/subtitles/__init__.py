@@ -1,8 +1,4 @@
-from autosubs.models.subtitles.ass import (
-    AssSubtitles,
-    AssSubtitleSegment,
-    AssSubtitleWord,
-)
+from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment, AssSubtitleWord, WordStyleRange
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
 __all__ = [
@@ -12,4 +8,5 @@ __all__ = [
     "Subtitles",
     "SubtitleSegment",
     "SubtitleWord",
+    "WordStyleRange",
 ]

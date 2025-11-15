@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -9,14 +8,14 @@ from typer import Exit
 from autosubs.cli.utils import (
     PathProcessor,
     SupportedExtension,
+    check_ffmpeg_installed,
     determine_output_format,
-    parse_ass_settings_from_cli,
+    handle_burn_operation,
 )
+from autosubs.core.burner import FFmpegError
 from autosubs.models.formats import SubtitleFormat
-from autosubs.models.settings import AssSettings
 
 
-# --- Tests for PathProcessor (Existing) ---
 def test_path_processor_single_file(tmp_path: Path) -> None:
     """Test processing a single valid file."""
     in_file = tmp_path / "test.mp4"
@@ -96,10 +95,8 @@ def test_path_processor_input_dir_output_file_error(tmp_path: Path) -> None:
         PathProcessor(in_dir, out_file, SupportedExtension.JSON)
 
 
-# --- Tests for determine_output_format (New) ---
 def test_determine_output_format_explicit_option_wins() -> None:
     """Test that the explicit --format option has the highest priority."""
-    # The output path suggests VTT, but the explicit format is SRT.
     result = determine_output_format(SubtitleFormat.SRT, Path("output.vtt"))
     assert result == SubtitleFormat.SRT
 
@@ -114,115 +111,18 @@ def test_determine_output_format_fallback_to_default(
     capsys: CaptureFixture[str],
 ) -> None:
     """Test that the function falls back to the default when no format can be determined."""
-    # Case 1: No output path provided
     result1 = determine_output_format(None, None)
     assert result1 == SubtitleFormat.SRT
     assert "Defaulting to SRT" in capsys.readouterr().out
 
-    # Case 2: Output path has an unrecognized extension
     result2 = determine_output_format(None, Path("output.txt"))
     assert result2 == SubtitleFormat.SRT
     assert "Defaulting to SRT" in capsys.readouterr().out
 
 
-# --- Tests for parse_ass_settings_from_cli (New) ---
-def test_parse_ass_settings_defaults() -> None:
-    """Test that default AssSettings are returned when no options are provided."""
-    settings = parse_ass_settings_from_cli(
-        style_file=None,
-        karaoke=False,
-        font_name=None,
-        font_size=None,
-        primary_color=None,
-        secondary_color=None,
-        outline_color=None,
-        back_color=None,
-        bold=None,
-        italic=None,
-        underline=None,
-        alignment=None,
-        margin_v=None,
-    )
-    assert isinstance(settings, AssSettings)
-    assert settings.font == "Arial"
-    assert settings.font_size == 48
-    assert settings.highlight_style is None
-
-
-def test_parse_ass_settings_from_style_file(tmp_path: Path) -> None:
-    """Test that settings are correctly loaded from a style file."""
-    style_file = tmp_path / "styles.json"
-    style_file.write_text(json.dumps({"font_name": "Impact", "font_size": 100}))
-
-    settings = parse_ass_settings_from_cli(
-        style_file=style_file,
-        karaoke=False,
-        font_name=None,
-        font_size=None,
-        primary_color=None,
-        secondary_color=None,
-        outline_color=None,
-        back_color=None,
-        bold=None,
-        italic=None,
-        underline=None,
-        alignment=None,
-        margin_v=None,
-    )
-    assert settings.font == "Impact"
-    assert settings.font_size == 100
-
-
-def test_parse_ass_settings_cli_overrides_style_file(tmp_path: Path) -> None:
-    """Test that CLI arguments take precedence over style file settings."""
-    style_file = tmp_path / "styles.json"
-    style_file.write_text(json.dumps({"font_name": "Impact", "font_size": 100, "bold": -1}))
-
-    settings = parse_ass_settings_from_cli(
-        style_file=style_file,
-        karaoke=False,
-        font_name="Verdana",  # Override font name
-        font_size=None,  # Do not override font size
-        primary_color=None,
-        secondary_color=None,
-        outline_color=None,
-        back_color=None,
-        bold=False,  # Override bold to be false
-        italic=None,
-        underline=None,
-        alignment=None,
-        margin_v=None,
-    )
-    assert settings.font == "Verdana"  # Overridden
-    assert settings.font_size == 100  # From file
-    assert settings.bold == 0  # Overridden to be disabled
-
-
-def test_parse_ass_settings_karaoke_flag() -> None:
-    """Test that the karaoke flag enables the highlight style."""
-    settings = parse_ass_settings_from_cli(
-        style_file=None,
-        karaoke=True,
-        font_name=None,
-        font_size=None,
-        primary_color=None,
-        secondary_color=None,
-        outline_color=None,
-        back_color=None,
-        bold=None,
-        italic=None,
-        underline=None,
-        alignment=None,
-        margin_v=None,
-    )
-    assert settings.highlight_style is not None
-
-
 @patch("shutil.which", return_value="/path/to/ffmpeg")
 def test_check_ffmpeg_installed_success(mock_which: MagicMock) -> None:
     """Test that no error is raised when ffmpeg is found."""
-    from autosubs.cli.utils import check_ffmpeg_installed
-
     try:
         check_ffmpeg_installed()
     except Exit:
@@ -232,8 +132,6 @@ def test_check_ffmpeg_installed_success(mock_which: MagicMock) -> None:
 @patch("shutil.which", return_value=None)
 def test_check_ffmpeg_installed_failure(mock_which: MagicMock) -> None:
     """Test that Exit is raised when ffmpeg is not found."""
-    from autosubs.cli.utils import check_ffmpeg_installed
-
     with pytest.raises(Exit):
         check_ffmpeg_installed()
 
@@ -251,9 +149,6 @@ def test_handle_burn_operation_generic_exception(
     mock_tempfile.return_value.__enter__.return_value.name = "dummy_temp_file.srt"
     mock_resolve.return_value = Path("dummy_temp_file.srt")
 
-    from autosubs.cli.utils import handle_burn_operation
-    from autosubs.models.formats import SubtitleFormat
-
     with pytest.raises(Exit) as exc_info:
         handle_burn_operation(
             video_input=Path("video.mp4"),
@@ -265,3 +160,31 @@ def test_handle_burn_operation_generic_exception(
 
     assert exc_info.value.exit_code == 1
     mock_burn_subtitles.assert_called_once()
+
+
+@pytest.mark.parametrize("subtitle_format", [SubtitleFormat.SRT, SubtitleFormat.VTT])
+@patch("autosubs.core.burner.burn_subtitles", side_effect=FFmpegError("ffmpeg failed"))
+def test_handle_burn_operation_srt_vtt_styling_warning(
+    mock_burn: MagicMock,
+    subtitle_format: SubtitleFormat,
+    tmp_path: Path,
+    capsys: CaptureFixture[str],
+) -> None:
+    """Test that a warning is shown for styled SRT/VTT burns."""
+    video_input = tmp_path / "video.mp4"
+    video_output = tmp_path / "output.mp4"
+    video_input.touch()
+    video_output.parent.mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(Exit):
+        handle_burn_operation(
+            video_input=video_input,
+            video_output=video_output,
+            subtitle_content="dummy",
+            subtitle_format=subtitle_format,
+            styling_options_used=True,
+        )
+
+    captured = capsys.readouterr()
+    assert "Warning: Burning in SRT/VTT format" in captured.out
+    assert "styling options from --style-config will be ignored" in captured.out

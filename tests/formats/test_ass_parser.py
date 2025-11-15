@@ -1,8 +1,8 @@
+import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core.parser import parse_ass
-from autosubs.models.styles.ass import AssStyle, WordStyleRange
-from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
+from autosubs.models import AssSubtitles, AssSubtitleSegment, WordStyleRange
 
 
 def test_parse_ass_structure(simple_ass_content: str) -> None:
@@ -11,11 +11,6 @@ def test_parse_ass_structure(simple_ass_content: str) -> None:
 
     assert isinstance(subs, AssSubtitles)
     assert subs.script_info["Title"] == "Test Script"
-    assert len(subs.styles) == 1
-    assert isinstance(subs.styles[0], AssStyle)
-    assert subs.styles[0].name == "Default"
-    assert subs.styles[0].font_name == "Arial"
-    assert subs.styles[0].font_size == 48.0
 
 
 def test_parse_ass_dialogue_metadata(simple_ass_content: str) -> None:
@@ -35,12 +30,10 @@ def test_parse_ass_word_and_style_parsing(complex_ass_content: str) -> None:
     """Test the detailed parsing of inline style tags into WordStyleRange objects."""
     subs = parse_ass(complex_ass_content)
 
-    # Test case 1: Mid-word styling: "st{\i1}y{\i0}le."
     segment = subs.segments[1]
     assert segment.actor_name == "ActorName"
     assert segment.effect == "Banner;Text banner"
 
-    # Expecting "Mid-word st", "y", "le." to be three separate word objects
     assert len(segment.words) == 3
     word1, word2, word3 = segment.words
     assert word1.text == "Mid-word st"
@@ -50,7 +43,6 @@ def test_parse_ass_word_and_style_parsing(complex_ass_content: str) -> None:
     assert word2.styles == [WordStyleRange(start_char_index=0, end_char_index=1, ass_tag="{\\i1}")]
     assert word3.styles == [WordStyleRange(start_char_index=0, end_char_index=3, ass_tag="{\\i0}")]
 
-    # Test case 2: Karaoke tags: "{\k20}Kara{\k40}oke{\k50} test."
     segment_karaoke = subs.segments[2]
     assert len(segment_karaoke.words) == 3
     kara_word1, kara_word2, kara_word3 = segment_karaoke.words
@@ -66,8 +58,41 @@ def test_parse_malformed_ass_gracefully(malformed_ass_content: str, caplog: LogC
     """Test that the parser handles malformed lines by logging warnings and continuing."""
     subs = parse_ass(malformed_ass_content)
 
-    # Should skip the line before "Format" and the line with a bad timestamp
     assert len(subs.segments) == 1
     assert subs.segments[0].text == "This line is good."
     assert "Skipping Dialogue line found before Format line" in caplog.text
     assert "Skipping malformed ASS Dialogue line" in caplog.text
+
+
+def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
+    """Test that an ASS Style line is now skipped with a warning."""
+    content = "[V4+ Styles]\nStyle: Bad,Arial,20\nFormat: Name,Fontname,Fontsize\n"
+    subs = parse_ass(content)
+    assert not hasattr(subs, "styles")
+    assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
+
+
+def test_parse_ass_handles_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that an ASS Dialogue line with start > end is skipped with a warning."""
+    content = (
+        "[Events]\nFormat: Start, End, Text\n"
+        "Dialogue: 0:00:02.00,0:00:01.00,Inverted timestamps\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Valid timestamps"
+    )
+    subs = parse_ass(content)
+    assert len(subs.segments) == 1
+    assert subs.segments[0].text == "Valid timestamps"
+    assert "Skipping ASS Dialogue with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_ass_missing_required_format_fields() -> None:
+    """Test that a ValueError is raised if the Format line is missing key fields."""
+    content = "[Events]\nFormat: Style, Name\nDialogue: Default,ActorName,Some Text"
+    with pytest.raises(ValueError) as exc_info:
+        parse_ass(content)
+
+    error_message = str(exc_info.value)
+    assert "is missing required fields" in error_message
+    assert "'Start'" in error_message
+    assert "'End'" in error_message
+    assert "'Text'" in error_message
