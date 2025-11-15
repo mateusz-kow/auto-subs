@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autosubs.core.styler import AppliedStyles, StylerEngine
+from autosubs.core.styler import AppliedStyles, CharContext, StylerEngine
 from autosubs.models.styles.domain import (
     RuleOperator,
     StyleEngineConfig,
@@ -86,14 +86,35 @@ def test_applied_styles_to_ass_tags() -> None:
     styles = AppliedStyles(style_override=StyleOverride(blur=5))
     assert styles.to_ass_tags(MagicMock()) == r"{\blur5}"
 
-    # Test transforms
-    transform = Transform(start=100, end=500, accel=0.5, scale_x=120, primary_color="&HFFFFFF")
-    styles = AppliedStyles(transforms=[transform])
-    assert styles.to_ass_tags(MagicMock()) == r"{\t(100,500,0.5,\fscx120\fscy100\1c&HFFFFFF)}"
-
     # Test raw prefix
     styles = AppliedStyles(raw_prefix=r"\an5", style_override=StyleOverride(blur=2))
     assert styles.to_ass_tags(MagicMock()) == r"{\an5\blur2}"
+
+
+def test_applied_styles_to_ass_tags_with_transforms() -> None:
+    """Verify correct ASS tag generation for transforms."""
+    transform1 = Transform(start=100, end=500, accel=0.5, scale_x=120, primary_color="&HFFFFFF")
+    styles = AppliedStyles(transforms=[transform1])
+    assert styles.to_ass_tags(MagicMock()) == r"{\t(100,500,0.5,\fscx120\fscy100\1c&HFFFFFF)}"
+
+    # Test with end time only
+    transform2 = Transform(end=300, scale_x=90)
+    styles2 = AppliedStyles(transforms=[transform2])
+    assert styles2.to_ass_tags(MagicMock()) == r"{\t(0,300,\fscx90\fscy100)}"
+
+    # Test with all color types
+    transform3 = Transform(
+        end=100,
+        primary_color="&H11",
+        secondary_color="&H22",
+        outline_color="&H33",
+        shadow_color="&H44",
+    )
+    styles3 = AppliedStyles(transforms=[transform3])
+    assert "1c&H11" in styles3.to_ass_tags(MagicMock())
+    assert "2c&H22" in styles3.to_ass_tags(MagicMock())
+    assert "3c&H33" in styles3.to_ass_tags(MagicMock())
+    assert "4c&H44" in styles3.to_ass_tags(MagicMock())
 
 
 def test_process_segment_no_rules(base_config: StyleEngineConfig, sample_segment: SubtitleSegment) -> None:
@@ -252,3 +273,94 @@ def test_styler_engine_generates_all_static_tags(override_props: dict[str, objec
     _, text = engine.process_segment(segment, "Default")
 
     assert text == expected_text
+
+
+@pytest.fixture
+def char_context_fixture() -> CharContext:
+    """Provides a standard CharContext for testing operators."""
+    return CharContext("a", 5, 0, 1, "abc", 1.0, 1.5, 0.0, 2.0, False, False, True, False)
+
+
+@pytest.mark.parametrize(
+    ("op", "expected"),
+    [
+        (RuleOperator(target="line"), True),
+        (RuleOperator(target="word", regex=re.compile("abc")), True),
+        (RuleOperator(target="word", regex=re.compile("xyz")), False),
+        (RuleOperator(target="char", index=0), True),
+        (RuleOperator(target="char", index=1), False),
+        (RuleOperator(target="word", index_from=1), True),
+        (RuleOperator(target="word", index_from=2), False),
+        (RuleOperator(target="word", index_to=1), True),
+        (RuleOperator(target="word", index_to=0), False),
+        (RuleOperator(target="char", is_first=True), True),
+        (RuleOperator(target="char", is_first=False), False),
+        (RuleOperator(target="char", is_last=False), True),
+        (RuleOperator(target="char", is_last=True), False),
+        (RuleOperator(rules=[StyleRule(apply_to="word", regex=re.compile("abc"))]), True),
+        (RuleOperator(rules=[StyleRule(apply_to="word", regex=re.compile("xyz"))]), False),
+    ],
+)
+def test_check_operator_conditions(
+    op: RuleOperator,
+    expected: bool,
+    char_context_fixture: CharContext,
+) -> None:
+    """Test individual conditions within the _check_operator method."""
+    engine = StylerEngine(StyleEngineConfig())
+    result = engine._check_operator(op, char_context_fixture, "line text")
+    assert result == expected
+
+
+def test_rule_matches_char_delegates_for_rule_operator(char_context_fixture: CharContext) -> None:
+    """Test that _rule_matches_char correctly delegates when the rule is an operator."""
+    engine = StylerEngine(StyleEngineConfig())
+    op = RuleOperator(target="char", is_first=True)
+    assert engine._rule_matches_char(op, char_context_fixture, "line text") is True
+
+
+def test_get_styles_for_char_with_raw_prefix_tag(char_context_fixture: CharContext) -> None:
+    """Test that raw_prefix from a rule's tags is correctly applied."""
+    rule = StyleRule(
+        apply_to="char",
+        operators=[RuleOperator(target="char", is_first=True)],
+        style_override=StyleOverride(tags={"raw_prefix": r"\an5"}),
+    )
+    engine = StylerEngine(StyleEngineConfig(rules=[rule]))
+    styles = engine._get_styles_for_char(char_context_fixture, "line text")
+    assert styles.raw_prefix == r"\an5"
+
+
+def test_get_styles_for_char_merges_operator_transforms(char_context_fixture: CharContext) -> None:
+    """Test that transforms from a matching operator are merged with rule transforms."""
+    op_transform = Transform(end=100)
+    rule_transform = Transform(end=200)
+    rule = StyleRule(
+        apply_to="word",
+        transforms=[rule_transform],
+        operators=[RuleOperator(target="word", transforms=[op_transform])],
+    )
+    engine = StylerEngine(StyleEngineConfig(rules=[rule]))
+    styles = engine._get_styles_for_char(char_context_fixture, "line text")
+    assert len(styles.transforms) == 2
+    assert rule_transform in styles.transforms
+    assert op_transform in styles.transforms
+
+
+def test_process_segment_empty_segment() -> None:
+    """Test processing an empty segment returns defaults and empty string."""
+    engine = StylerEngine(StyleEngineConfig())
+    style, text = engine.process_segment(SubtitleSegment(words=[]), "Default")
+    assert style == "Default"
+    assert text == ""
+
+
+def test_process_segment_with_empty_words_list() -> None:
+    """Test that a segment containing an empty list of words is handled."""
+    # This scenario can happen if a line contains only whitespace.
+    segment = SubtitleSegment(words=[SubtitleWord(" ", 0, 1)])
+    segment.words = []  # Manually create the condition
+    engine = StylerEngine(StyleEngineConfig())
+    style, text = engine.process_segment(segment, "Default")
+    assert style == "Default"
+    assert text == ""

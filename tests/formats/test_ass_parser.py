@@ -1,3 +1,4 @@
+import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core.parser import parse_ass
@@ -69,3 +70,29 @@ def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
     subs = parse_ass(content)
     assert not hasattr(subs, "styles")
     assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
+
+
+def test_parse_ass_handles_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that an ASS Dialogue line with start > end is skipped with a warning."""
+    content = (
+        "[Events]\nFormat: Start, End, Text\n"
+        "Dialogue: 0:00:02.00,0:00:01.00,Inverted timestamps\n"
+        "Dialogue: 0:00:03.00,0:00:04.00,Valid timestamps"
+    )
+    subs = parse_ass(content)
+    assert len(subs.segments) == 1
+    assert subs.segments[0].text == "Valid timestamps"
+    assert "Skipping ASS Dialogue with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_ass_missing_required_format_fields() -> None:
+    """Test that a ValueError is raised if the Format line is missing key fields."""
+    content = "[Events]\nFormat: Style, Name\nDialogue: Default,ActorName,Some Text"
+    with pytest.raises(ValueError) as exc_info:
+        parse_ass(content)
+
+    error_message = str(exc_info.value)
+    assert "is missing required fields" in error_message
+    assert "'Start'" in error_message
+    assert "'End'" in error_message
+    assert "'Text'" in error_message

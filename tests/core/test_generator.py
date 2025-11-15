@@ -1,9 +1,11 @@
 import pytest
 
 from autosubs.core import generator
+from autosubs.core.generator import to_ass
 from autosubs.core.styler import StylerEngine
+from autosubs.models import SubtitleWord
 from autosubs.models.styles.domain import StyleEngineConfig
-from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
+from autosubs.models.subtitles import AssSubtitles, AssSubtitleSegment, AssSubtitleWord, Subtitles, SubtitleSegment
 
 
 @pytest.fixture
@@ -77,3 +79,52 @@ def test_format_ass_timestamp() -> None:
     assert generator.format_ass_timestamp(0) == "0:00:00.00"
     assert generator.format_ass_timestamp(61.525) == "0:01:01.52"
     assert generator.format_ass_timestamp(3661.0) == "1:01:01.00"
+
+
+def test_to_vtt_empty(empty_subtitles: Subtitles) -> None:
+    """Test that generating a VTT from empty subtitles returns only the header."""
+    assert generator.to_vtt(empty_subtitles) == "WEBVTT\n"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (5.0, "5"),
+        (True, "-1"),
+        (False, "0"),
+        (5.3, "5.3"),
+        ("text", "text"),
+        (100, "100"),
+    ],
+)
+def test_format_ass_number(value: object, expected: str) -> None:
+    """Test the _format_ass_number helper for various types."""
+    assert generator._format_ass_number(value) == expected
+
+
+def test_to_ass_generates_v4_styles_from_styler_engine(sample_subtitles: Subtitles) -> None:
+    """Test that [V4+ Styles] are correctly generated from a styler engine config."""
+    config = StyleEngineConfig(
+        script_info={},
+        styles=[
+            {"Name": "Default", "Fontname": "Arial", "Bold": True},
+            {"Name": "Highlight", "Fontname": "Impact", "Bold": False},
+        ],
+    )
+    styler_engine = StylerEngine(config)
+    result = generator.to_ass(sample_subtitles, styler_engine=styler_engine)
+    assert "Format: Name, Fontname, Bold" in result
+    assert "Style: Default,Arial,-1" in result
+    assert "Style: Highlight,Impact,0" in result
+
+
+def test_to_ass_regenerate_uses_default_events_format_keys() -> None:
+    """Test that regenerating an ASS file falls back to default event keys if they are missing."""
+    segment = AssSubtitleSegment(words=[AssSubtitleWord("test", 1.0, 2.0)])
+    subs = AssSubtitles(segments=[segment])
+    subs.events_format_keys = []  # Explicitly clear the keys
+
+    result = to_ass(subs)
+
+    expected_format = "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
+    assert expected_format in result

@@ -135,6 +135,7 @@ class RuleOperator:
     time_to: float | None = None
     negate: bool = False
     rules: list[StyleRule | RuleOperator] | None = None
+    transforms: list[Transform] | None = None
     description: str | None = None
 
 

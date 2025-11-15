@@ -252,7 +252,7 @@ class StylerEngine:
         for rule in self.sorted_rules:
             if self._rule_matches_char(rule, context, line_text):
                 style_override = rule.style_override  # type: ignore[union-attr] # TODO: Remove it
-                transforms = rule.transforms or []  # type: ignore[union-attr] # TODO: Remove it
+                transforms = rule.transforms or []
 
                 raw_prefix = ""
                 if style_override and style_override.tags and "raw_prefix" in style_override.tags:

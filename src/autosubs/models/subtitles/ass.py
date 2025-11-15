@@ -47,7 +47,7 @@ class AssSubtitleSegment(SubtitleSegment):
         """Returns the segment's plain text content, stripping all style tags."""
         if self.text_override is not None:
             return self.text_override
-        return "".join(word.text for word in self.words)
+        return " ".join(word.text for word in self.words)
 
 
 @dataclass(eq=True)

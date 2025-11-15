@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
 
 from autosubs.cli import app
+from autosubs.cli.convert import _get_default_styler_engine
+from autosubs.core.styler import StylerEngine
 
 runner = CliRunner()
 
@@ -90,3 +92,11 @@ def test_cli_convert_processing_error(mock_load: MagicMock, tmp_srt_file: Path) 
     assert result.exit_code == 1
     assert "Error processing file" in result.stdout
     assert "Corrupted subtitle file" in result.stdout
+
+
+def test_get_default_styler_engine() -> None:
+    """Test that _get_default_styler_engine returns a valid StylerEngine."""
+    engine = _get_default_styler_engine()
+    assert isinstance(engine, StylerEngine)
+    assert engine.config.styles
+    assert engine.config.styles[0]["Name"] == "Default"

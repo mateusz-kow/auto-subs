@@ -42,6 +42,7 @@ ALLOWED_MATH_FUNCS = {
     )
 }
 ALLOWED_MATH_FUNCS.update({"min": min, "max": max, "abs": abs, "round": round})
+ALLOWED_CONSTANTS = {"pi": math.pi, "e": math.e}
 
 
 class _SafeAstValidator(ast.NodeVisitor):
@@ -76,11 +77,13 @@ class _SafeAstValidator(ast.NodeVisitor):
         ast.LtE,
         ast.Gt,
         ast.GtE,
-        ast.IfExp,
         ast.Tuple,
         ast.List,
     }
-    allowed_names = set(ALLOWED_MATH_FUNCS.keys())
+    allowed_names = set(ALLOWED_MATH_FUNCS.keys()) | set(ALLOWED_CONSTANTS.keys())
+
+    def __init__(self, context_keys: set[str] | None = None):
+        self.allowed_names.update(context_keys or set())
 
     def visit(self, node: ast.AST) -> None:
         if type(node) not in self.allowed_nodes:
@@ -98,8 +101,8 @@ class _SafeAstValidator(ast.NodeVisitor):
             self.visit(kw.value)
 
     def visit_Name(self, node: ast.Name) -> None:
-        if node.id not in self.allowed_names and not node.id.isidentifier():
-            raise ValueError(f"Identifier '{node.id}' is not allowed.")
+        if node.id not in self.allowed_names:
+            raise ValueError(f"Identifier '{node.id}' is not in the list of allowed names.")
 
 
 class SafeExpression(BaseModel):
@@ -110,18 +113,28 @@ class SafeExpression(BaseModel):
 
     @field_validator("expr")
     @classmethod
-    def validate_expr(cls, v: str) -> str:
-        """Validates that the expression is safe to evaluate."""
-        node = ast.parse(v, mode="eval")
-        _SafeAstValidator().visit(node)
+    def validate_expr_syntax(cls, v: str) -> str:
+        """Validates that the expression has valid Python syntax."""
+        try:
+            ast.parse(v, mode="eval")
+        except SyntaxError as e:
+            raise ValueError(f"Invalid expression syntax: {e}") from e
         return v
 
     def evaluate(self, context: dict[str, object] | None = None) -> Number:
         """Evaluates the expression with a given context."""
         ctx = dict(ALLOWED_MATH_FUNCS)
+        ctx.update(ALLOWED_CONSTANTS)
+        safe_context: dict[str, object] = {}
         if context:
-            ctx.update({k: val for k, val in context.items() if isinstance(val, (int, float))})
-        code = compile(ast.parse(self.expr, mode="eval"), "<expr>", "eval")
+            safe_context = {k: val for k, val in context.items() if isinstance(val, (int, float))}
+            ctx.update(safe_context)
+
+        node = ast.parse(self.expr, mode="eval")
+        validator = _SafeAstValidator(context_keys=set(safe_context.keys()))
+        validator.visit(node)
+
+        code = compile(node, "<expr>", "eval")
         return cast(Number, eval(code, {"__builtins__": {}}, ctx))
 
     def __str__(self) -> str:
@@ -268,6 +281,7 @@ class RuleOperatorSchema(BaseModel):
     time_to: float | None = None
     negate: bool = False
     rules: list[StyleRuleSchema | RuleOperatorSchema] | None = None
+    transforms: list[TransformSchema] | None = None
     description: str | None = None
 
     @model_validator(mode="after")
@@ -282,6 +296,8 @@ class RuleOperatorSchema(BaseModel):
         dump = self.model_dump()
         if self.rules:
             dump["rules"] = [r.to_domain() for r in self.rules]
+        if self.transforms:
+            dump["transforms"] = [t.to_domain() for t in self.transforms]
         if self.regex:
             dump["regex"] = re.compile(self.regex)
         if self.exclude_regex:

@@ -8,8 +8,11 @@ from typer import Exit
 from autosubs.cli.utils import (
     PathProcessor,
     SupportedExtension,
+    check_ffmpeg_installed,
     determine_output_format,
+    handle_burn_operation,
 )
+from autosubs.core.burner import FFmpegError
 from autosubs.models.formats import SubtitleFormat
 
 
@@ -120,8 +123,6 @@ def test_determine_output_format_fallback_to_default(
 @patch("shutil.which", return_value="/path/to/ffmpeg")
 def test_check_ffmpeg_installed_success(mock_which: MagicMock) -> None:
     """Test that no error is raised when ffmpeg is found."""
-    from autosubs.cli.utils import check_ffmpeg_installed
-
     try:
         check_ffmpeg_installed()
     except Exit:
@@ -131,8 +132,6 @@ def test_check_ffmpeg_installed_success(mock_which: MagicMock) -> None:
 @patch("shutil.which", return_value=None)
 def test_check_ffmpeg_installed_failure(mock_which: MagicMock) -> None:
     """Test that Exit is raised when ffmpeg is not found."""
-    from autosubs.cli.utils import check_ffmpeg_installed
-
     with pytest.raises(Exit):
         check_ffmpeg_installed()
 
@@ -150,9 +149,6 @@ def test_handle_burn_operation_generic_exception(
     mock_tempfile.return_value.__enter__.return_value.name = "dummy_temp_file.srt"
     mock_resolve.return_value = Path("dummy_temp_file.srt")
 
-    from autosubs.cli.utils import handle_burn_operation
-    from autosubs.models.formats import SubtitleFormat
-
     with pytest.raises(Exit) as exc_info:
         handle_burn_operation(
             video_input=Path("video.mp4"),
@@ -164,3 +160,31 @@ def test_handle_burn_operation_generic_exception(
 
     assert exc_info.value.exit_code == 1
     mock_burn_subtitles.assert_called_once()
+
+
+@pytest.mark.parametrize("subtitle_format", [SubtitleFormat.SRT, SubtitleFormat.VTT])
+@patch("autosubs.core.burner.burn_subtitles", side_effect=FFmpegError("ffmpeg failed"))
+def test_handle_burn_operation_srt_vtt_styling_warning(
+    mock_burn: MagicMock,
+    subtitle_format: SubtitleFormat,
+    tmp_path: Path,
+    capsys: CaptureFixture[str],
+) -> None:
+    """Test that a warning is shown for styled SRT/VTT burns."""
+    video_input = tmp_path / "video.mp4"
+    video_output = tmp_path / "output.mp4"
+    video_input.touch()
+    video_output.parent.mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(Exit):
+        handle_burn_operation(
+            video_input=video_input,
+            video_output=video_output,
+            subtitle_content="dummy",
+            subtitle_format=subtitle_format,
+            styling_options_used=True,
+        )
+
+    captured = capsys.readouterr()
+    assert "Warning: Burning in SRT/VTT format" in captured.out
+    assert "styling options from --style-config will be ignored" in captured.out

@@ -1,9 +1,11 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from autosubs.cli import app
+from autosubs.models.formats import SubtitleFormat
 
 runner = CliRunner()
 
@@ -130,3 +132,76 @@ def test_cli_transcribe_burn_success(
     mock_transcribe.assert_called_once()
     mock_run.assert_called_once()
     assert "Successfully burned subtitles into video" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected_verbose"),
+    [
+        ([], None),
+        (["--stream"], False),
+        (["--whisper-verbose"], True),
+    ],
+)
+@patch("autosubs.cli.transcribe.transcribe_api")
+def test_cli_transcribe_verbose_and_stream_flags(
+    mock_api_transcribe: MagicMock,
+    fake_media_file: Path,
+    flags: list[str],
+    expected_verbose: bool | None,
+) -> None:
+    """Test that --stream and --whisper-verbose set the correct verbosity level."""
+    mock_api_transcribe.return_value = "dummy"
+    runner.invoke(app, ["transcribe", str(fake_media_file), *flags])
+    mock_api_transcribe.assert_called_once()
+    _, kwargs = mock_api_transcribe.call_args
+    assert kwargs["verbose"] == expected_verbose
+
+
+@patch("autosubs.cli.utils.handle_burn_operation")
+@patch("autosubs.cli.transcribe.transcribe_api")
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+def test_cli_transcribe_burn_skips_non_video_files(
+    mock_which: MagicMock,
+    mock_api: MagicMock,
+    mock_burn: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Test that --burn skips audio files and does not call the burn handler."""
+    audio_file = tmp_path / "test.mp3"
+    audio_file.touch()
+    mock_api.return_value = "dummy srt"
+
+    result = runner.invoke(app, ["transcribe", str(audio_file), "--burn"])
+
+    assert result.exit_code == 0
+    assert "Skipping non-video file for burning: test.mp3" in result.stdout
+    mock_burn.assert_not_called()
+
+
+@patch("autosubs.cli.transcribe.handle_burn_operation")
+@patch("autosubs.cli.transcribe.transcribe_api")
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+def test_cli_transcribe_burn_batch_preserves_extension(
+    mock_which: MagicMock,
+    mock_api: MagicMock,
+    mock_burn: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Test that batch transcription with burning preserves the original video extension."""
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    video_file = input_dir / "video.mkv"
+    video_file.touch()
+
+    mock_api.return_value = "dummy srt content"
+
+    result = runner.invoke(app, ["transcribe", str(input_dir), "-o", str(output_dir), "--burn", "-f", "srt"])
+
+    assert result.exit_code == 0
+    mock_burn.assert_called_once()
+    _, kwargs = mock_burn.call_args
+    expected_output_path = output_dir / "video.mkv"
+    assert kwargs["video_output"] == expected_output_path
+    assert kwargs["subtitle_format"] == SubtitleFormat.SRT

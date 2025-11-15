@@ -85,3 +85,59 @@ def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
     subs = parser.parse_ass(content)
     assert not hasattr(subs, "styles")
     assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
+
+
+def test_parse_srt_handles_short_blocks() -> None:
+    """Test that blocks with fewer than 2 lines are skipped."""
+    content = "1\n\n00:00:00,000 --> 00:00:01,000\nLine 2"
+    segments = parser.parse_srt(content)
+    assert len(segments) == 1
+    assert segments[0].text == "Line 2"
+
+
+def test_parse_srt_handles_no_timestamp_arrow() -> None:
+    """Test that lines without '-->' are skipped."""
+    content = "1\n00:00:00,000 00:00:01,000\nInvalid\n\n2\n00:00:02,000 --> 00:00:03,000\nValid"
+    segments = parser.parse_srt(content)
+    assert len(segments) == 1
+    assert segments[0].text == "Valid"
+
+
+def test_parse_srt_handles_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that blocks with start > end are skipped with a warning."""
+    content = "1\n00:00:02,000 --> 00:00:01,000\nInverted"
+    segments = parser.parse_srt(content)
+    assert not segments
+    assert "Skipping SRT block with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_srt_handles_malformed_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that blocks with malformed timestamps are skipped with a warning."""
+    content = "1\n00:00:bad --> 00:00:01,000\nMalformed"
+    segments = parser.parse_srt(content)
+    assert not segments
+    assert "Skipping malformed SRT block" in caplog.text
+
+
+def test_parse_vtt_handles_no_timestamp_line() -> None:
+    """Test that VTT blocks without a timestamp line are skipped."""
+    content = "WEBVTT\n\nJust text\n\n00:00:02.000 --> 00:00:03.000\nValid"
+    segments = parser.parse_vtt(content)
+    assert len(segments) == 1
+    assert segments[0].text == "Valid"
+
+
+def test_parse_vtt_handles_inverted_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that VTT blocks with start > end are skipped with a warning."""
+    content = "WEBVTT\n\n00:00:02.000 --> 00:00:01.000\nInverted"
+    segments = parser.parse_vtt(content)
+    assert not segments
+    assert "Skipping VTT block with invalid timestamp (start > end)" in caplog.text
+
+
+def test_parse_vtt_handles_malformed_timestamps(caplog: LogCaptureFixture) -> None:
+    """Test that VTT blocks with malformed timestamps are skipped with a warning."""
+    content = "WEBVTT\n\n00:bad --> 00:00:01.000\nMalformed"
+    segments = parser.parse_vtt(content)
+    assert not segments
+    assert "Skipping malformed VTT block" in caplog.text
