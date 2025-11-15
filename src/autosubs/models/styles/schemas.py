@@ -2,135 +2,105 @@ from __future__ import annotations
 
 import ast
 import math
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
-Number = Union[int, float]
+# Type alias for numeric values
+Number = int | float
 
-
+# Whitelist of allowed mathematical functions for safe evaluation
 ALLOWED_MATH_FUNCS = {
     name: getattr(math, name)
     for name in (
-        "sin",
-        "cos",
-        "tan",
-        "asin",
-        "acos",
-        "atan",
-        "atan2",
-        "sinh",
-        "cosh",
-        "tanh",
-        "asinh",
-        "acosh",
-        "atanh",
-        "sqrt",
-        "exp",
-        "log",
-        "log10",
-        "log2",
-        "floor",
-        "ceil",
-        "fabs",
-        "pow",
-        "degrees",
-        "radians",
-        "hypot",
+        "sin", "cos", "tan", "asin", "acos", "atan", "atan2",
+        "sinh", "cosh", "tanh", "asinh", "acosh", "atanh",
+        "sqrt", "exp", "log", "log10", "log2", "floor", "ceil",
+        "fabs", "pow", "degrees", "radians", "hypot",
     )
 }
 ALLOWED_MATH_FUNCS.update({"min": min, "max": max, "abs": abs, "round": round})
 
 
-class SafeExpression(BaseModel):
-    expr: str
-
-    class Config:
-        frozen = True
-
-    @validator("expr")
-    def _validate_ast(cls, v: str) -> str:
-        try:
-            node = ast.parse(v, mode="eval")
-        except SyntaxError as exc:
-            raise ValueError(f"invalid expression syntax: {exc}") from exc
-        validator = _SafeAstValidator()
-        validator.visit(node)
-        return v
-
-    def evaluate(self, context: dict[str, Any] | None = None) -> Number:
-        ctx = dict(ALLOWED_MATH_FUNCS)
-        if context:
-            for k, val in context.items():
-                if isinstance(val, (int, float)):
-                    ctx[k] = val
-        code = compile(ast.parse(self.expr, mode="eval"), "<expr>", "eval")
-        return eval(code, {"__builtins__": {}}, ctx)
-
-
 class _SafeAstValidator(ast.NodeVisitor):
+    """
+    An AST visitor that ensures only whitelisted nodes and functions are used
+    in an expression string.
+    """
     allowed_nodes = {
-        ast.Expression,
-        ast.BinOp,
-        ast.UnaryOp,
-        ast.Num,
-        ast.Constant,
-        ast.Call,
-        ast.Name,
-        ast.Load,
-        ast.Add,
-        ast.Sub,
-        ast.Mult,
-        ast.Div,
-        ast.Mod,
-        ast.Pow,
-        ast.USub,
-        ast.UAdd,
-        ast.FloorDiv,
-        ast.LShift,
-        ast.RShift,
-        ast.BitOr,
-        ast.BitAnd,
-        ast.BitXor,
-        ast.And,
-        ast.Or,
-        ast.Compare,
-        ast.Eq,
-        ast.NotEq,
-        ast.Lt,
-        ast.LtE,
-        ast.Gt,
-        ast.GtE,
-        ast.IfExp,
-        ast.Tuple,
-        ast.List,
+        ast.Expression, ast.BinOp, ast.UnaryOp, ast.Num, ast.Constant, ast.Call,
+        ast.Name, ast.Load, ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,
+        ast.USub, ast.UAdd, ast.FloorDiv, ast.LShift, ast.RShift, ast.BitOr,
+        ast.BitAnd, ast.BitXor, ast.And, ast.Or, ast.Compare, ast.Eq, ast.NotEq,
+        ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.IfExp, ast.Tuple, ast.List,
     }
-
     allowed_names = set(ALLOWED_MATH_FUNCS.keys())
 
     def visit(self, node: ast.AST) -> Any:
         if type(node) not in self.allowed_nodes:
-            raise ValueError(f"disallowed AST node: {type(node).__name__}")
+            raise ValueError(f"Disallowed AST node: {type(node).__name__}")
         return super().visit(node)
 
     def visit_Call(self, node: ast.Call) -> Any:
         if not isinstance(node.func, ast.Name):
-            raise ValueError("only direct function calls allowed")
+            raise ValueError("Only direct function calls are allowed.")
+
         func_name = node.func.id
         if func_name not in self.allowed_names:
-            raise ValueError(f"function {func_name!r} is not allowed")
+            raise ValueError(f"Function '{func_name}' is not allowed.")
+
         for arg in node.args:
             self.visit(arg)
         for kw in node.keywords:
             self.visit(kw.value)
 
     def visit_Name(self, node: ast.Name) -> Any:
+        # Variable names are allowed in the AST. Their existence and type are
+        # checked later during evaluation against the provided context.
         if node.id not in self.allowed_names and not node.id.isidentifier():
-            raise ValueError(f"identifier {node.id!r} not allowed")
-        # names are allowed; evaluation will inject actual context values if provided
+            raise ValueError(f"Identifier '{node.id}' is not allowed.")
 
 
-ExpressionOrNumber = Union[Number, SafeExpression]
+class SafeExpression(BaseModel):
+    """
+    A model representing a mathematical expression string that can be safely
+    evaluated.
+    """
+    model_config = {"frozen": True}
+
+    expr: str
+
+    @field_validator("expr")
+    @classmethod
+    def validate_expr(cls, v: str) -> str:
+        """Parses the expression and validates its AST nodes."""
+        try:
+            node = ast.parse(v, mode="eval")
+        except SyntaxError as exc:
+            raise ValueError(f"Invalid expression syntax: {exc}") from exc
+
+        validator = _SafeAstValidator()
+        validator.visit(node)
+        return v
+
+    def evaluate(self, context: dict[str, Any] | None = None) -> Number:
+        """
+        Safely evaluates the expression with an optional context of variables.
+        """
+        ctx = dict(ALLOWED_MATH_FUNCS)
+        if context:
+            # Only allow numeric values in the context for safety
+            ctx.update({
+                k: val for k, val in context.items()
+                if isinstance(val, (int, float))
+            })
+
+        code = compile(ast.parse(self.expr, mode="eval"), "<expr>", "eval")
+        # The `eval` environment has no built-ins, only our safe context.
+        return eval(code, {"__builtins__": {}}, ctx)
+
+
+ExpressionOrNumber = Number | SafeExpression
 
 
 class TransformSchema(BaseModel):
@@ -139,7 +109,7 @@ class TransformSchema(BaseModel):
     accel: float | None = None
     ease: Literal["linear", "ease_in", "ease_out", "ease_in_out"] | None = None
 
-    # animated fields (each accepts static number or expression)
+    # Animated fields (each accepts a static number or a dynamic expression)
     font_size: ExpressionOrNumber | None = None
     scale_x: ExpressionOrNumber | None = None
     scale_y: ExpressionOrNumber | None = None
@@ -167,6 +137,7 @@ class ClipSchema(BaseModel):
 
 
 class StyleOverrideSchema(BaseModel):
+    # Font and text properties
     font_name: str | None = None
     font_size: ExpressionOrNumber | None = None
     bold: bool | None = None
@@ -174,20 +145,23 @@ class StyleOverrideSchema(BaseModel):
     underline: bool | None = None
     strikeout: bool | None = None
     spacing: ExpressionOrNumber | None = None
-    angle: ExpressionOrNumber | None = None
+    angle: ExpressionOrNumber | None = None  # Legacy, use rotation_z
     scale_x: ExpressionOrNumber | None = None
     scale_y: ExpressionOrNumber | None = None
 
+    # Color properties
     primary_color: str | None = None
     secondary_color: str | None = None
     outline_color: str | None = None
     shadow_color: str | None = None
     alpha: str | ExpressionOrNumber | None = None
 
+    # Visual effects
     border: ExpressionOrNumber | None = None
     shadow: ExpressionOrNumber | None = None
     blur: ExpressionOrNumber | None = None
 
+    # Positioning
     position_x: ExpressionOrNumber | None = None
     position_y: ExpressionOrNumber | None = None
     move_x1: ExpressionOrNumber | None = None
@@ -196,17 +170,17 @@ class StyleOverrideSchema(BaseModel):
     move_y2: ExpressionOrNumber | None = None
     move_t1: ExpressionOrNumber | None = None
     move_t2: ExpressionOrNumber | None = None
+    origin_x: ExpressionOrNumber | None = None
+    origin_y: ExpressionOrNumber | None = None
 
+    # Rotation
     rotation_x: ExpressionOrNumber | None = None
     rotation_y: ExpressionOrNumber | None = None
     rotation_z: ExpressionOrNumber | None = None
 
-    origin_x: ExpressionOrNumber | None = None
-    origin_y: ExpressionOrNumber | None = None
-
+    # Advanced properties
     karaoke: bool | None = None
     clip: ClipSchema | None = None
-
     transforms: list[TransformSchema] | None = None
     layer: int | None = None
     alignment: int | None = None
@@ -223,27 +197,26 @@ class EffectSchema(BaseModel):
 class StyleRuleSchema(BaseModel):
     name: str | None = None
     priority: int = 0
-
     pattern: str | None = None
     apply_to: Literal["line", "word", "char", "syllable"] = "char"
-
     time_from: float | None = None
     time_to: float | None = None
-
     speaker: str | None = None
     layer: int | None = None
     style_name: str | None = None
-
     style_override: StyleOverrideSchema | None = None
     effect: str | None = None
     effect_params: dict[str, Any] | None = None
-
     transforms: list[TransformSchema] | None = None
+    regex: str | None = None
+    exclude_regex: str | None = None
+    operators: list[RuleOperatorSchema] | None = None
 
 
 class RuleOperatorSchema(BaseModel):
     target: Literal["char", "word", "syllable", "line"] = "char"
 
+    # Index-based selectors
     index: int | None = None
     index_from: int | None = None
     index_to: int | None = None
@@ -251,23 +224,27 @@ class RuleOperatorSchema(BaseModel):
     is_first: bool | None = None
     is_last: bool | None = None
 
+    # Content-based selectors
     chars: list[str] | None = None
     exclude_chars: list[str] | None = None
+    regex: str | None = None
+    exclude_regex: str | None = None
 
+    # Time-based selectors
     time_from: float | None = None
     time_to: float | None = None
 
+    # Logic
     negate: bool = False
-
     rules: list[StyleRuleSchema | RuleOperatorSchema] | None = None
     description: str | None = None
 
-    @model_validator(mode="before")
-    def _validate_index_range(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if values.get("index_from") is not None and values.get("index_to") is not None:
-            if values["index_from"] > values["index_to"]:
+    @model_validator(mode="after")
+    def _validate_index_range(self) -> RuleOperatorSchema:
+        if self.index_from is not None and self.index_to is not None:
+            if self.index_from > self.index_to:
                 raise ValueError("index_from cannot be greater than index_to")
-        return values
+        return self
 
 
 class KaraokeSyllableSchema(BaseModel):
@@ -309,18 +286,13 @@ class StyleEngineConfigSchema(BaseModel):
     defaults: StyleOverrideSchema | None = None
     metadata: dict[str, Any] | None = None
 
-    @validator("styles", pre=True, each_item=True)
-    def _ensure_style_minimal(cls, v: dict[str, Any]) -> dict[str, Any]:
-        if "Name" not in v:
-            raise ValueError("each style must include a 'Name' field")
+    @field_validator("styles", mode="before")
+    @classmethod
+    def ensure_style_name(cls, v: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
+        """Ensures every style dictionary has a 'Name' key."""
+        if v is None:
+            return None
+        for item in v:
+            if not isinstance(item, dict) or "Name" not in item:
+                raise ValueError("Each style must be a dictionary and include a 'Name' field.")
         return v
-
-
-# forward refs
-RuleOperatorSchema.update_forward_refs()
-StyleRuleSchema.update_forward_refs()
-StyleOverrideSchema.update_forward_refs()
-TransformSchema.update_forward_refs()
-EffectSchema.update_forward_refs()
-StyleEngineConfigSchema.update_forward_refs()
-SafeExpression.update_forward_refs()

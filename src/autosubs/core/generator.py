@@ -1,6 +1,6 @@
 import json
 from logging import getLogger
-from typing import Any, Optional, overload
+from typing import Any, overload
 
 from autosubs.core.builder import create_dict_from_subtitles
 from autosubs.core.styler import StylerEngine
@@ -54,7 +54,7 @@ def to_ass(subtitles: AssSubtitles) -> str: ...
 def to_ass(subtitles: Subtitles, styler_engine: StylerEngine) -> str: ...
 
 
-def to_ass(subtitles: Subtitles, styler_engine: Optional[StylerEngine] = None) -> str:
+def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> str:
     """Generate the content for an ASS subtitle file."""
     if isinstance(subtitles, AssSubtitles):
         # ... logika regeneracji pozostaje bez zmian

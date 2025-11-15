@@ -3,10 +3,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
-from autosubs.models.subtitles.ass import AssSubtitleSegment, AssSubtitleWord, WordStyleRange
-
 if TYPE_CHECKING:
-    from autosubs.models.styles.domain import StyleEngineConfig, StyleOverride, StyleRule
+    from autosubs.models.styles.domain import StyleEngineConfig, StyleRule
     from autosubs.models.subtitles import SubtitleSegment
 
 
