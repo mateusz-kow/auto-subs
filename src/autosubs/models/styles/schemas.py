@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import math
 import re
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -123,7 +123,15 @@ class SafeExpression(BaseModel):
         if context:
             ctx.update({k: val for k, val in context.items() if isinstance(val, (int, float))})
         code = compile(ast.parse(self.expr, mode="eval"), "<expr>", "eval")
-        return eval(code, {"__builtins__": {}}, ctx)
+        return cast(Number, eval(code, {"__builtins__": {}}, ctx))
+
+    def __str__(self) -> str:
+        """Returns string representation od the object."""
+        return str(self.evaluate())
+
+    def __int__(self) -> int:
+        """Returns integer representation od the object."""
+        return int(self.evaluate())
 
 
 ExpressionOrNumber = Number | SafeExpression

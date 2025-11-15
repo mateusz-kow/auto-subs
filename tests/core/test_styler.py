@@ -244,7 +244,7 @@ def test_styler_engine_generates_all_static_tags(override_props: dict[str, objec
     rule = StyleRule(
         apply_to="word",
         regex=re.compile("word"),
-        style_override=StyleOverride(**override_props),
+        style_override=StyleOverride(**override_props),  # type: ignore[arg-type]
     )
     config = StyleEngineConfig(rules=[rule])
     engine = StylerEngine(config)
