@@ -87,9 +87,9 @@ def test_applied_styles_to_ass_tags() -> None:
     assert styles.to_ass_tags(MagicMock()) == r"{\blur5}"
 
     # Test transforms
-    transform = Transform(start=100, end=500, accel=0.5, scale_x=120, primary_color="&HFFFFFF&")
+    transform = Transform(start=100, end=500, accel=0.5, scale_x=120, primary_color="&HFFFFFF")
     styles = AppliedStyles(transforms=[transform])
-    assert styles.to_ass_tags(MagicMock()) == r"{\t(100,500,0.5,\fscx120\fscy100\1c&HFFFFFF&)}"
+    assert styles.to_ass_tags(MagicMock()) == r"{\t(100,500,0.5,\fscx120\fscy100\1c&HFFFFFF)}"
 
     # Test raw prefix
     styles = AppliedStyles(raw_prefix=r"\an5", style_override=StyleOverride(blur=2))
@@ -200,3 +200,55 @@ def test_state_is_reset_between_segments() -> None:
     _, text2 = engine.process_segment(segment2, "Default")
     assert text2 == "no-match"
     assert engine.last_line_check_result is False
+
+
+@pytest.mark.parametrize(
+    ("override_props", "expected_text"),
+    [
+        # Boolean Styles
+        ({"bold": True}, r"{\b1}word{\r}"),
+        ({"bold": False}, r"{\b0}word{\r}"),
+        ({"italic": True}, r"{\i1}word{\r}"),
+        ({"underline": True}, r"{\u1}word{\r}"),
+        ({"strikeout": True}, r"{\s1}word{\r}"),
+        # Colors
+        ({"primary_color": "&H0000FF"}, r"{\c&H0000FF}word{\r}"),
+        ({"secondary_color": "&H00FF00"}, r"{\2c&H00FF00}word{\r}"),
+        ({"outline_color": "&HFF0000"}, r"{\3c&HFF0000}word{\r}"),
+        ({"shadow_color": "&HFFFFFF"}, r"{\4c&HFFFFFF}word{\r}"),
+        ({"alpha": "&H80&"}, r"{\alpha&H80&}word{\r}"),
+        # Font and Layout
+        ({"font_name": "Impact"}, r"{\fnImpact}word{\r}"),
+        ({"font_size": 48}, r"{\fs48}word{\r}"),
+        ({"alignment": 8}, r"{\an8}word{\r}"),
+        ({"spacing": 5}, r"{\fsp5}word{\r}"),
+        ({"scale_x": 150}, r"{\fscx150}word{\r}"),
+        ({"scale_y": 50}, r"{\fscy50}word{\r}"),
+        # Rotation
+        ({"angle": 45}, r"{\frz45}word{\r}"),
+        ({"rotation_z": 90}, r"{\frz90}word{\r}"),
+        ({"rotation_x": 30}, r"{\frx30}word{\r}"),
+        ({"rotation_y": 60}, r"{\fry60}word{\r}"),
+        # Position
+        ({"position_x": 100, "position_y": 200}, r"{\pos(100,200)}word{\r}"),
+        ({"origin_x": 300, "origin_y": 400}, r"{\org(300,400)}word{\r}"),
+        # Effects
+        ({"border": 3}, r"{\bord3}word{\r}"),
+        ({"shadow": 4}, r"{\shad4}word{\r}"),
+        ({"blur": 2}, r"{\blur2}word{\r}"),
+    ],
+)
+def test_styler_engine_generates_all_static_tags(override_props: dict[str, object], expected_text: str) -> None:
+    """Verify correct ASS tag generation for all supported static StyleOverride properties."""
+    segment = SubtitleSegment(words=[SubtitleWord("word", 0, 1)])
+    rule = StyleRule(
+        apply_to="word",
+        regex=re.compile("word"),
+        style_override=StyleOverride(**override_props),
+    )
+    config = StyleEngineConfig(rules=[rule])
+    engine = StylerEngine(config)
+
+    _, text = engine.process_segment(segment, "Default")
+
+    assert text == expected_text
