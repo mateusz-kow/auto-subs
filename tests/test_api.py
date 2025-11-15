@@ -26,6 +26,7 @@ def test_generate_valid_formats(output_format: str, sample_transcription: dict[s
 
     assert isinstance(result, str)
     assert "This is a test transcription" in result
+    assert "{\\k" not in result
 
     if output_format == "srt":
         assert "1\n00:00:00,100 --> 00:00:04,200" in result
@@ -46,7 +47,7 @@ def test_ass_output_with_style_config(sample_transcription: dict[str, Any], tmp_
     )
 
     assert "[Script Info]" in result
-    assert "Title: Styled by Engine" in result
+    assert "Title: Styled by Auto Subs" in result
     assert "Style: Highlight,Impact,52" in result
     assert r"{\c&H0000FFFF&}{\b1}test{\b0}{\c}" in result
     assert r"{\c&H0000FFFF&}{\b1}library.{\b0}{\c}" in result

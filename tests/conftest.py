@@ -9,7 +9,7 @@ import pytest
 def sample_style_config() -> dict[str, Any]:
     """Provides a sample style engine configuration dictionary."""
     return {
-        "script_info": {"Title": "Styled by Engine"},
+        "script_info": {"Title": "Styled by Auto Subs"},
         "styles": [
             {"Name": "Default", "Fontname": "Arial", "Fontsize": "48", "PrimaryColour": "&H00FFFFFF", "Alignment": "2"},
             {
