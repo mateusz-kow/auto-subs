@@ -49,8 +49,15 @@ def test_ass_output_with_style_config(sample_transcription: dict[str, Any], tmp_
     assert "[Script Info]" in result
     assert "Title: Styled by Auto Subs" in result
     assert "Style: Highlight,Impact,52" in result
-    assert r"{\c&H0000FFFF&}{\b1}test{\b0}{\c}" in result
-    assert r"{\c&H0000FFFF&}{\b1}library.{\b0}{\c}" in result
+
+    # The rule targets "test" and "library" and applies both static overrides and transforms.
+    # Construct the expected tag block.
+    expected_tags = r"{\b1\c&H0000FFFF\t(0,150,\fscx110\fscy110)\t(150,300,\fscx100\fscy100)}"
+
+    # Check that the styled word "test" is correctly formatted within the full line context.
+    assert f"This is a {expected_tags}test{{\\r}} transcription for" in result
+    # Check that the styled word "library" is also correctly formatted.
+    assert f"the auto-subs {expected_tags}library.{{\\r}}" in result
 
 
 @patch("autosubs.api.run_transcription")

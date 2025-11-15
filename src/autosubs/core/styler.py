@@ -41,8 +41,69 @@ class AppliedStyles:
     def to_ass_tags(self, context: CharContext) -> str:
         """Converts the applied styles into an ASS tag block."""
         tags = []
-        if self.style_override and self.style_override.blur is not None:
-            tags.append(f"\\blur{self.style_override.blur}")
+        if self.style_override:
+            # Layout and Alignment
+            if self.style_override.alignment is not None:
+                tags.append(f"\\an{self.style_override.alignment}")
+            if self.style_override.position_x is not None and self.style_override.position_y is not None:
+                tags.append(f"\\pos({self.style_override.position_x},{self.style_override.position_y})")
+            if self.style_override.origin_x is not None and self.style_override.origin_y is not None:
+                tags.append(f"\\org({self.style_override.origin_x},{self.style_override.origin_y})")
+
+            # Font Properties
+            if self.style_override.font_name:
+                tags.append(f"\\fn{self.style_override.font_name}")
+            if self.style_override.font_size is not None:
+                tags.append(f"\\fs{int(self.style_override.font_size)}")
+
+            # Boolean Styles
+            if self.style_override.bold is not None:
+                tags.append(f"\\b{'1' if self.style_override.bold else '0'}")
+            if self.style_override.italic is not None:
+                tags.append(f"\\i{'1' if self.style_override.italic else '0'}")
+            if self.style_override.underline is not None:
+                tags.append(f"\\u{'1' if self.style_override.underline else '0'}")
+            if self.style_override.strikeout is not None:
+                tags.append(f"\\s{'1' if self.style_override.strikeout else '0'}")
+
+            # Colors and Alpha
+            if self.style_override.primary_color:
+                tags.append(f"\\c{self.style_override.primary_color}")
+            if self.style_override.secondary_color:
+                tags.append(f"\\2c{self.style_override.secondary_color}")
+            if self.style_override.outline_color:
+                tags.append(f"\\3c{self.style_override.outline_color}")
+            if self.style_override.shadow_color:
+                tags.append(f"\\4c{self.style_override.shadow_color}")
+            if self.style_override.alpha:
+                tags.append(f"\\alpha{self.style_override.alpha}")
+
+            # Spacing and Scaling
+            if self.style_override.spacing is not None:
+                tags.append(f"\\fsp{self.style_override.spacing}")
+            if self.style_override.scale_x is not None:
+                tags.append(f"\\fscx{self.style_override.scale_x}")
+            if self.style_override.scale_y is not None:
+                tags.append(f"\\fscy{self.style_override.scale_y}")
+
+            # Rotation (prioritizing 'angle' for z-axis)
+            angle = (
+                self.style_override.angle if self.style_override.angle is not None else self.style_override.rotation_z
+            )
+            if angle is not None:
+                tags.append(f"\\frz{angle}")
+            if self.style_override.rotation_x is not None:
+                tags.append(f"\\frx{self.style_override.rotation_x}")
+            if self.style_override.rotation_y is not None:
+                tags.append(f"\\fry{self.style_override.rotation_y}")
+
+            # Border, Shadow, and Blur Effects
+            if self.style_override.border is not None:
+                tags.append(f"\\bord{self.style_override.border}")
+            if self.style_override.shadow is not None:
+                tags.append(f"\\shad{self.style_override.shadow}")
+            if self.style_override.blur is not None:
+                tags.append(f"\\blur{self.style_override.blur}")
 
         for transform in self.transforms:
             parts = []
@@ -160,10 +221,11 @@ class StylerEngine:
         if isinstance(rule, RuleOperator):
             return self._check_operator(rule, context, line_text)
 
-        # Base rule checks (optimization to avoid re-checking every character)
+        has_char_operator = any(op.target == "char" for op in rule.operators or [])
+
         if rule.apply_to == "line" and context.char_index_line > 0:
             return self.last_line_check_result
-        if rule.apply_to == "word" and context.char_index_word > 0:
+        if rule.apply_to == "word" and context.char_index_word > 0 and not has_char_operator:
             return self.last_word_check_result
 
         check_text = ""
@@ -178,12 +240,11 @@ class StylerEngine:
         if match and rule.operators:
             match = all(self._check_operator(op, context, line_text) for op in rule.operators)
 
-        # Cache the result for subsequent characters in the same scope.
-        if rule.apply_to == "line":
-            self.last_line_check_result = match
-        if rule.apply_to == "word":
-            self.last_word_check_result = match
-
+        if not has_char_operator:
+            if rule.apply_to == "line":
+                self.last_line_check_result = match
+            if rule.apply_to == "word":
+                self.last_word_check_result = match
         return match
 
     def _get_styles_for_char(self, context: CharContext, line_text: str) -> AppliedStyles:
@@ -208,7 +269,6 @@ class StylerEngine:
 
     def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> tuple[str, str]:
         """Processes a segment and returns a tuple of (style_name, dialogue_text)."""
-        # CRITICAL FIX: Reset state for each new segment to prevent rule leakage.
         self.last_line_check_result = False
         self.last_word_check_result = False
 
@@ -218,7 +278,6 @@ class StylerEngine:
         line_text = " ".join(w.text for w in segment.words)
         char_contexts = self._get_char_contexts(segment)
 
-        # Determine base style name from line-level rules
         style_name = default_style_name
         for rule in self.sorted_rules:
             if rule.apply_to == "line" and self._rule_matches_char(rule, char_contexts[0], line_text):
@@ -226,28 +285,29 @@ class StylerEngine:
                     style_name = rule.style_name
                 break
 
-        # Generate per-character styles and render final text
-        dialogue_parts = []
-        last_tags = ""
-        current_word_index = -1
+        word_strings = []
+        for i in range(len(segment.words)):
+            word_contexts = [c for c in char_contexts if c.word_index_line == i]
+            if not word_contexts:
+                continue
 
-        for context in char_contexts:
-            if context.word_index_line != current_word_index:
-                if current_word_index != -1:
-                    dialogue_parts.append(" ")
-                current_word_index = context.word_index_line
+            word_parts = []
+            last_tags = ""
+            for context in word_contexts:
+                styles = self._get_styles_for_char(context, line_text)
+                current_tags = styles.to_ass_tags(context)
 
-            styles = self._get_styles_for_char(context, line_text)
-            current_tags = styles.to_ass_tags(context)
+                if current_tags != last_tags:
+                    if last_tags:
+                        word_parts.append(r"{\r}")
+                    word_parts.append(current_tags)
+                    last_tags = current_tags
 
-            if current_tags != last_tags:
-                dialogue_parts.append(current_tags)
-                last_tags = current_tags
+                word_parts.append(context.char)
 
-            dialogue_parts.append(context.char)
+            if last_tags:
+                word_parts.append(r"{\r}")
 
-        # Add a reset tag at the end if any tags were active
-        if last_tags:
-            dialogue_parts.append(r"{\r}")
+            word_strings.append("".join(word_parts))
 
-        return style_name, "".join(dialogue_parts)
+        return style_name, " ".join(word_strings)

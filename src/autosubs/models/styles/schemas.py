@@ -83,12 +83,12 @@ class _SafeAstValidator(ast.NodeVisitor):
     }
     allowed_names = set(ALLOWED_MATH_FUNCS.keys())
 
-    def visit(self, node: ast.AST):
+    def visit(self, node: ast.AST) -> None:
         if type(node) not in self.allowed_nodes:
             raise ValueError(f"Disallowed AST node: {type(node).__name__}")
         super().visit(node)
 
-    def visit_Call(self, node: ast.Call):
+    def visit_Call(self, node: ast.Call) -> None:
         if not isinstance(node.func, ast.Name):
             raise ValueError("Only direct function calls are allowed.")
         if node.func.id not in self.allowed_names:
@@ -98,7 +98,7 @@ class _SafeAstValidator(ast.NodeVisitor):
         for kw in node.keywords:
             self.visit(kw.value)
 
-    def visit_Name(self, node: ast.Name):
+    def visit_Name(self, node: ast.Name) -> None:
         if node.id not in self.allowed_names and not node.id.isidentifier():
             raise ValueError(f"Identifier '{node.id}' is not allowed.")
 

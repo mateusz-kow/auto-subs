@@ -166,7 +166,7 @@ def test_cli_burn_output_path_is_a_directory(
         ),
     ],
 )
-@patch("autosubs.cli.burn.check_ffmpeg_installed")  # --- FIX: Mock the ffmpeg check ---
+@patch("autosubs.cli.burn.check_ffmpeg_installed")
 def test_cli_burn_invalid_file_extensions(
     mock_check_ffmpeg: MagicMock,
     tmp_path: Path,
