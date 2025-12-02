@@ -98,7 +98,9 @@ class AssTagBlock:
         for attr, tag, formatter in tag_descriptors:
             value = getattr(self, attr)
 
-            if value if attr in string_attrs else value is not None:
+            # For string attributes, check truthiness; for others, check if not None
+            should_include = bool(value) if attr in string_attrs else value is not None
+            if should_include:
                 formatted = formatter(value) if formatter else value
                 tags.append(f"\\{tag}{formatted}")
 
