@@ -4,6 +4,9 @@ from typing import Any, cast
 
 import pytest
 
+BLACK_COLOR: str = "&H00000000"
+WHITE_COLOR: str = "&H00FFFFFF"
+
 
 @pytest.fixture
 def sample_style_config() -> dict[str, Any]:
@@ -23,10 +26,10 @@ def sample_style_config() -> dict[str, Any]:
                 "Name": "Default",
                 "Fontname": "Arial",
                 "Fontsize": 48,
-                "PrimaryColour": "&H00FFFFFF",
-                "SecondaryColour": "&H00000000",
-                "OutlineColour": "&H00000000",
-                "BackColour": "&H00000000",
+                "PrimaryColour": WHITE_COLOR,
+                "SecondaryColour": BLACK_COLOR,
+                "OutlineColour": BLACK_COLOR,
+                "BackColour": BLACK_COLOR,
                 "Bold": -1,
                 "BorderStyle": 1,
                 "Outline": 3,
@@ -37,10 +40,10 @@ def sample_style_config() -> dict[str, Any]:
                 "Name": "Highlight",
                 "Fontname": "Impact",
                 "Fontsize": 52,
-                "PrimaryColour": "&H0000FFFF",
-                "SecondaryColour": "&H00000000",
-                "OutlineColour": "&H00000000",
-                "BackColour": "&H00000000",
+                "PrimaryColour": WHITE_COLOR,
+                "SecondaryColour": BLACK_COLOR,
+                "OutlineColour": BLACK_COLOR,
+                "BackColour": BLACK_COLOR,
                 "Bold": -1,
                 "BorderStyle": 1,
                 "Outline": 3,
