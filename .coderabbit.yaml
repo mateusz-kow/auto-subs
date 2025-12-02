@@ -11,8 +11,3 @@ reviews:
   tools:
     ruff:
       enabled: true
-includes:
-  - "src/**/*.py"
-  - "tests/**/*.py"
-  - "pyproject.toml"
-  - ".github/workflows/*.yml"
