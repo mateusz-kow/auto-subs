@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -8,6 +9,29 @@ from autosubs.models.styles.domain import RuleOperator, StyleOverride, Transform
 if TYPE_CHECKING:
     from autosubs.models.styles.domain import StyleEngineConfig, StyleRule
     from autosubs.models.subtitles import SubtitleSegment
+
+
+class BaseStyler(ABC):
+    """Abstract base class for applying styling to subtitle segments."""
+
+    @abstractmethod
+    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> StylingResult:
+        """Processes a segment and returns a styling result DTO."""
+        ...
+
+
+@dataclass(frozen=True)
+class StylingResult:
+    """Base result for any styling operation."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class AssStylingResult(StylingResult):
+    """ASS-specific result containing the ASS style name."""
+
+    style_name: str
 
 
 @dataclass
@@ -140,8 +164,8 @@ class AppliedStyles:
         return f"{{{self.raw_prefix}{tag_str}{self.raw_suffix}}}"
 
 
-class StylerEngine:
-    """Applies advanced, rule-based styling to subtitle segments."""
+class AssStyler(BaseStyler):
+    """Applies advanced, rule-based styling to subtitle segments for the ASS format."""
 
     def __init__(self, config: StyleEngineConfig):
         """Initializes the engine with a validated style configuration."""
@@ -267,13 +291,35 @@ class StylerEngine:
                 return AppliedStyles(style_override, transforms, raw_prefix)
         return AppliedStyles()
 
-    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> tuple[str, str]:
-        """Processes a segment and returns a tuple of (style_name, dialogue_text)."""
+    def _process_word_contexts(self, word_contexts: list[CharContext], line_text: str) -> str:
+        """Processes character contexts for a single word and returns styled string."""
+        word_parts = []
+        last_tags = ""
+
+        for context in word_contexts:
+            styles = self._get_styles_for_char(context, line_text)
+            current_tags = styles.to_ass_tags(context)
+
+            if current_tags != last_tags:
+                if last_tags:
+                    word_parts.append(r"{\r}")
+                word_parts.append(current_tags)
+                last_tags = current_tags
+
+            word_parts.append(context.char)
+
+        if last_tags:
+            word_parts.append(r"{\r}")
+
+        return "".join(word_parts)
+
+    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> AssStylingResult:
+        """Processes a segment and returns an ASS-specific styling result."""
         self.last_line_check_result = False
         self.last_word_check_result = False
 
         if not segment.words:
-            return default_style_name, ""
+            return AssStylingResult(text="", style_name=default_style_name)
 
         line_text = " ".join(w.text for w in segment.words)
         char_contexts = self._get_char_contexts(segment)
@@ -291,23 +337,7 @@ class StylerEngine:
             if not word_contexts:
                 continue
 
-            word_parts = []
-            last_tags = ""
-            for context in word_contexts:
-                styles = self._get_styles_for_char(context, line_text)
-                current_tags = styles.to_ass_tags(context)
+            word_strings.append(self._process_word_contexts(word_contexts, line_text))
 
-                if current_tags != last_tags:
-                    if last_tags:
-                        word_parts.append(r"{\r}")
-                    word_parts.append(current_tags)
-                    last_tags = current_tags
-
-                word_parts.append(context.char)
-
-            if last_tags:
-                word_parts.append(r"{\r}")
-
-            word_strings.append("".join(word_parts))
-
-        return style_name, " ".join(word_strings)
+        dialogue_text = " ".join(word_strings)
+        return AssStylingResult(text=dialogue_text, style_name=style_name)

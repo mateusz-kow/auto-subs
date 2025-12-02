@@ -7,7 +7,7 @@ from typing import Any
 
 from autosubs.core import generator, parser
 from autosubs.core.builder import create_subtitles_from_transcription
-from autosubs.core.styler import StylerEngine
+from autosubs.core.styler import AssStyler
 from autosubs.core.transcriber import run_transcription
 from autosubs.models.enums import TimingDistribution
 from autosubs.models.formats import SubtitleFormat
@@ -105,7 +105,7 @@ def generate(
             config_path = Path(style_config_path)
             schema = StyleEngineConfigSchema.model_validate_json(config_path.read_text(encoding="utf-8"))
         domain_config = schema.to_domain()
-        styler_engine = StylerEngine(domain_config)
+        styler_engine = AssStyler(domain_config)
         return writer_func(subtitles, styler_engine=styler_engine)
     return writer_func(subtitles)
 

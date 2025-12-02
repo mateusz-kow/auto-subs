@@ -9,18 +9,5 @@ reviews:
     enabled: true
     drafts: true
   tools:
-    ast-grep:
-      enabled: true
     ruff:
       enabled: true
-chat:
-  auto_reply: true
-  knowledge_base:
-    enabled: true
-    learnings:
-      enabled: true
-includes:
-  - "src/**/*.py"
-  - "tests/**/*.py"
-  - "pyproject.toml"
-  - ".github/workflows/*.yml"

@@ -3,7 +3,7 @@ from logging import getLogger
 from typing import Any, overload
 
 from autosubs.core.builder import create_dict_from_subtitles
-from autosubs.core.styler import StylerEngine
+from autosubs.core.styler import AssStyler
 from autosubs.models.subtitles import Subtitles
 from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
@@ -60,10 +60,10 @@ def to_ass(subtitles: AssSubtitles) -> str: ...
 
 
 @overload
-def to_ass(subtitles: Subtitles, styler_engine: StylerEngine) -> str: ...
+def to_ass(subtitles: Subtitles, styler_engine: AssStyler) -> str: ...
 
 
-def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> str:
+def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
     """Generate the content for an ASS subtitle file."""
     if isinstance(subtitles, AssSubtitles):
         logger.info("Regenerating ASS file from AssSubtitles object...")
@@ -82,7 +82,7 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> s
                 values = [_format_ass_number(style_dict.get(key, "")) for key in style_format_keys]
                 lines.append(f"Style: {','.join(values)}")
         else:
-            logger.warning("No StylerEngine or styles provided; [V4+ Styles] section will be empty.")
+            logger.warning("No AssStyler or styles provided; [V4+ Styles] section will be empty.")
         lines.append("")
 
         lines.append("[Events]")
@@ -122,9 +122,9 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> s
         return "\n".join(lines) + "\n"
 
     if not styler_engine:
-        raise ValueError("StylerEngine is required to generate an ASS file from scratch.")
+        raise ValueError("AssStyler is required to generate an ASS file from scratch.")
 
-    logger.info("Generating ASS file using the StylerEngine.")
+    logger.info("Generating ASS file using the AssStyler.")
     config = styler_engine.config
     lines = ["[Script Info]"]
     lines.extend(f"{key}: {value}" for key, value in config.script_info.items())
@@ -139,9 +139,10 @@ def to_ass(subtitles: Subtitles, styler_engine: StylerEngine | None = None) -> s
 
     default_style = config.styles[0].get("Name", "Default") if config.styles else "Default"
     for seg in subtitles.segments:
-        style_name, dialogue_text = styler_engine.process_segment(seg, default_style)
+        result = styler_engine.process_segment(seg, default_style)
         start, end = format_ass_timestamp(seg.start), format_ass_timestamp(seg.end)
-        lines.append(f"Dialogue: 0,{start},{end},{style_name},,0,0,0,,{dialogue_text}")  # Bezpośrednie użycie tekstu
+        # We can assume it's AssStylingResult because we are in to_ass
+        lines.append(f"Dialogue: 0,{start},{end},{result.style_name},,0,0,0,,{result.text}")
     return "\n".join(lines) + "\n"
 
 

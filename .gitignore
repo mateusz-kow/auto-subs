@@ -182,3 +182,4 @@ cython_debug/
 
 # Gitingest
 digest.txt
+.aider*

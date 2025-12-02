@@ -21,7 +21,7 @@
 
 ---
 
-**Auto-Subs** bridges the gap between raw transcription data and perfectly formatted subtitles. Whether you're a developer integrating transcription into your application or a content creator needing quick subtitles, `auto-subs` provides a robust, simple, and reliable solution.
+**Auto-Subs** bridges the gap between raw transcription data and perfectly formatted subtitles. Whether you're a developer integrating transcription into your application or a content creator needing quick subtitles, `auto-subs` provides a robust, simple, and reliable solution, now with a powerful styling engine for professional-grade subtitles.
 
 ## Key Features
 
@@ -32,6 +32,7 @@
 -   **🧠 Intelligent Word Segmentation**: Automatically splits word-level transcriptions into perfectly timed subtitle lines based on character limits and natural punctuation breaks.
 -   **📄 Multiple Formats**: Generate and convert subtitles in the most popular formats: **SRT**, **VTT**, and **ASS**.
 -   **🎤 Karaoke-Style Highlighting**: Generate word-by-word highlighting (`{\k...}`) for `.ass` files, perfect for music videos or language learning.
+-   **🎨 Advanced ASS Styling Engine**: Create sophisticated, rule-based visual styles for `.ass` subtitles, including dynamic effects, time-based animations, and Pydantic-validated configurations.
 -   **🛡️ Robust Validation**: Automatically handles common data issues, like inverted timestamps (`start > end`), ensuring your process never breaks on imperfect data.
 -   **⚙️ Simple & Powerful API**: Use it as a library with a clean, dictionary-based input that requires no complex objects, or as a feature-rich command-line tool.
 

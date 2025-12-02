@@ -11,15 +11,15 @@ from autosubs.cli.utils import (
     determine_output_format,
 )
 from autosubs.core import generator
-from autosubs.core.styler import StylerEngine
+from autosubs.core.styler import AssStyler
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.subtitles import Subtitles
 
 
-def _get_default_styler_engine() -> StylerEngine:
-    """Creates a StylerEngine with a minimal default configuration."""
+def _get_default_styler_engine() -> AssStyler:
+    """Creates an AssStyler with a minimal default configuration."""
     domain_config = _DEFAULT_STYLE_CONFIG.to_domain()
-    return StylerEngine(domain_config)
+    return AssStyler(domain_config)
 
 
 _format_map: dict[SubtitleFormat, Callable[..., str]] = {
