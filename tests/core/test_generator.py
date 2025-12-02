@@ -63,7 +63,7 @@ def test_to_ass(sample_subtitles: Subtitles, default_styler_engine: AssStyler) -
 
 def test_to_ass_requires_styler_engine() -> None:
     """Test that generating ASS from scratch without a styler engine raises an error."""
-    with pytest.raises(ValueError, match="StylerEngine is required"):
+    with pytest.raises(ValueError, match="AssStyler is required"):
         generator.to_ass(Subtitles(segments=[]))  # type: ignore[call-overload]
 
 
