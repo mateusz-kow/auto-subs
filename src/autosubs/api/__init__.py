@@ -19,6 +19,7 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.VTT: generator.to_vtt,
     SubtitleFormat.ASS: generator.to_ass,
     SubtitleFormat.JSON: generator.to_json,
+    SubtitleFormat.MPL2: generator.to_mpl2,
 }
 
 _DEFAULT_STYLE_CONFIG = StyleEngineConfigSchema(
@@ -155,8 +156,18 @@ def load(
         subtitles = Subtitles(segments=parser.parse_vtt(content))
     elif suffix == ".ass":
         subtitles = parser.parse_ass(content)
+    elif suffix == ".txt":
+        first_line = content.split("\n", 1)[0].strip()
+        if parser.MPL2_TIMESTAMP_REGEX.match(first_line):
+            subtitles = Subtitles(segments=parser.parse_mpl2(content))
+        else:
+            raise ValueError(
+                f"Unsupported format: {suffix} file does not appear to be in MPL2 format. "
+                "Only MPL2 is supported for .txt files."
+            )
     else:
-        supported = ", ".join(f".{fmt}" for fmt in SubtitleFormat if fmt != "json")
+        supported = ", ".join(f".{fmt}" for fmt in SubtitleFormat if fmt not in ["json", "mpl2"])
+        supported += ", .txt (MPL2)"
         raise ValueError(f"Unsupported format: {suffix}. Supported: {supported}.")
 
     if generate_word_timings and not isinstance(subtitles, AssSubtitles):
