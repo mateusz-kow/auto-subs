@@ -1,0 +1,27 @@
+branch: 'main'
+image: 'python'
+build_command: 'uv pip install --system -e .[dev,transcribe]'
+check: 'uv run pytest'
+small: true
+description: |
+  auto-subs is a CLI and library for generating subtitles using OpenAI Whisper.
+  Structure:
+  - CLI: Typer (src/autosubs/cli)
+  - Models: Pydantic v2 (src/autosubs/models)
+  - Logic: src/autosubs/core
+  - Tests: pytest
+
+  Coding Standards & Documentation:
+  - We use Python 3.11+ with full type hinting.
+  - ALL public functions must have Google Style docstrings.
+  - Docstrings must include Args, Returns, and Raises sections where applicable.
+  - Do not use List or Dict from typing; use built-in list and dict.
+docs:
+  - README.md
+  - CONTRIBUTING.md
+  - pyproject.toml
+  - src/autosubs/models/styles/schemas.py
+  - src/autosubs/models/subtitles/base.py
+sandbox:
+  install:
+    - uv pip install --system -e .[dev]
