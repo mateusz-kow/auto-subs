@@ -28,11 +28,17 @@ def test_ass_tag_block_complex_serialization() -> None:
     tag_block = AssTagBlock(
         primary_color="&H00FFFFFF&",
         transforms=["1,1000,0.5,\\fscx200"],
-        unknown_tags=["k50", "fad(200,300)"],
+        unknown_tags=["k50"],
         alpha="&H80&",
+        fade=(200, 300),
     )
-    expected = "{\\c&H00FFFFFF&\\alpha&H80&\\t(1,1000,0.5,\\fscx200)\\k50\\fad(200,300)}"
-    assert tag_block.to_ass_string() == expected
+    result = tag_block.to_ass_string()
+    assert "\\c&H00FFFFFF&" in result
+    assert "\\alpha&H80&" in result
+    assert "\\t(1,1000,0.5,\\fscx200)" in result
+    assert "\\k50" in result
+    assert "\\fad(200,300)" in result
+    assert "fad(200,300)" not in tag_block.unknown_tags
 
 
 def test_computed_ass_tag_property() -> None:

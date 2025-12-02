@@ -51,6 +51,7 @@ class AssTagBlock:
     border: int | float | None = None
     shadow: int | float | None = None
     blur: int | float | None = None
+    fade: tuple[int, int] | None = None
     # Complex transforms
     transforms: list[str] = field(default_factory=list)
     unknown_tags: list[str] = field(default_factory=list)
@@ -58,65 +59,52 @@ class AssTagBlock:
     def to_ass_string(self) -> str:
         """Serializes the tag block into a string for an ASS file."""
         tags = []
-        # Layout and Alignment
-        if self.alignment is not None:
-            tags.append(f"\\an{self.alignment}")
-        if self.position_x is not None and self.position_y is not None:
-            tags.append(f"\\pos({_format_ass_tag_number(self.position_x)},{_format_ass_tag_number(self.position_y)})")
-        if self.origin_x is not None and self.origin_y is not None:
-            tags.append(f"\\org({_format_ass_tag_number(self.origin_x)},{_format_ass_tag_number(self.origin_y)})")
 
-        # Font Properties
-        if self.font_name:
-            tags.append(f"\\fn{self.font_name}")
-        if self.font_size is not None:
-            tags.append(f"\\fs{_format_ass_tag_number(self.font_size)}")
+        def _append_paired(tag: str, x_attr: str, y_attr: str) -> None:
+            x, y = getattr(self, x_attr, None), getattr(self, y_attr, None)
+            if x is not None and y is not None:
+                tags.append(f"\\{tag}({_format_ass_tag_number(x)},{_format_ass_tag_number(y)})")
 
-        # Boolean Styles
-        if self.bold is not None:
-            tags.append(f"\\b{'1' if self.bold else '0'}")
-        if self.italic is not None:
-            tags.append(f"\\i{'1' if self.italic else '0'}")
-        if self.underline is not None:
-            tags.append(f"\\u{'1' if self.underline else '0'}")
-        if self.strikeout is not None:
-            tags.append(f"\\s{'1' if self.strikeout else '0'}")
+        _TAG_DESCRIPTORS = [
+            # (attribute_name, tag_name, [formatter])
+            ("alignment", "an"),
+            ("font_name", "fn"),
+            ("font_size", "fs", _format_ass_tag_number),
+            ("bold", "b", lambda v: "1" if v else "0"),
+            ("italic", "i", lambda v: "1" if v else "0"),
+            ("underline", "u", lambda v: "1" if v else "0"),
+            ("strikeout", "s", lambda v: "1" if v else "0"),
+            ("primary_color", "c"),
+            ("secondary_color", "2c"),
+            ("outline_color", "3c"),
+            ("shadow_color", "4c"),
+            ("alpha", "alpha"),
+            ("spacing", "fsp", _format_ass_tag_number),
+            ("scale_x", "fscx", _format_ass_tag_number),
+            ("scale_y", "fscy", _format_ass_tag_number),
+            ("rotation_z", "frz", _format_ass_tag_number),
+            ("rotation_x", "frx", _format_ass_tag_number),
+            ("rotation_y", "fry", _format_ass_tag_number),
+            ("border", "bord", _format_ass_tag_number),
+            ("shadow", "shad", _format_ass_tag_number),
+            ("blur", "blur", _format_ass_tag_number),
+        ]
+        string_attrs = {"font_name", "primary_color", "secondary_color", "outline_color", "shadow_color", "alpha"}
 
-        # Colors and Alpha
-        if self.primary_color:
-            tags.append(f"\\c{self.primary_color}")
-        if self.secondary_color:
-            tags.append(f"\\2c{self.secondary_color}")
-        if self.outline_color:
-            tags.append(f"\\3c{self.outline_color}")
-        if self.shadow_color:
-            tags.append(f"\\4c{self.shadow_color}")
-        if self.alpha:
-            tags.append(f"\\alpha{self.alpha}")
+        _append_paired("pos", "position_x", "position_y")
+        _append_paired("org", "origin_x", "origin_y")
 
-        # Spacing and Scaling
-        if self.spacing is not None:
-            tags.append(f"\\fsp{_format_ass_tag_number(self.spacing)}")
-        if self.scale_x is not None:
-            tags.append(f"\\fscx{_format_ass_tag_number(self.scale_x)}")
-        if self.scale_y is not None:
-            tags.append(f"\\fscy{_format_ass_tag_number(self.scale_y)}")
+        for item in _TAG_DESCRIPTORS:
+            attr, tag = item[0], item[1]
+            formatter = item[2] if len(item) > 2 else None
+            value = getattr(self, attr)
 
-        # Rotation
-        if self.rotation_z is not None:
-            tags.append(f"\\frz{_format_ass_tag_number(self.rotation_z)}")
-        if self.rotation_x is not None:
-            tags.append(f"\\frx{_format_ass_tag_number(self.rotation_x)}")
-        if self.rotation_y is not None:
-            tags.append(f"\\fry{_format_ass_tag_number(self.rotation_y)}")
+            if value if attr in string_attrs else value is not None:
+                formatted = formatter(value) if formatter else value
+                tags.append(f"\\{tag}{formatted}")
 
-        # Border, Shadow, and Blur Effects
-        if self.border is not None:
-            tags.append(f"\\bord{_format_ass_tag_number(self.border)}")
-        if self.shadow is not None:
-            tags.append(f"\\shad{_format_ass_tag_number(self.shadow)}")
-        if self.blur is not None:
-            tags.append(f"\\blur{_format_ass_tag_number(self.blur)}")
+        if self.fade is not None:
+            tags.append(f"\\fad({self.fade[0]},{self.fade[1]})")
 
         for transform in self.transforms:
             tags.append(f"\\t({transform})")

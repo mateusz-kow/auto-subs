@@ -1,5 +1,6 @@
 """Core module for parsing subtitle file formats."""
 
+import dataclasses
 import regex as re
 from logging import getLogger
 from typing import Any
@@ -147,6 +148,10 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
 
         return parser
 
+    def _parse_fad(value: str, kwargs: dict[str, Any]) -> None:
+        t1, t2 = [int(v) for v in value.split(",")]
+        kwargs["fade"] = (t1, t2)
+
     _dispatch_table = {
         # Boolean styles
         "b": _parse_bool("bold"),
@@ -179,6 +184,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         "bord": _parse_float("border"),
         "shad": _parse_float("shadow"),
         "blur": _parse_float("blur"),
+        "fad": _parse_fad,
     }
 
     tag_pattern = re.compile(r"\\(t)\(((?:[^()]+|\((?2)\))*)\)|\\([1-4]c|[a-zA-Z]+)(?:\(([^)]*)\)|([^\\]*))")
@@ -242,7 +248,23 @@ def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitl
             word_duration = (duration * char_count / total_chars) if total_chars > 0 else 0
             word = AssSubtitleWord(text=token, start=current_time, end=current_time + word_duration)
             if pending_blocks:
-                word.styles = [WordStyleRange(0, len(token), block) for block in pending_blocks]
+                merged_block = AssTagBlock()
+                for block in pending_blocks:
+                    changes = {
+                        f.name: getattr(block, f.name)
+                        for f in dataclasses.fields(block)
+                        if getattr(block, f.name) is not None
+                        and (not isinstance(getattr(block, f.name), list) or getattr(block, f.name))
+                    }
+                    if "transforms" in changes:
+                        changes["transforms"] = merged_block.transforms + changes["transforms"]
+                    if "unknown_tags" in changes:
+                        changes["unknown_tags"] = merged_block.unknown_tags + changes["unknown_tags"]
+
+                    if changes:
+                        merged_block = dataclasses.replace(merged_block, **changes)
+
+                word.styles = [WordStyleRange(0, len(token), merged_block)]
                 pending_blocks.clear()
             words.append(word)
             current_time += word_duration
