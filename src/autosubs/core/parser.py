@@ -155,7 +155,8 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         try:
             # Boolean styles
             if tag == "b":
-                kwargs["bold"] = value_str.endswith("1")
+                # \b0 = off, \b1 or \b-1 = on, \b<weight> = font weight (treated as on)
+                kwargs["bold"] = value_str != "0"
             elif tag == "i":
                 kwargs["italic"] = value_str.endswith("1")
             elif tag == "u":
