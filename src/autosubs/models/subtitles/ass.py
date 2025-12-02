@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any, Callable
 
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
@@ -64,20 +65,20 @@ class AssTagBlock:
             if x is not None and y is not None:
                 tags.append(f"\\{tag}({_format_ass_tag_number(x)},{_format_ass_tag_number(y)})")
 
-        tag_descriptors = [
-            # (attribute_name, tag_name, [formatter])
-            ("alignment", "an"),
-            ("font_name", "fn"),
+        tag_descriptors: list[tuple[str, str, Callable[[Any], str] | None]] = [
+            # (attribute_name, tag_name, formatter)
+            ("alignment", "an", None),
+            ("font_name", "fn", None),
             ("font_size", "fs", _format_ass_tag_number),
             ("bold", "b", lambda v: "1" if v else "0"),
             ("italic", "i", lambda v: "1" if v else "0"),
             ("underline", "u", lambda v: "1" if v else "0"),
             ("strikeout", "s", lambda v: "1" if v else "0"),
-            ("primary_color", "c"),
-            ("secondary_color", "2c"),
-            ("outline_color", "3c"),
-            ("shadow_color", "4c"),
-            ("alpha", "alpha"),
+            ("primary_color", "c", None),
+            ("secondary_color", "2c", None),
+            ("outline_color", "3c", None),
+            ("shadow_color", "4c", None),
+            ("alpha", "alpha", None),
             ("spacing", "fsp", _format_ass_tag_number),
             ("scale_x", "fscx", _format_ass_tag_number),
             ("scale_y", "fscy", _format_ass_tag_number),
@@ -93,9 +94,7 @@ class AssTagBlock:
         _append_paired("pos", "position_x", "position_y")
         _append_paired("org", "origin_x", "origin_y")
 
-        for item in tag_descriptors:
-            attr, tag = item[0], item[1]
-            formatter = item[2] if len(item) > 2 else None
+        for attr, tag, formatter in tag_descriptors:
             value = getattr(self, attr)
 
             if value if attr in string_attrs else value is not None:

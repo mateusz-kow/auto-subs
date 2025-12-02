@@ -2,7 +2,7 @@
 
 import dataclasses
 from logging import getLogger
-from typing import Any
+from typing import Any, Callable
 
 import regex as re
 
@@ -130,19 +130,19 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
     if not tag_content:
         return AssTagBlock()
 
-    def _parse_bool(key: str):
-        return lambda value, kwargs: kwargs.update({key: value != 0})
+    def _parse_bool(key: str) -> Callable[[str, dict[str, Any]], None]:
+        return lambda value, kwargs: kwargs.update({key: value.endswith("1")})
 
-    def _parse_float(key: str):
+    def _parse_float(key: str) -> Callable[[str, dict[str, Any]], None]:
         return lambda value, kwargs: kwargs.update({key: float(value)})
 
-    def _parse_int(key: str):
+    def _parse_int(key: str) -> Callable[[str, dict[str, Any]], None]:
         return lambda value, kwargs: kwargs.update({key: int(value)})
 
-    def _parse_str(key: str):
+    def _parse_str(key: str) -> Callable[[str, dict[str, Any]], None]:
         return lambda value, kwargs: kwargs.update({key: value})
 
-    def _parse_pos(key_x: str, key_y: str):
+    def _parse_pos(key_x: str, key_y: str) -> Callable[[str, dict[str, Any]], None]:
         def parser(value: str, kwargs: dict[str, Any]) -> None:
             x, y = [float(v) for v in value.split(",")]
             kwargs.update({key_x: x, key_y: y})
