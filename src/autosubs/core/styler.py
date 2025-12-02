@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -8,6 +9,15 @@ from autosubs.models.styles.domain import RuleOperator, StyleOverride, Transform
 if TYPE_CHECKING:
     from autosubs.models.styles.domain import StyleEngineConfig, StyleRule
     from autosubs.models.subtitles import SubtitleSegment
+
+
+class BaseStyler(ABC):
+    """Abstract base class for applying styling to subtitle segments."""
+
+    @abstractmethod
+    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> tuple[str, str]:
+        """Processes a segment and returns a tuple of (style_name, dialogue_text)."""
+        raise NotImplementedError
 
 
 @dataclass
@@ -140,8 +150,8 @@ class AppliedStyles:
         return f"{{{self.raw_prefix}{tag_str}{self.raw_suffix}}}"
 
 
-class StylerEngine:
-    """Applies advanced, rule-based styling to subtitle segments."""
+class AssStyler(BaseStyler):
+    """Applies advanced, rule-based styling to subtitle segments for the ASS format."""
 
     def __init__(self, config: StyleEngineConfig):
         """Initializes the engine with a validated style configuration."""
