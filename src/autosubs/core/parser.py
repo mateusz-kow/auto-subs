@@ -2,6 +2,7 @@
 
 import re
 from logging import getLogger
+from typing import Any
 
 from autosubs.models import (
     AssSubtitles,
@@ -11,6 +12,7 @@ from autosubs.models import (
     SubtitleWord,
     WordStyleRange,
 )
+from autosubs.models.subtitles.ass import AssTagBlock
 
 logger = getLogger(__name__)
 
@@ -121,6 +123,98 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
     return segments
 
 
+def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
+    """Parses the content of an ASS style tag block."""
+    if not tag_content:
+        return AssTagBlock()
+
+    tag_pattern = re.compile(r"\\(t)\((.*?)\)|\\([a-zA-Z0-9]+)(?:\(([^)]*)\)|([^\\]*))")
+
+    kwargs: dict[str, Any] = {}
+    transforms: list[str] = []
+
+    for match in tag_pattern.finditer(tag_content):
+        t_tag, t_val, tag, paren_val, simple_val = match.groups()
+
+        if t_tag == "t":
+            transforms.append(t_val)
+            continue
+
+        if tag == "r":
+            kwargs.clear()
+            transforms.clear()
+            continue
+
+        value_str = paren_val if paren_val is not None else simple_val
+        if value_str is None:
+            continue
+        value_str = value_str.strip()
+
+        try:
+            # Boolean styles
+            if tag == "b":
+                kwargs["bold"] = value_str.endswith("1")
+            elif tag == "i":
+                kwargs["italic"] = value_str.endswith("1")
+            elif tag == "u":
+                kwargs["underline"] = value_str.endswith("1")
+            elif tag == "s":
+                kwargs["strikeout"] = value_str.endswith("1")
+            # Font
+            elif tag == "fn":
+                kwargs["font_name"] = value_str
+            elif tag == "fs":
+                kwargs["font_size"] = float(value_str)
+            # Colors
+            elif tag in ("c", "1c"):
+                kwargs["primary_color"] = value_str
+            elif tag == "2c":
+                kwargs["secondary_color"] = value_str
+            elif tag == "3c":
+                kwargs["outline_color"] = value_str
+            elif tag == "4c":
+                kwargs["shadow_color"] = value_str
+            elif tag == "alpha":
+                kwargs["alpha"] = value_str
+            # Layout
+            elif tag == "an":
+                kwargs["alignment"] = int(value_str)
+            elif tag == "pos":
+                x, y = [float(v) for v in value_str.split(",")]
+                kwargs["position_x"], kwargs["position_y"] = x, y
+            elif tag == "org":
+                x, y = [float(v) for v in value_str.split(",")]
+                kwargs["origin_x"], kwargs["origin_y"] = x, y
+            # Spacing/Scaling
+            elif tag == "fsp":
+                kwargs["spacing"] = float(value_str)
+            elif tag == "fscx":
+                kwargs["scale_x"] = float(value_str)
+            elif tag == "fscy":
+                kwargs["scale_y"] = float(value_str)
+            # Rotation
+            elif tag == "frx":
+                kwargs["rotation_x"] = float(value_str)
+            elif tag == "fry":
+                kwargs["rotation_y"] = float(value_str)
+            elif tag == "frz":
+                kwargs["rotation_z"] = float(value_str)
+            # Effects
+            elif tag == "bord":
+                kwargs["border"] = float(value_str)
+            elif tag == "shad":
+                kwargs["shadow"] = float(value_str)
+            elif tag == "blur":
+                kwargs["blur"] = float(value_str)
+        except (ValueError, IndexError):
+            logger.warning(f"Could not parse ASS tag: \\{tag}{value_str}")
+
+    if transforms:
+        kwargs["transforms"] = transforms
+
+    return AssTagBlock(**kwargs)
+
+
 def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitleWord]:
     processed_text = text.replace(r"\N", "\n").replace(r"\n", "\n")
     tokens = [t for t in re.split(r"({[^}]+})", processed_text) if t]
@@ -130,24 +224,25 @@ def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitl
 
     words: list[AssSubtitleWord] = []
     current_time = start
-    pending_tags: list[str] = []
+    pending_blocks: list[AssTagBlock] = []
 
     for token in tokens:
         if token.startswith("{") and token.endswith("}"):
-            pending_tags.append(token)
+            content = token[1:-1]
+            pending_blocks.append(_parse_ass_tag_block(content))
         else:
             char_count = len(token)
             word_duration = (duration * char_count / total_chars) if total_chars > 0 else 0
             word = AssSubtitleWord(text=token, start=current_time, end=current_time + word_duration)
-            if pending_tags:
-                word.styles = [WordStyleRange(0, len(token), tag) for tag in pending_tags]
-                pending_tags.clear()
+            if pending_blocks:
+                word.styles = [WordStyleRange(0, len(token), block) for block in pending_blocks]
+                pending_blocks.clear()
             words.append(word)
             current_time += word_duration
 
-    if pending_tags:
+    if pending_blocks:
         final_word = AssSubtitleWord(text="", start=end, end=end)
-        final_word.styles = [WordStyleRange(0, 0, tag) for tag in pending_tags]
+        final_word.styles = [WordStyleRange(0, 0, block) for block in pending_blocks]
         words.append(final_word)
 
     return words

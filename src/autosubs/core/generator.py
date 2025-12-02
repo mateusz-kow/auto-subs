@@ -41,7 +41,7 @@ def format_ass_timestamp(seconds: float) -> str:
 def _reconstruct_dialogue_text(segment: AssSubtitleSegment) -> str:
     parts: list[str] = []
     for word in segment.words:
-        tag_string = "".join(style.ass_tag for style in word.styles)
+        tag_string = "".join(style.tag_block.to_ass_string() for style in word.styles)
         text = word.text.replace("\n", r"\N")
         parts.append(f"{tag_string}{text}")
     return "".join(parts)

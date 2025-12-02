@@ -3,8 +3,120 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
+
+
+@dataclass(frozen=True, eq=True)
+class AssTagBlock:
+    """Represents a block of ASS style override tags."""
+
+    # Boolean styles
+    bold: bool | None = None
+    italic: bool | None = None
+    underline: bool | None = None
+    strikeout: bool | None = None
+    # Layout and Alignment
+    alignment: int | None = None
+    position_x: int | float | None = None
+    position_y: int | float | None = None
+    origin_x: int | float | None = None
+    origin_y: int | float | None = None
+    # Font Properties
+    font_name: str | None = None
+    font_size: int | float | None = None
+    # Colors and Alpha
+    primary_color: str | None = None
+    secondary_color: str | None = None
+    outline_color: str | None = None
+    shadow_color: str | None = None
+    alpha: str | None = None
+    # Spacing and Scaling
+    spacing: int | float | None = None
+    scale_x: int | float | None = None
+    scale_y: int | float | None = None
+    # Rotation
+    rotation_x: int | float | None = None
+    rotation_y: int | float | None = None
+    rotation_z: int | float | None = None
+    # Border, Shadow, and Blur
+    border: int | float | None = None
+    shadow: int | float | None = None
+    blur: int | float | None = None
+    # Complex transforms
+    transforms: list[str] = field(default_factory=list)
+
+    def to_ass_string(self) -> str:
+        """Serializes the tag block into a string for an ASS file."""
+        tags = []
+        # Layout and Alignment
+        if self.alignment is not None:
+            tags.append(f"\\an{self.alignment}")
+        if self.position_x is not None and self.position_y is not None:
+            tags.append(f"\\pos({self.position_x},{self.position_y})")
+        if self.origin_x is not None and self.origin_y is not None:
+            tags.append(f"\\org({self.origin_x},{self.origin_y})")
+
+        # Font Properties
+        if self.font_name:
+            tags.append(f"\\fn{self.font_name}")
+        if self.font_size is not None:
+            tags.append(f"\\fs{int(self.font_size)}")
+
+        # Boolean Styles
+        if self.bold is not None:
+            tags.append(f"\\b{'1' if self.bold else '0'}")
+        if self.italic is not None:
+            tags.append(f"\\i{'1' if self.italic else '0'}")
+        if self.underline is not None:
+            tags.append(f"\\u{'1' if self.underline else '0'}")
+        if self.strikeout is not None:
+            tags.append(f"\\s{'1' if self.strikeout else '0'}")
+
+        # Colors and Alpha
+        if self.primary_color:
+            tags.append(f"\\c{self.primary_color}")
+        if self.secondary_color:
+            tags.append(f"\\2c{self.secondary_color}")
+        if self.outline_color:
+            tags.append(f"\\3c{self.outline_color}")
+        if self.shadow_color:
+            tags.append(f"\\4c{self.shadow_color}")
+        if self.alpha:
+            tags.append(f"\\alpha{self.alpha}")
+
+        # Spacing and Scaling
+        if self.spacing is not None:
+            tags.append(f"\\fsp{self.spacing}")
+        if self.scale_x is not None:
+            tags.append(f"\\fscx{self.scale_x}")
+        if self.scale_y is not None:
+            tags.append(f"\\fscy{self.scale_y}")
+
+        # Rotation
+        if self.rotation_z is not None:
+            tags.append(f"\\frz{self.rotation_z}")
+        if self.rotation_x is not None:
+            tags.append(f"\\frx{self.rotation_x}")
+        if self.rotation_y is not None:
+            tags.append(f"\\fry{self.rotation_y}")
+
+        # Border, Shadow, and Blur Effects
+        if self.border is not None:
+            tags.append(f"\\bord{self.border}")
+        if self.shadow is not None:
+            tags.append(f"\\shad{self.shadow}")
+        if self.blur is not None:
+            tags.append(f"\\blur{self.blur}")
+
+        for transform in self.transforms:
+            tags.append(f"\\t({transform})")
+
+        tag_str = "".join(tags)
+        if not tag_str:
+            return ""
+        return f"{{{tag_str}}}"
 
 
 @dataclass(frozen=True, eq=True)
@@ -13,7 +125,12 @@ class WordStyleRange:
 
     start_char_index: int
     end_char_index: int
-    ass_tag: str
+    tag_block: AssTagBlock
+
+    @property
+    def ass_tag(self) -> str:
+        """Returns the ASS tag string representation of the tag block."""
+        return self.tag_block.to_ass_string()
 
 
 @dataclass(eq=True)
