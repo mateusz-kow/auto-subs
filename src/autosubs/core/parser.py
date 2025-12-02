@@ -1,7 +1,11 @@
 """Core module for parsing subtitle file formats."""
 
-import re
+import dataclasses
+from collections.abc import Callable
 from logging import getLogger
+from typing import Any
+
+import regex as re
 
 from autosubs.models import (
     AssSubtitles,
@@ -11,6 +15,7 @@ from autosubs.models import (
     SubtitleWord,
     WordStyleRange,
 )
+from autosubs.models.subtitles.ass import AssTagBlock
 
 logger = getLogger(__name__)
 
@@ -121,6 +126,110 @@ def parse_vtt(file_content: str) -> list[SubtitleSegment]:
     return segments
 
 
+def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
+    """Parses the content of an ASS style tag block."""
+    if not tag_content:
+        return AssTagBlock()
+
+    def _parse_bool(key: str) -> Callable[[str, dict[str, Any]], None]:
+        return lambda value, kwargs: kwargs.update({key: value.endswith("1")})
+
+    def _parse_float(key: str) -> Callable[[str, dict[str, Any]], None]:
+        return lambda value, kwargs: kwargs.update({key: float(value)})
+
+    def _parse_int(key: str) -> Callable[[str, dict[str, Any]], None]:
+        return lambda value, kwargs: kwargs.update({key: int(value)})
+
+    def _parse_str(key: str) -> Callable[[str, dict[str, Any]], None]:
+        return lambda value, kwargs: kwargs.update({key: value})
+
+    def _parse_pos(key_x: str, key_y: str) -> Callable[[str, dict[str, Any]], None]:
+        def parser(value: str, kwargs: dict[str, Any]) -> None:
+            x, y = [float(v) for v in value.split(",")]
+            kwargs.update({key_x: x, key_y: y})
+
+        return parser
+
+    def _parse_fad(value: str, kwargs: dict[str, Any]) -> None:
+        t1, t2 = [int(v) for v in value.split(",")]
+        kwargs["fade"] = (t1, t2)
+
+    _dispatch_table = {
+        # Boolean styles
+        "b": _parse_bool("bold"),
+        "i": _parse_bool("italic"),
+        "u": _parse_bool("underline"),
+        "s": _parse_bool("strikeout"),
+        # Font
+        "fn": _parse_str("font_name"),
+        "fs": _parse_float("font_size"),
+        # Colors
+        "c": _parse_str("primary_color"),
+        "1c": _parse_str("primary_color"),
+        "2c": _parse_str("secondary_color"),
+        "3c": _parse_str("outline_color"),
+        "4c": _parse_str("shadow_color"),
+        "alpha": _parse_str("alpha"),
+        # Layout
+        "an": _parse_int("alignment"),
+        "pos": _parse_pos("position_x", "position_y"),
+        "org": _parse_pos("origin_x", "origin_y"),
+        # Spacing/Scaling
+        "fsp": _parse_float("spacing"),
+        "fscx": _parse_float("scale_x"),
+        "fscy": _parse_float("scale_y"),
+        # Rotation
+        "frx": _parse_float("rotation_x"),
+        "fry": _parse_float("rotation_y"),
+        "frz": _parse_float("rotation_z"),
+        # Effects
+        "bord": _parse_float("border"),
+        "shad": _parse_float("shadow"),
+        "blur": _parse_float("blur"),
+        "fad": _parse_fad,
+    }
+
+    tag_pattern = re.compile(r"\\(t)\(((?:[^()]+|\((?2)\))*)\)|\\([1-4]c|[a-zA-Z]+)(?:\(([^)]*)\)|([^\\]*))")
+
+    kwargs: dict[str, Any] = {}
+    transforms: list[str] = []
+    unknown_tags: list[str] = []
+
+    for match in tag_pattern.finditer(tag_content):
+        t_tag, t_val, tag, paren_val, simple_val = match.groups()
+
+        if t_tag == "t":
+            transforms.append(t_val)
+            continue
+
+        if tag == "r":
+            kwargs.clear()
+            transforms.clear()
+            unknown_tags.clear()
+            continue
+
+        value_str = paren_val if paren_val is not None else simple_val
+        if value_str is None:
+            continue
+        value_str = value_str.strip()
+
+        parser = _dispatch_table.get(tag)
+        if parser:
+            try:
+                parser(value_str, kwargs)
+            except (ValueError, IndexError):
+                logger.warning(f"Could not parse ASS tag: \\{tag}{value_str}")
+        else:
+            unknown_tags.append(match.group(0).lstrip("\\"))
+
+    if transforms:
+        kwargs["transforms"] = tuple(transforms)
+    if unknown_tags:
+        kwargs["unknown_tags"] = tuple(unknown_tags)
+
+    return AssTagBlock(**kwargs)
+
+
 def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitleWord]:
     processed_text = text.replace(r"\N", "\n").replace(r"\n", "\n")
     tokens = [t for t in re.split(r"({[^}]+})", processed_text) if t]
@@ -130,24 +239,41 @@ def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitl
 
     words: list[AssSubtitleWord] = []
     current_time = start
-    pending_tags: list[str] = []
+    pending_blocks: list[AssTagBlock] = []
 
     for token in tokens:
         if token.startswith("{") and token.endswith("}"):
-            pending_tags.append(token)
+            content = token[1:-1]
+            pending_blocks.append(_parse_ass_tag_block(content))
         else:
             char_count = len(token)
             word_duration = (duration * char_count / total_chars) if total_chars > 0 else 0
             word = AssSubtitleWord(text=token, start=current_time, end=current_time + word_duration)
-            if pending_tags:
-                word.styles = [WordStyleRange(0, len(token), tag) for tag in pending_tags]
-                pending_tags.clear()
+            if pending_blocks:
+                merged_block = AssTagBlock()
+                for block in pending_blocks:
+                    changes = {
+                        f.name: getattr(block, f.name)
+                        for f in dataclasses.fields(block)
+                        if getattr(block, f.name) is not None
+                        and (not isinstance(getattr(block, f.name), list) or getattr(block, f.name))
+                    }
+                    if "transforms" in changes:
+                        changes["transforms"] = merged_block.transforms + changes["transforms"]
+                    if "unknown_tags" in changes:
+                        changes["unknown_tags"] = merged_block.unknown_tags + changes["unknown_tags"]
+
+                    if changes:
+                        merged_block = dataclasses.replace(merged_block, **changes)
+
+                word.styles = [WordStyleRange(0, len(token), merged_block)]
+                pending_blocks.clear()
             words.append(word)
             current_time += word_duration
 
-    if pending_tags:
+    if pending_blocks:
         final_word = AssSubtitleWord(text="", start=end, end=end)
-        final_word.styles = [WordStyleRange(0, 0, tag) for tag in pending_tags]
+        final_word.styles = [WordStyleRange(0, 0, block) for block in pending_blocks]
         words.append(final_word)
 
     return words
