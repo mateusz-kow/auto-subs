@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 
 from autosubs.cli import app
 from autosubs.cli.convert import _get_default_styler_engine
-from autosubs.core.styler import StylerEngine
+from autosubs.core.styler import BaseStyler
 
 runner = CliRunner()
 
@@ -97,6 +97,6 @@ def test_cli_convert_processing_error(mock_load: MagicMock, tmp_srt_file: Path) 
 def test_get_default_styler_engine() -> None:
     """Test that _get_default_styler_engine returns a valid StylerEngine."""
     engine = _get_default_styler_engine()
-    assert isinstance(engine, StylerEngine)
+    assert isinstance(engine, BaseStyler)
     assert engine.config.styles
     assert engine.config.styles[0]["Name"] == "Default"

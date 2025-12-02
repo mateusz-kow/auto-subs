@@ -2,7 +2,7 @@ import pytest
 
 from autosubs.core import generator
 from autosubs.core.generator import to_ass
-from autosubs.core.styler import StylerEngine
+from autosubs.core.styler import AssStyler
 from autosubs.models import SubtitleWord
 from autosubs.models.styles.domain import StyleEngineConfig
 from autosubs.models.subtitles import AssSubtitles, AssSubtitleSegment, AssSubtitleWord, Subtitles, SubtitleSegment
@@ -33,7 +33,7 @@ def empty_subtitles() -> Subtitles:
 
 
 @pytest.fixture
-def default_styler_engine() -> StylerEngine:
+def default_styler_engine() -> AssStyler:
     """Provides a StylerEngine with a minimal default configuration."""
     config = StyleEngineConfig(
         script_info={"Title": "Default"},
@@ -41,7 +41,7 @@ def default_styler_engine() -> StylerEngine:
         rules=[],
         effects={},
     )
-    return StylerEngine(config)
+    return AssStyler(config)
 
 
 def test_to_srt(sample_subtitles: Subtitles) -> None:
@@ -52,7 +52,7 @@ def test_to_srt(sample_subtitles: Subtitles) -> None:
     assert generator.to_srt(sample_subtitles) == expected_srt
 
 
-def test_to_ass(sample_subtitles: Subtitles, default_styler_engine: StylerEngine) -> None:
+def test_to_ass(sample_subtitles: Subtitles, default_styler_engine: AssStyler) -> None:
     """Test ASS generation."""
     result = generator.to_ass(sample_subtitles, styler_engine=default_styler_engine)
     assert "[Script Info]" in result
@@ -111,7 +111,7 @@ def test_to_ass_generates_v4_styles_from_styler_engine(sample_subtitles: Subtitl
             {"Name": "Highlight", "Fontname": "Impact", "Bold": False},
         ],
     )
-    styler_engine = StylerEngine(config)
+    styler_engine = AssStyler(config)
     result = generator.to_ass(sample_subtitles, styler_engine=styler_engine)
     assert "Format: Name, Fontname, Bold" in result
     assert "Style: Default,Arial,-1" in result

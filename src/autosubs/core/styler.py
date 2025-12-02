@@ -17,7 +17,7 @@ class BaseStyler(ABC):
     @abstractmethod
     def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> StylingResult:
         """Processes a segment and returns a styling result DTO."""
-        raise NotImplementedError
+        ...
 
 
 @dataclass(frozen=True)
@@ -291,6 +291,28 @@ class AssStyler(BaseStyler):
                 return AppliedStyles(style_override, transforms, raw_prefix)
         return AppliedStyles()
 
+    def _process_word_contexts(self, word_contexts: list[CharContext], line_text: str) -> str:
+        """Processes character contexts for a single word and returns styled string."""
+        word_parts = []
+        last_tags = ""
+
+        for context in word_contexts:
+            styles = self._get_styles_for_char(context, line_text)
+            current_tags = styles.to_ass_tags(context)
+
+            if current_tags != last_tags:
+                if last_tags:
+                    word_parts.append(r"{\r}")
+                word_parts.append(current_tags)
+                last_tags = current_tags
+
+            word_parts.append(context.char)
+
+        if last_tags:
+            word_parts.append(r"{\r}")
+
+        return "".join(word_parts)
+
     def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> AssStylingResult:
         """Processes a segment and returns an ASS-specific styling result."""
         self.last_line_check_result = False
@@ -315,24 +337,7 @@ class AssStyler(BaseStyler):
             if not word_contexts:
                 continue
 
-            word_parts = []
-            last_tags = ""
-            for context in word_contexts:
-                styles = self._get_styles_for_char(context, line_text)
-                current_tags = styles.to_ass_tags(context)
-
-                if current_tags != last_tags:
-                    if last_tags:
-                        word_parts.append(r"{\r}")
-                    word_parts.append(current_tags)
-                    last_tags = current_tags
-
-                word_parts.append(context.char)
-
-            if last_tags:
-                word_parts.append(r"{\r}")
-
-            word_strings.append("".join(word_parts))
+            word_strings.append(self._process_word_contexts(word_contexts, line_text))
 
         dialogue_text = " ".join(word_strings)
         return AssStylingResult(text=dialogue_text, style_name=style_name)
