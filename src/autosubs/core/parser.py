@@ -1,6 +1,6 @@
 """Core module for parsing subtitle file formats."""
 
-import re
+import regex as re
 from logging import getLogger
 from typing import Any
 
@@ -181,7 +181,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         "blur": _parse_float("blur"),
     }
 
-    tag_pattern = re.compile(r"\\(t)\((.*?)\)|\\([1-4]c|[a-zA-Z]+)(?:\(([^)]*)\)|([^\\]*))")
+    tag_pattern = re.compile(r"\\(t)\(((?:[^()]+|\((?2)\))*)\)|\\([1-4]c|[a-zA-Z]+)(?:\(([^)]*)\)|([^\\]*))")
 
     kwargs: dict[str, Any] = {}
     transforms: list[str] = []

@@ -87,6 +87,24 @@ def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
     assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
 
 
+def test_parse_ass_handles_nested_transform_tag() -> None:
+    """Test that ASS parser correctly handles transform tags with nested parentheses."""
+    content = (
+        "[Events]\n"
+        "Format: Start, End, Text\n"
+        r"Dialogue: 0:00:00.00,0:00:01.00,{\t(0,500,\clip(0,0,10,10))}Test"
+    )
+    subs = parser.parse_ass(content)
+    assert len(subs.segments) == 1
+    segment = subs.segments[0]
+    assert len(segment.words) == 1
+    word = segment.words[0]
+    assert word.text == "Test"
+    assert len(word.styles) == 1
+    style_range = word.styles[0]
+    assert style_range.tag.transforms == [r"0,500,\clip(0,0,10,10)"]
+
+
 def test_parse_srt_handles_short_blocks() -> None:
     """Test that blocks with fewer than 2 lines are skipped."""
     content = "1\n\n00:00:00,000 --> 00:00:01,000\nLine 2"
