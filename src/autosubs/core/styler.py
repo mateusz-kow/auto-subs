@@ -15,9 +15,23 @@ class BaseStyler(ABC):
     """Abstract base class for applying styling to subtitle segments."""
 
     @abstractmethod
-    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> tuple[str, str]:
-        """Processes a segment and returns a tuple of (style_name, dialogue_text)."""
+    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> StylingResult:
+        """Processes a segment and returns a styling result DTO."""
         raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class StylingResult:
+    """Base result for any styling operation."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class AssStylingResult(StylingResult):
+    """ASS-specific result containing the ASS style name."""
+
+    style_name: str
 
 
 @dataclass
@@ -277,13 +291,13 @@ class AssStyler(BaseStyler):
                 return AppliedStyles(style_override, transforms, raw_prefix)
         return AppliedStyles()
 
-    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> tuple[str, str]:
-        """Processes a segment and returns a tuple of (style_name, dialogue_text)."""
+    def process_segment(self, segment: SubtitleSegment, default_style_name: str) -> AssStylingResult:
+        """Processes a segment and returns an ASS-specific styling result."""
         self.last_line_check_result = False
         self.last_word_check_result = False
 
         if not segment.words:
-            return default_style_name, ""
+            return AssStylingResult(text="", style_name=default_style_name)
 
         line_text = " ".join(w.text for w in segment.words)
         char_contexts = self._get_char_contexts(segment)
@@ -320,4 +334,5 @@ class AssStyler(BaseStyler):
 
             word_strings.append("".join(word_parts))
 
-        return style_name, " ".join(word_strings)
+        dialogue_text = " ".join(word_strings)
+        return AssStylingResult(text=dialogue_text, style_name=style_name)

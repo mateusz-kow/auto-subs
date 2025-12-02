@@ -139,9 +139,10 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
 
     default_style = config.styles[0].get("Name", "Default") if config.styles else "Default"
     for seg in subtitles.segments:
-        style_name, dialogue_text = styler_engine.process_segment(seg, default_style)
+        result = styler_engine.process_segment(seg, default_style)
         start, end = format_ass_timestamp(seg.start), format_ass_timestamp(seg.end)
-        lines.append(f"Dialogue: 0,{start},{end},{style_name},,0,0,0,,{dialogue_text}")  # Bezpośrednie użycie tekstu
+        # We can assume it's AssStylingResult because we are in to_ass
+        lines.append(f"Dialogue: 0,{start},{end},{result.style_name},,0,0,0,,{result.text}")
     return "\n".join(lines) + "\n"
 
 
