@@ -1,8 +1,9 @@
 """Core module for parsing subtitle file formats."""
 
 import dataclasses
+from collections.abc import Callable
 from logging import getLogger
-from typing import Any, Callable
+from typing import Any
 
 import regex as re
 
