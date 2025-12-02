@@ -102,7 +102,7 @@ def test_parse_ass_handles_nested_transform_tag() -> None:
     assert word.text == "Test"
     assert len(word.styles) == 1
     style_range = word.styles[0]
-    assert style_range.tag_block.transforms == [r"0,500,\clip(0,0,10,10)"]
+    assert style_range.tag_block.transforms == (r"0,500,\clip(0,0,10,10)",)
 
 
 def test_parse_srt_handles_short_blocks() -> None:

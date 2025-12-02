@@ -54,8 +54,8 @@ class AssTagBlock:
     blur: int | float | None = None
     fade: tuple[int, int] | None = None
     # Complex transforms
-    transforms: list[str] = field(default_factory=list)
-    unknown_tags: list[str] = field(default_factory=list)
+    transforms: tuple[str, ...] = field(default_factory=tuple)
+    unknown_tags: tuple[str, ...] = field(default_factory=tuple)
 
     def to_ass_string(self) -> str:
         """Serializes the tag block into a string for an ASS file."""

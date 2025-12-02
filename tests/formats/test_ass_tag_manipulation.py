@@ -27,8 +27,8 @@ def test_ass_tag_block_complex_serialization() -> None:
     """Test serialization of complex properties like transforms and unknown tags."""
     tag_block = AssTagBlock(
         primary_color="&H00FFFFFF&",
-        transforms=["1,1000,0.5,\\fscx200"],
-        unknown_tags=["k50"],
+        transforms=("1,1000,0.5,\\fscx200",),
+        unknown_tags=("k50",),
         alpha="&H80&",
         fade=(200, 300),
     )

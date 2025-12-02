@@ -223,9 +223,9 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
             unknown_tags.append(match.group(0).lstrip("\\"))
 
     if transforms:
-        kwargs["transforms"] = transforms
+        kwargs["transforms"] = tuple(transforms)
     if unknown_tags:
-        kwargs["unknown_tags"] = unknown_tags
+        kwargs["unknown_tags"] = tuple(unknown_tags)
 
     return AssTagBlock(**kwargs)
 

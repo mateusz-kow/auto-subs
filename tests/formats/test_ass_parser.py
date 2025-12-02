@@ -51,13 +51,13 @@ def test_parse_ass_word_and_style_parsing(complex_ass_content: str) -> None:
     kara_word1, kara_word2, kara_word3 = segment_karaoke.words
     assert kara_word1.text == "Kara"
     assert len(kara_word1.styles) == 1
-    assert kara_word1.styles[0].tag_block == AssTagBlock(unknown_tags=["k20"])
+    assert kara_word1.styles[0].tag_block == AssTagBlock(unknown_tags=("k20",))
     assert kara_word2.text == "oke"
     assert len(kara_word2.styles) == 1
-    assert kara_word2.styles[0].tag_block == AssTagBlock(unknown_tags=["k40"])
+    assert kara_word2.styles[0].tag_block == AssTagBlock(unknown_tags=("k40",))
     assert kara_word3.text == " test."
     assert len(kara_word3.styles) == 1
-    assert kara_word3.styles[0].tag_block == AssTagBlock(unknown_tags=["k50"])
+    assert kara_word3.styles[0].tag_block == AssTagBlock(unknown_tags=("k50",))
 
 
 def test_parse_malformed_ass_gracefully(malformed_ass_content: str, caplog: LogCaptureFixture) -> None:
