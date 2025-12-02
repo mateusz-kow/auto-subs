@@ -2,6 +2,7 @@ import pytest
 
 from autosubs.core.parser import parse_ass
 from autosubs.models import WordStyleRange
+from autosubs.models.subtitles.ass import AssTagBlock
 
 
 @pytest.fixture
@@ -42,10 +43,12 @@ def test_parser_handles_trailing_tag() -> None:
     word_music, word_trailing_tag = segment.words
 
     assert word_music.text == "Music"
-    assert word_music.styles == [WordStyleRange(0, 5, "{\\i1}")]
+    assert len(word_music.styles) == 1
+    assert word_music.styles[0].tag_block == AssTagBlock(italic=True)
 
     assert word_trailing_tag.text == ""
-    assert word_trailing_tag.styles == [WordStyleRange(0, 0, "{\\i0}")]
+    assert len(word_trailing_tag.styles) == 1
+    assert word_trailing_tag.styles[0].tag_block == AssTagBlock(italic=False)
     # The zero-duration word should be at the very end of the segment timeline.
     assert word_trailing_tag.start == 2.0
     assert word_trailing_tag.end == 2.0
@@ -68,10 +71,9 @@ def test_parser_handles_multiple_trailing_tags() -> None:
 
     assert word_trailing_tags.text == ""
     # Both tags should be present on the final empty word, in order.
-    assert word_trailing_tags.styles == [
-        WordStyleRange(0, 0, "{\\b0}"),
-        WordStyleRange(0, 0, "{\\an5}"),
-    ]
+    assert len(word_trailing_tags.styles) == 2
+    assert word_trailing_tags.styles[0].tag_block == AssTagBlock(bold=False)
+    assert word_trailing_tags.styles[1].tag_block == AssTagBlock(alignment=5)
     assert word_trailing_tags.start == 10.0
 
 
@@ -90,10 +92,9 @@ def test_parser_handles_tag_only_line() -> None:
     word_tags_only = segment.words[0]
 
     assert word_tags_only.text == ""
-    assert word_tags_only.styles == [
-        WordStyleRange(0, 0, "{\\an5}"),
-        WordStyleRange(0, 0, "{\\fs30}"),
-    ]
+    assert len(word_tags_only.styles) == 2
+    assert word_tags_only.styles[0].tag_block == AssTagBlock(alignment=5)
+    assert word_tags_only.styles[1].tag_block == AssTagBlock(font_size=30.0)
     # It should have a zero-duration at the end of the segment timeline.
     assert word_tags_only.start == 20.0
     assert word_tags_only.end == 20.0

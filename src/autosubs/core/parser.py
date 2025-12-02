@@ -132,6 +132,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
 
     kwargs: dict[str, Any] = {}
     transforms: list[str] = []
+    unknown_tags: list[str] = []
 
     for match in tag_pattern.finditer(tag_content):
         t_tag, t_val, tag, paren_val, simple_val = match.groups()
@@ -143,6 +144,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         if tag == "r":
             kwargs.clear()
             transforms.clear()
+            unknown_tags.clear()
             continue
 
         value_str = paren_val if paren_val is not None else simple_val
@@ -206,11 +208,15 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
                 kwargs["shadow"] = float(value_str)
             elif tag == "blur":
                 kwargs["blur"] = float(value_str)
+            else:
+                unknown_tags.append(match.group(0).lstrip("\\"))
         except (ValueError, IndexError):
             logger.warning(f"Could not parse ASS tag: \\{tag}{value_str}")
 
     if transforms:
         kwargs["transforms"] = transforms
+    if unknown_tags:
+        kwargs["unknown_tags"] = unknown_tags
 
     return AssTagBlock(**kwargs)
 

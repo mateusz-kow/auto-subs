@@ -3,6 +3,7 @@ from _pytest.logging import LogCaptureFixture
 
 from autosubs.core.parser import parse_ass
 from autosubs.models import AssSubtitles, AssSubtitleSegment, WordStyleRange
+from autosubs.models.subtitles.ass import AssTagBlock
 
 
 def test_parse_ass_structure(simple_ass_content: str) -> None:
@@ -40,18 +41,23 @@ def test_parse_ass_word_and_style_parsing(complex_ass_content: str) -> None:
     assert word2.text == "y"
     assert word3.text == "le."
     assert not word1.styles
-    assert word2.styles == [WordStyleRange(start_char_index=0, end_char_index=1, ass_tag="{\\i1}")]
-    assert word3.styles == [WordStyleRange(start_char_index=0, end_char_index=3, ass_tag="{\\i0}")]
+    assert len(word2.styles) == 1
+    assert word2.styles[0].tag_block == AssTagBlock(italic=True)
+    assert len(word3.styles) == 1
+    assert word3.styles[0].tag_block == AssTagBlock(italic=False)
 
     segment_karaoke = subs.segments[2]
     assert len(segment_karaoke.words) == 3
     kara_word1, kara_word2, kara_word3 = segment_karaoke.words
     assert kara_word1.text == "Kara"
-    assert kara_word1.styles == [WordStyleRange(start_char_index=0, end_char_index=4, ass_tag="{\\k20}")]
+    assert len(kara_word1.styles) == 1
+    assert kara_word1.styles[0].tag_block == AssTagBlock(unknown_tags=["k20"])
     assert kara_word2.text == "oke"
-    assert kara_word2.styles == [WordStyleRange(start_char_index=0, end_char_index=3, ass_tag="{\\k40}")]
+    assert len(kara_word2.styles) == 1
+    assert kara_word2.styles[0].tag_block == AssTagBlock(unknown_tags=["k40"])
     assert kara_word3.text == " test."
-    assert kara_word3.styles == [WordStyleRange(start_char_index=0, end_char_index=6, ass_tag="{\\k50}")]
+    assert len(kara_word3.styles) == 1
+    assert kara_word3.styles[0].tag_block == AssTagBlock(unknown_tags=["k50"])
 
 
 def test_parse_malformed_ass_gracefully(malformed_ass_content: str, caplog: LogCaptureFixture) -> None:

@@ -46,6 +46,7 @@ class AssTagBlock:
     blur: int | float | None = None
     # Complex transforms
     transforms: list[str] = field(default_factory=list)
+    unknown_tags: list[str] = field(default_factory=list)
 
     def to_ass_string(self) -> str:
         """Serializes the tag block into a string for an ASS file."""
@@ -112,6 +113,9 @@ class AssTagBlock:
 
         for transform in self.transforms:
             tags.append(f"\\t({transform})")
+
+        for unknown in self.unknown_tags:
+            tags.append(f"\\{unknown}")
 
         tag_str = "".join(tags)
         if not tag_str:
