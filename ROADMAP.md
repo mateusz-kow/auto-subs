@@ -21,15 +21,13 @@ These features form the stable foundation of `auto-subs` and are available today
 -   **✅ Robust Data Validation**: Automatically handle inverted timestamps and warn about overlapping segments.
 -   **✅ Simple & Powerful API**: A clean, dictionary-based API that also accepts file paths for maximum flexibility.
 -   **✅ Batch Processing**: Process entire directories of media or transcription files with a single command.
--   **✅ Advanced ASS Styling**: Customize ASS output using a style file or granular CLI flags.
+-   **✅ Advanced ASS Styling Engine**: A modular, rule-based styling engine for `.ass` files with Pydantic-validated configuration, enabling dynamic, time-aware, and layered styling effects.
 
 ---
 
 ### Next Priorities
 
 These are the high-impact features planned for upcoming releases to significantly expand the library's capabilities.
-
--   **🎯 Context-Aware & Time-Aware Layered Styling Engine**: Introduce a modular, rule-based, and time-aware styling engine to enable Aegisub-level visual fidelity with modern, programmable control, establishing `auto-subs` as a true subtitle generation engine.
 
 ### Future Goals & Advanced Features
 
@@ -48,15 +46,6 @@ These tasks are focused on making the library stable, easy to use, and productio
 -   **🎯 Comprehensive Documentation**: Create a full-fledged documentation website using MkDocs or Sphinx, with a complete API reference, tutorials, and detailed CLI explanations.
 -   **🎯 Performance & Optimization**: Profile and optimize all core operations to ensure the library is fast and memory-efficient, even with very large files.
 -   **🎯 Release Candidate Phase**: Freeze the API and focus exclusively on bug fixes, performance tweaks, and community feedback in preparation for the stable release.
-
-#### **Version 0.17.0 - Context-Aware & Time-Aware Layered Styling Engine**
--   **🎯 Key Goal**: Introduce a modular, rule-based, and time-aware styling engine that enables Aegisub-level visual fidelity with modern, programmable control, establishing `auto-subs` as a true subtitle generation engine.
--   **Features**:
-    -   **Layered Styling System**: Implement independent, composable layers for `ass_style` (line appearance), `karaoke_styles` (word timing), and `animation_presets` (reusable `\t` effects).
-    -   **Rule-Based & Time-Aware Matching**: Allow styles and animations to be applied based on rules with `patterns` (regex), `priority`, and `start_time`/`end_time` ranges, enabling effects to change dynamically throughout the media.
-    -   **Declarative Configuration**: Define all styling logic in a single, validated JSON or YAML file, separating style from content. The engine will use Pydantic for robust validation and convert to internal dataclasses for high performance.
-    -   **Indexed Word Architecture**: Internally, each word will reference its applied styles, enabling highly efficient `O(m)` updates, crucial for future GUI applications.
-    -   **Dynamic Default Styles**: Support changing the default ASS style for new lines at different points in time, without affecting previously generated lines.
 
 ### Version 1.0.0: Stable Release
 
