@@ -1,7 +1,6 @@
 import pytest
 
 from autosubs.core.parser import parse_ass
-from autosubs.models import WordStyleRange
 from autosubs.models.subtitles.ass import AssTagBlock
 
 

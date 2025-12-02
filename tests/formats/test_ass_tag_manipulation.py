@@ -53,7 +53,6 @@ def test_round_trip_with_modification() -> None:
     content = "[Events]\nFormat: Start, End, Text\nDialogue: 0:00:01.00,0:00:02.00,Test {\\b1}text\n"
     subs = parse_ass(content)
 
-    segment = subs.segments[0]
     # In this simple case, the text "text" is part of the first word "Test text"
     # The split is "Test ", then "text". Let's check the words.
     word_with_style = subs.segments[0].words[1]

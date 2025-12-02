@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
@@ -65,7 +64,7 @@ class AssTagBlock:
             if x is not None and y is not None:
                 tags.append(f"\\{tag}({_format_ass_tag_number(x)},{_format_ass_tag_number(y)})")
 
-        _TAG_DESCRIPTORS = [
+        tag_descriptors = [
             # (attribute_name, tag_name, [formatter])
             ("alignment", "an"),
             ("font_name", "fn"),
@@ -94,7 +93,7 @@ class AssTagBlock:
         _append_paired("pos", "position_x", "position_y")
         _append_paired("org", "origin_x", "origin_y")
 
-        for item in _TAG_DESCRIPTORS:
+        for item in tag_descriptors:
             attr, tag = item[0], item[1]
             formatter = item[2] if len(item) > 2 else None
             value = getattr(self, attr)

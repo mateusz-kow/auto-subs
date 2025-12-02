@@ -1,9 +1,10 @@
 """Core module for parsing subtitle file formats."""
 
 import dataclasses
-import regex as re
 from logging import getLogger
 from typing import Any
+
+import regex as re
 
 from autosubs.models import (
     AssSubtitles,
