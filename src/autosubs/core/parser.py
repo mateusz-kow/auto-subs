@@ -128,6 +128,59 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
     if not tag_content:
         return AssTagBlock()
 
+    def _parse_bool(key: str):
+        return lambda value, kwargs: kwargs.update({key: value.endswith("1")})
+
+    def _parse_float(key: str):
+        return lambda value, kwargs: kwargs.update({key: float(value)})
+
+    def _parse_int(key: str):
+        return lambda value, kwargs: kwargs.update({key: int(value)})
+
+    def _parse_str(key: str):
+        return lambda value, kwargs: kwargs.update({key: value})
+
+    def _parse_pos(key_x: str, key_y: str):
+        def parser(value: str, kwargs: dict[str, Any]) -> None:
+            x, y = [float(v) for v in value.split(",")]
+            kwargs.update({key_x: x, key_y: y})
+
+        return parser
+
+    _dispatch_table = {
+        # Boolean styles
+        "b": _parse_bool("bold"),
+        "i": _parse_bool("italic"),
+        "u": _parse_bool("underline"),
+        "s": _parse_bool("strikeout"),
+        # Font
+        "fn": _parse_str("font_name"),
+        "fs": _parse_float("font_size"),
+        # Colors
+        "c": _parse_str("primary_color"),
+        "1c": _parse_str("primary_color"),
+        "2c": _parse_str("secondary_color"),
+        "3c": _parse_str("outline_color"),
+        "4c": _parse_str("shadow_color"),
+        "alpha": _parse_str("alpha"),
+        # Layout
+        "an": _parse_int("alignment"),
+        "pos": _parse_pos("position_x", "position_y"),
+        "org": _parse_pos("origin_x", "origin_y"),
+        # Spacing/Scaling
+        "fsp": _parse_float("spacing"),
+        "fscx": _parse_float("scale_x"),
+        "fscy": _parse_float("scale_y"),
+        # Rotation
+        "frx": _parse_float("rotation_x"),
+        "fry": _parse_float("rotation_y"),
+        "frz": _parse_float("rotation_z"),
+        # Effects
+        "bord": _parse_float("border"),
+        "shad": _parse_float("shadow"),
+        "blur": _parse_float("blur"),
+    }
+
     tag_pattern = re.compile(r"\\(t)\((.*?)\)|\\([1-4]c|[a-zA-Z]+)(?:\(([^)]*)\)|([^\\]*))")
 
     kwargs: dict[str, Any] = {}
@@ -152,66 +205,14 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
             continue
         value_str = value_str.strip()
 
-        try:
-            # Boolean styles
-            if tag == "b":
-                kwargs["bold"] = value_str.endswith("1")
-            elif tag == "i":
-                kwargs["italic"] = value_str.endswith("1")
-            elif tag == "u":
-                kwargs["underline"] = value_str.endswith("1")
-            elif tag == "s":
-                kwargs["strikeout"] = value_str.endswith("1")
-            # Font
-            elif tag == "fn":
-                kwargs["font_name"] = value_str
-            elif tag == "fs":
-                kwargs["font_size"] = float(value_str)
-            # Colors
-            elif tag in ("c", "1c"):
-                kwargs["primary_color"] = value_str
-            elif tag == "2c":
-                kwargs["secondary_color"] = value_str
-            elif tag == "3c":
-                kwargs["outline_color"] = value_str
-            elif tag == "4c":
-                kwargs["shadow_color"] = value_str
-            elif tag == "alpha":
-                kwargs["alpha"] = value_str
-            # Layout
-            elif tag == "an":
-                kwargs["alignment"] = int(value_str)
-            elif tag == "pos":
-                x, y = [float(v) for v in value_str.split(",")]
-                kwargs["position_x"], kwargs["position_y"] = x, y
-            elif tag == "org":
-                x, y = [float(v) for v in value_str.split(",")]
-                kwargs["origin_x"], kwargs["origin_y"] = x, y
-            # Spacing/Scaling
-            elif tag == "fsp":
-                kwargs["spacing"] = float(value_str)
-            elif tag == "fscx":
-                kwargs["scale_x"] = float(value_str)
-            elif tag == "fscy":
-                kwargs["scale_y"] = float(value_str)
-            # Rotation
-            elif tag == "frx":
-                kwargs["rotation_x"] = float(value_str)
-            elif tag == "fry":
-                kwargs["rotation_y"] = float(value_str)
-            elif tag == "frz":
-                kwargs["rotation_z"] = float(value_str)
-            # Effects
-            elif tag == "bord":
-                kwargs["border"] = float(value_str)
-            elif tag == "shad":
-                kwargs["shadow"] = float(value_str)
-            elif tag == "blur":
-                kwargs["blur"] = float(value_str)
-            else:
-                unknown_tags.append(match.group(0).lstrip("\\"))
-        except (ValueError, IndexError):
-            logger.warning(f"Could not parse ASS tag: \\{tag}{value_str}")
+        parser = _dispatch_table.get(tag)
+        if parser:
+            try:
+                parser(value_str, kwargs)
+            except (ValueError, IndexError):
+                logger.warning(f"Could not parse ASS tag: \\{tag}{value_str}")
+        else:
+            unknown_tags.append(match.group(0).lstrip("\\"))
 
     if transforms:
         kwargs["transforms"] = transforms
