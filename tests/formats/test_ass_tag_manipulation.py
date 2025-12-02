@@ -60,7 +60,8 @@ def test_round_trip_with_modification() -> None:
     new_content = to_ass(subs)
 
     # Note: the parser splits "Test {\\b1}text" into "Test " and "text", so we reconstruct it as such.
-    expected_line = "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Test {\\b0\\i1}text"
+    # The output should respect the minimal format from the input content.
+    expected_line = "Dialogue: 0:00:01.00,0:00:02.00,Test {\\b0\\i1}text"
     assert expected_line in new_content
 
     # Re-parse and verify

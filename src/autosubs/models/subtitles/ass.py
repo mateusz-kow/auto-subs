@@ -8,6 +8,13 @@ from typing import Any
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
 
+def _format_ass_tag_number(value: int | float) -> str:
+    """Formats a number for an ASS tag, dropping .0 for whole numbers."""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
 @dataclass(frozen=True, eq=True)
 class AssTagBlock:
     """Represents a block of ASS style override tags."""
@@ -55,15 +62,15 @@ class AssTagBlock:
         if self.alignment is not None:
             tags.append(f"\\an{self.alignment}")
         if self.position_x is not None and self.position_y is not None:
-            tags.append(f"\\pos({self.position_x},{self.position_y})")
+            tags.append(f"\\pos({_format_ass_tag_number(self.position_x)},{_format_ass_tag_number(self.position_y)})")
         if self.origin_x is not None and self.origin_y is not None:
-            tags.append(f"\\org({self.origin_x},{self.origin_y})")
+            tags.append(f"\\org({_format_ass_tag_number(self.origin_x)},{_format_ass_tag_number(self.origin_y)})")
 
         # Font Properties
         if self.font_name:
             tags.append(f"\\fn{self.font_name}")
         if self.font_size is not None:
-            tags.append(f"\\fs{int(self.font_size)}")
+            tags.append(f"\\fs{_format_ass_tag_number(self.font_size)}")
 
         # Boolean Styles
         if self.bold is not None:
@@ -89,27 +96,27 @@ class AssTagBlock:
 
         # Spacing and Scaling
         if self.spacing is not None:
-            tags.append(f"\\fsp{self.spacing}")
+            tags.append(f"\\fsp{_format_ass_tag_number(self.spacing)}")
         if self.scale_x is not None:
-            tags.append(f"\\fscx{self.scale_x}")
+            tags.append(f"\\fscx{_format_ass_tag_number(self.scale_x)}")
         if self.scale_y is not None:
-            tags.append(f"\\fscy{self.scale_y}")
+            tags.append(f"\\fscy{_format_ass_tag_number(self.scale_y)}")
 
         # Rotation
         if self.rotation_z is not None:
-            tags.append(f"\\frz{self.rotation_z}")
+            tags.append(f"\\frz{_format_ass_tag_number(self.rotation_z)}")
         if self.rotation_x is not None:
-            tags.append(f"\\frx{self.rotation_x}")
+            tags.append(f"\\frx{_format_ass_tag_number(self.rotation_x)}")
         if self.rotation_y is not None:
-            tags.append(f"\\fry{self.rotation_y}")
+            tags.append(f"\\fry{_format_ass_tag_number(self.rotation_y)}")
 
         # Border, Shadow, and Blur Effects
         if self.border is not None:
-            tags.append(f"\\bord{self.border}")
+            tags.append(f"\\bord{_format_ass_tag_number(self.border)}")
         if self.shadow is not None:
-            tags.append(f"\\shad{self.shadow}")
+            tags.append(f"\\shad{_format_ass_tag_number(self.shadow)}")
         if self.blur is not None:
-            tags.append(f"\\blur{self.blur}")
+            tags.append(f"\\blur{_format_ass_tag_number(self.blur)}")
 
         for transform in self.transforms:
             tags.append(f"\\t({transform})")

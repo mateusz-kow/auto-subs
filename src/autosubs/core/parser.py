@@ -128,7 +128,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
     if not tag_content:
         return AssTagBlock()
 
-    tag_pattern = re.compile(r"\\(t)\((.*?)\)|\\([a-zA-Z0-9]+)(?:\(([^)]*)\)|([^\\]*))")
+    tag_pattern = re.compile(r"\\(t)\((.*?)\)|\\([1-4]c|[a-zA-Z]+)(?:\(([^)]*)\)|([^\\]*))")
 
     kwargs: dict[str, Any] = {}
     transforms: list[str] = []
