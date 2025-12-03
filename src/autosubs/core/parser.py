@@ -23,6 +23,7 @@ SRT_TIMESTAMP_REGEX = re.compile(r"(\d{2}):(\d{2}):(\d{2}),(\d{3})")
 VTT_TIMESTAMP_REGEX = re.compile(r"(?:(\d{1,2}):)?(\d{2}):(\d{2})\.(\d{3})")
 ASS_TIMESTAMP_REGEX = re.compile(r"(\d+):(\d{2}):(\d{2})\.(\d{2})")
 ASS_STYLE_TAG_REGEX = re.compile(r"{[^}]+}")
+MICRODVD_TIMESTAMP_REGEX = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
 
 
 def srt_timestamp_to_seconds(timestamp: str) -> float:
@@ -52,6 +53,11 @@ def ass_timestamp_to_seconds(timestamp: str) -> float:
         raise ValueError(f"Invalid ASS timestamp format: {timestamp}")
     h, m, s, cs = map(int, match.groups())
     return h * 3600 + m * 60 + s + cs / 100
+
+
+def microdvd_frames_to_seconds(start_frame: int, end_frame: int, fps: float) -> tuple[float, float]:
+    """Converts MicroDVD frame numbers to start and end seconds."""
+    return start_frame / fps, end_frame / fps
 
 
 def parse_srt(file_content: str) -> list[SubtitleSegment]:
@@ -345,3 +351,51 @@ def parse_ass(file_content: str) -> AssSubtitles:
                     logger.warning(f"Skipping malformed ASS Dialogue line: {line} ({e})")
                     continue
     return subs
+
+
+def parse_microdvd(file_content: str, fps: float | None = None) -> list[SubtitleSegment]:
+    """Parses content from a MicroDVD file into subtitle segments."""
+    logger.info("Parsing MicroDVD file content.")
+    segments: list[SubtitleSegment] = []
+    lines = file_content.strip().replace("\r\n", "\n").splitlines()
+
+    if not lines:
+        return segments
+
+    # Check for FPS in the first line, e.g., {1}{1}23.976
+    first_line_match = re.match(r"\{1\}\{1\}([\d\.]+)", lines[0])
+    if first_line_match:
+        try:
+            fps = float(first_line_match.group(1))
+            lines.pop(0)
+            logger.info(f"Detected FPS from MicroDVD header: {fps}")
+        except ValueError:
+            logger.warning("Invalid FPS value in MicroDVD header, ignoring.")
+
+    if fps is None:
+        raise ValueError("FPS must be provided to parse MicroDVD files.")
+    if fps <= 0:
+        raise ValueError("FPS must be a positive number.")
+
+    for line in lines:
+        match = MICRODVD_TIMESTAMP_REGEX.match(line)
+        if not match:
+            logger.warning(f"Skipping malformed MicroDVD line: {line}")
+            continue
+
+        try:
+            start_frame, end_frame, text = int(match.group(1)), int(match.group(2)), match.group(3)
+            text = text.replace("|", "\n")
+
+            start_time, end_time = microdvd_frames_to_seconds(start_frame, end_frame, fps)
+
+            if start_time > end_time:
+                logger.warning(f"Skipping MicroDVD line with invalid timestamp (start > end): {line}")
+                continue
+
+            word = SubtitleWord(text=text, start=start_time, end=end_time)
+            segments.append(SubtitleSegment(words=[word]))
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Skipping malformed MicroDVD line: {line} ({e})")
+            continue
+    return segments
