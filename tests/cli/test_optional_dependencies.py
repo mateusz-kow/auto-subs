@@ -14,22 +14,22 @@ def test_main_shim_without_typer(capsys: pytest.CaptureFixture[str]) -> None:
     and verifies that the 'app' object becomes a shim function that prints an error
     message and exits, rather than crashing on import.
     """
-    with patch.dict(sys.modules, {"typer": None}):
+    try:
+        with patch.dict(sys.modules, {"typer": None}):
+            reload(autosubs.cli.main)
+
+            assert callable(autosubs.cli.main.app)
+            assert not hasattr(autosubs.cli.main.app, "command")
+
+            with pytest.raises(SystemExit) as exc_info:
+                autosubs.cli.main.app()
+
+            # Verify exit code and error message.
+            assert exc_info.value.code == 1
+            _, err = capsys.readouterr()
+            assert "requires the optional 'cli' dependencies" in err
+            assert "pip install 'auto-subs[cli]'" in err
+    finally:
+        # Cleanup: restore the normal Typer application state.
         reload(autosubs.cli.main)
-
-        assert callable(autosubs.cli.main.app)
-        assert not hasattr(autosubs.cli.main.app, "command")
-
-        with pytest.raises(SystemExit) as exc_info:
-            autosubs.cli.main.app()
-
-        # Verify exit code and error message.
-        assert exc_info.value.code == 1
-        _, err = capsys.readouterr()
-        assert "requires the optional 'cli' dependencies" in err
-        assert "pip install 'auto-subs[cli]'" in err
-
-    # Cleanup: Reload the module again without the mock to restore the normal
-    # Typer application state. This is crucial to prevent side effects in other tests.
-    reload(autosubs.cli.main)
-    assert hasattr(autosubs.cli.main.app, "command")
+        assert hasattr(autosubs.cli.main.app, "command")
