@@ -19,7 +19,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "typer~=0.20.0",
     "pydantic~=2.12.0",
     "regex~=2025.7.34"
 ]
@@ -32,6 +31,9 @@ Repository = "https://github.com/mateusz-kow/auto-subs"
 auto-subs = "autosubs.cli.main:app"
 
 [project.optional-dependencies]
+cli = [
+    "typer~=0.20.0"
+]
 transcribe = [
     "openai-whisper"
 ]
