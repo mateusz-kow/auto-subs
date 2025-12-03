@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Annotated
 
@@ -100,7 +99,13 @@ def generate(
             out_file.write_text(content, encoding="utf-8")
             typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
 
-        except (OSError, ValueError) as e:
+        except ValueError as e:
+            typer.secho(
+                f"Input file validation error for {in_file.name}: {e}",
+                fg=typer.colors.RED,
+            )
+            has_errors = True
+        except OSError as e:
             typer.secho(
                 f"Error processing file {in_file.name}: {e}",
                 fg=typer.colors.RED,

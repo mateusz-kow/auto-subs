@@ -67,7 +67,7 @@ def test_cli_invalid_json(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["generate", str(input_file)])
     assert result.exit_code == 1
-    assert "Error reading or parsing input file" in result.stdout
+    assert "Input file validation error" in result.stdout
 
 
 def test_cli_validation_error(tmp_path: Path) -> None:
@@ -90,7 +90,7 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: dict[str, Any]) -
     result = runner.invoke(app, ["generate", str(input_file), "-f", "srt"])
 
     assert result.exit_code == 1
-    assert f"Error reading or parsing input file {input_file.name}" in result.stdout
+    assert f"Error processing file {input_file.name}" in result.stdout
 
 
 @patch("autosubs.cli.generate.generate_api")
