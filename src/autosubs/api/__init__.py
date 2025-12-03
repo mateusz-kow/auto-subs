@@ -7,6 +7,7 @@ from typing import Any
 
 from autosubs.core import generator, parser
 from autosubs.core.builder import create_subtitles_from_transcription
+from autosubs.core.encoding import read_with_encoding_detection
 from autosubs.core.styler import AssStyler
 from autosubs.core.transcriber import run_transcription
 from autosubs.models.enums import TimingDistribution
@@ -139,14 +140,31 @@ def load(
     file_path: str | Path,
     generate_word_timings: bool = False,
     timing_strategy: TimingDistribution = TimingDistribution.BY_CHAR_COUNT,
+    encoding: str | None = None,
 ) -> Subtitles:
-    """Load and parse a subtitle file into a Subtitles object."""
+    """Load and parse a subtitle file into a Subtitles object.
+
+    Args:
+        file_path: Path to the subtitle file.
+        generate_word_timings: If True, splits segments into words with estimated timings.
+        timing_strategy: Strategy for generating word timings (by char or word count).
+        encoding: The encoding of the file. If None, attempts to read as UTF-8 first,
+                  then falls back to automatic detection using 'charset-normalizer' if installed.
+
+    Returns:
+        A parsed Subtitles object.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file format is unsupported or auto-detection confidence is low.
+        ImportError: If encoding detection is needed but 'charset-normalizer' is missing.
+    """
     path = Path(file_path)
     if not path.is_file():
         raise FileNotFoundError(f"Subtitle file not found at: {path}")
 
     suffix = path.suffix.lower()
-    content = path.read_text(encoding="utf-8")
+    content = read_with_encoding_detection(path, encoding)
     subtitles: Subtitles
 
     if suffix == ".srt":
