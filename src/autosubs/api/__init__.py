@@ -61,6 +61,7 @@ def generate(
     min_words: int = 1,
     max_lines: int = 1,
     style_config_path: str | Path | None = None,
+    encoding: str | None = None,
 ) -> str:
     """Generate subtitle content from a transcription dictionary.
 
@@ -72,6 +73,7 @@ def generate(
         max_lines: The maximum number of lines per subtitle segment.
         style_config_path: Optional path to a JSON file for the dynamic style engine.
                            Required for ASS output.
+        encoding: The encoding of any input files. If None, attempts to auto-detect.
 
     Returns:
         A string containing the generated subtitle content.
@@ -80,8 +82,11 @@ def generate(
         path = Path(transcription_source)
         if not path.is_file():
             raise FileNotFoundError(f"Transcription file not found at: {path}")
-        with path.open("r", encoding="utf-8") as f:
-            transcription_dict = json.load(f)
+        content = read_with_encoding_detection(path, encoding)
+        try:
+            transcription_dict = json.loads(content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON from: {path}") from e
     else:
         transcription_dict = transcription_source
 
@@ -104,7 +109,11 @@ def generate(
         schema = _DEFAULT_STYLE_CONFIG
         if style_config_path:
             config_path = Path(style_config_path)
-            schema = StyleEngineConfigSchema.model_validate_json(config_path.read_text(encoding="utf-8"))
+            config_content = read_with_encoding_detection(config_path, encoding)
+            try:
+                schema = StyleEngineConfigSchema.model_validate_json(config_content)
+            except ValueError as e:
+                raise ValueError(f"Failed to parse style config from: {config_path}") from e
         domain_config = schema.to_domain()
         styler_engine = AssStyler(domain_config)
         return writer_func(subtitles, styler_engine=styler_engine)
@@ -120,6 +129,7 @@ def transcribe(
     max_lines: int = 2,
     style_config_path: str | Path | None = None,
     verbose: bool | None = None,
+    encoding: str | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content."""
     media_path = Path(media_file)
@@ -133,6 +143,7 @@ def transcribe(
         min_words=min_words,
         max_lines=max_lines,
         style_config_path=style_config_path,
+        encoding=encoding,
     )
 
 

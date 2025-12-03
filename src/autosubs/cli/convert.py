@@ -59,6 +59,14 @@ def convert(
             help="Format for the output subtitles. Inferred from --output if not specified.",
         ),
     ] = None,
+    encoding: Annotated[
+        str | None,
+        typer.Option(
+            "--encoding",
+            "-e",
+            help="Encoding of the input file(s). Auto-detected if not specified.",
+        ),
+    ] = None,
 ) -> None:
     """Convert an existing subtitle file to a different format."""
     final_output_format = determine_output_format(output_format, output_path)
@@ -78,7 +86,7 @@ def convert(
             out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
-            subtitles: Subtitles = load(in_file)
+            subtitles: Subtitles = load(in_file, encoding=encoding)
             writer_func = _format_map[final_output_format]
             content = writer_func(subtitles)
 

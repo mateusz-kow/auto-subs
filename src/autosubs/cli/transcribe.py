@@ -76,6 +76,14 @@ def transcribe(
         ),
     ] = None,
     burn: Annotated[bool, typer.Option(help="Burn the subtitles directly into a video file.")] = False,
+    encoding: Annotated[
+        str | None,
+        typer.Option(
+            "--encoding",
+            "-e",
+            help="Encoding of the style config file. Auto-detected if not specified.",
+        ),
+    ] = None,
 ) -> None:
     """Transcribe a media file and generate subtitles."""
     if burn:
@@ -107,6 +115,7 @@ def transcribe(
                 max_lines=max_lines,
                 style_config_path=style_config,
                 verbose=verbose_level,
+                encoding=encoding,
             )
 
             if burn:
