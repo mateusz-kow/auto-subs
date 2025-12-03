@@ -21,13 +21,13 @@ def test_subtitle_segment_properties_and_validation() -> None:
     word2 = SubtitleWord(text="world.", start=1.1, end=1.5)
 
     segment = SubtitleSegment(words=[word1, word2])
-    assert segment.start == 0.5
-    assert segment.end == 1.5
+    assert segment.start == pytest.approx(0.5)
+    assert segment.end == pytest.approx(1.5)
     assert segment.text == "Hello world."
 
     empty_segment = SubtitleSegment(words=[])
-    assert empty_segment.start == 0.0
-    assert empty_segment.end == 0.0
+    assert empty_segment.start == pytest.approx(0.0)
+    assert empty_segment.end == pytest.approx(0.0)
 
     with pytest.raises(ValueError, match="has invalid timestamp"):
         word3 = SubtitleWord(text="invalid", start=2.0, end=1.9)

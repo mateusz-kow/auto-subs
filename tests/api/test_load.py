@@ -31,8 +31,8 @@ def test_load_microdvd_with_explicit_fps(tmp_path: Path) -> None:
     subtitles = load(file_path, fps=24)
     assert len(subtitles.segments) == 1
     segment = subtitles.segments[0]
-    assert segment.start == 1.0
-    assert segment.end == 2.0
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(2.0)
     assert segment.text == "Hello world."
 
 

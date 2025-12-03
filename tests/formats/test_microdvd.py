@@ -1,5 +1,4 @@
 import pytest
-from pytest import approx
 
 from autosubs.core.generator import to_microdvd
 from autosubs.core.parser import parse_microdvd
@@ -11,11 +10,11 @@ def test_parse_basic_with_explicit_fps() -> None:
     content = "{24}{48}Hello world.\n{50}{72}This is a test."
     segments = parse_microdvd(content, fps=24)
     assert len(segments) == 2
-    assert segments[0].start == 1.0
-    assert segments[0].end == 2.0
+    assert segments[0].start == pytest.approx(1.0)
+    assert segments[0].end == pytest.approx(2.0)
     assert segments[0].text == "Hello world."
-    assert segments[1].start == 50 / 24
-    assert segments[1].end == 3.0
+    assert segments[1].start == pytest.approx(50 / 24)
+    assert segments[1].end == pytest.approx(3.0)
     assert segments[1].text == "This is a test."
 
 
@@ -24,10 +23,10 @@ def test_parse_with_fps_from_header() -> None:
     content = "{1}{1}25\n{25}{50}First line.\n{51}{75}Second line."
     segments = parse_microdvd(content)
     assert len(segments) == 2
-    assert segments[0].start == 1.0
-    assert segments[0].end == 2.0
-    assert segments[1].start == 51 / 25
-    assert segments[1].end == 3.0
+    assert segments[0].start == pytest.approx(1.0)
+    assert segments[0].end == pytest.approx(2.0)
+    assert segments[1].start == pytest.approx(51 / 25)
+    assert segments[1].end == pytest.approx(3.0)
 
 
 def test_parse_fps_parameter_overrides_header() -> None:
@@ -35,8 +34,8 @@ def test_parse_fps_parameter_overrides_header() -> None:
     content = "{1}{1}25\n{24}{48}Hello."
     segments = parse_microdvd(content, fps=24)
     assert len(segments) == 1
-    assert segments[0].start == 1.0
-    assert segments[0].end == 2.0
+    assert segments[0].start == pytest.approx(1.0)
+    assert segments[0].end == pytest.approx(2.0)
 
 
 def test_parse_no_fps_raises_error() -> None:
@@ -69,8 +68,8 @@ def test_parse_timestamp_accuracy(
     content = f"{{{start_frame}}}{{{end_frame}}}Test text"
     segments = parse_microdvd(content, fps=fps)
     assert len(segments) == 1
-    assert segments[0].start == approx(expected_start, abs=1e-3)
-    assert segments[0].end == approx(expected_end, abs=1e-3)
+    assert segments[0].start == pytest.approx(expected_start, abs=1e-3)
+    assert segments[0].end == pytest.approx(expected_end, abs=1e-3)
 
 
 def test_parse_handles_malformed_lines() -> None:
@@ -94,8 +93,8 @@ def test_parse_large_frame_numbers() -> None:
     content = "{100000}{125000}Large frame number test."
     segments = parse_microdvd(content, fps=25)
     assert len(segments) == 1
-    assert segments[0].start == 4000.0
-    assert segments[0].end == 5000.0
+    assert segments[0].start == pytest.approx(4000.0)
+    assert segments[0].end == pytest.approx(5000.0)
 
 
 def test_parse_frame_zero() -> None:
@@ -103,8 +102,8 @@ def test_parse_frame_zero() -> None:
     content = "{0}{25}Frame zero test."
     segments = parse_microdvd(content, fps=25)
     assert len(segments) == 1
-    assert segments[0].start == 0.0
-    assert segments[0].end == 1.0
+    assert segments[0].start == pytest.approx(0.0)
+    assert segments[0].end == pytest.approx(1.0)
 
 
 def test_parse_multiline_text() -> None:
@@ -196,6 +195,6 @@ def test_round_trip_conversion(sample_subtitles: Subtitles) -> None:
 
     assert len(parsed_subtitles.segments) == len(sample_subtitles.segments)
     for original, parsed in zip(sample_subtitles.segments, parsed_subtitles.segments, strict=False):
-        assert parsed.start == approx(original.start, abs=1 / fps)
-        assert parsed.end == approx(original.end, abs=1 / fps)
+        assert parsed.start == pytest.approx(original.start, abs=1 / fps)
+        assert parsed.end == pytest.approx(original.end, abs=1 / fps)
         assert parsed.text == original.text

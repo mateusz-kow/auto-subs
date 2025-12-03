@@ -18,8 +18,8 @@ def test_parser_handles_multi_digit_hour_timestamps() -> None:
 
     assert len(subs.segments) == 1
     segment = subs.segments[0]
-    assert segment.start == 1.5
-    assert segment.end == 2.5
+    assert segment.start == pytest.approx(1.5)
+    assert segment.end == pytest.approx(2.5)
     assert segment.text == "Hello world"
 
 

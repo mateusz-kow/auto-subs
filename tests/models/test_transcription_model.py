@@ -56,8 +56,8 @@ def test_transcription_model_to_dict(
     # Check segment contents
     segment = transcription_dict["segments"][0]
     assert segment["id"] == 0
-    assert segment["start"] == 0.0
-    assert segment["end"] == 1.0
+    assert segment["start"] == pytest.approx(0.0)
+    assert segment["end"] == pytest.approx(1.0)
     assert segment["text"] == "Hello world"
     assert isinstance(segment["words"], list)
     assert len(segment["words"]) == 2
@@ -65,10 +65,10 @@ def test_transcription_model_to_dict(
     # Check word contents
     first_word = segment["words"][0]
     assert first_word["word"] == "Hello"
-    assert first_word["start"] == 0.0
-    assert first_word["end"] == 0.5
+    assert first_word["start"] == pytest.approx(0.0)
+    assert first_word["end"] == pytest.approx(0.5)
 
     second_word = segment["words"][1]
     assert second_word["word"] == "world"
-    assert second_word["start"] == 0.5
-    assert second_word["end"] == 1.0
+    assert second_word["start"] == pytest.approx(0.5)
+    assert second_word["end"] == pytest.approx(1.0)

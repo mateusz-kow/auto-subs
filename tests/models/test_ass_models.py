@@ -15,8 +15,8 @@ def test_ass_subtitle_segment_from_generic() -> None:
     assert len(ass_segment.words) == 2
     assert all(isinstance(w, AssSubtitleWord) for w in ass_segment.words)
     assert ass_segment.text == "Hello world"
-    assert ass_segment.start == 1.0
-    assert ass_segment.end == 2.0
+    assert ass_segment.start == pytest.approx(1.0)
+    assert ass_segment.end == pytest.approx(2.0)
 
 
 def test_ass_subtitle_segment_text_override() -> None:

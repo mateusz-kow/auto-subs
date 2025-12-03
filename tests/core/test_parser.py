@@ -14,7 +14,7 @@ from autosubs.core import parser
 )
 def test_srt_timestamp_to_seconds(timestamp: str, expected_seconds: float) -> None:
     """Test conversion of valid SRT timestamps to seconds."""
-    assert parser.srt_timestamp_to_seconds(timestamp) == expected_seconds
+    assert parser.srt_timestamp_to_seconds(timestamp) == pytest.approx(expected_seconds)
 
 
 def test_srt_timestamp_to_seconds_invalid() -> None:
@@ -35,7 +35,7 @@ def test_srt_timestamp_to_seconds_invalid() -> None:
 )
 def test_vtt_timestamp_to_seconds(timestamp: str, expected_seconds: float) -> None:
     """Test conversion of valid VTT timestamps to seconds."""
-    assert parser.vtt_timestamp_to_seconds(timestamp) == expected_seconds
+    assert parser.vtt_timestamp_to_seconds(timestamp) == pytest.approx(expected_seconds)
 
 
 def test_vtt_timestamp_to_seconds_invalid() -> None:
@@ -56,7 +56,7 @@ def test_vtt_timestamp_to_seconds_invalid() -> None:
 )
 def test_ass_timestamp_to_seconds(timestamp: str, expected_seconds: float) -> None:
     """Test conversion of valid ASS timestamps to seconds."""
-    assert parser.ass_timestamp_to_seconds(timestamp) == expected_seconds
+    assert parser.ass_timestamp_to_seconds(timestamp) == pytest.approx(expected_seconds)
 
 
 def test_ass_timestamp_to_seconds_invalid() -> None:
@@ -71,11 +71,11 @@ def test_parse_srt_success(sample_srt_content: str) -> None:
     """Test successful parsing of a valid SRT file."""
     segments = parser.parse_srt(sample_srt_content)
     assert len(segments) == 2
-    assert segments[0].start == 0.5
-    assert segments[0].end == 1.5
+    assert segments[0].start == pytest.approx(0.5)
+    assert segments[0].end == pytest.approx(1.5)
     assert segments[0].text == "Hello world."
-    assert segments[1].start == 2.0
-    assert segments[1].end == 3.0
+    assert segments[1].start == pytest.approx(2.0)
+    assert segments[1].end == pytest.approx(3.0)
     assert str(segments[1].text) == "This is a test."
 
 
