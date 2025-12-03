@@ -66,17 +66,18 @@ def generate(
     """Generate subtitle content from a transcription dictionary.
 
     Args:
-        transcription_source: A dictionary compatible with Whisper's output.
-        output_format: The desired output format ("srt", "vtt", "ass", or "json").
-        max_chars: The maximum number of characters per subtitle line.
-        min_words: The minimum number of words per line before a punctuation break.
-        max_lines: The maximum number of lines per subtitle segment.
-        style_config_path: Optional path to a JSON file for the dynamic style engine.
-                           Required for ASS output.
-        encoding: The encoding of any input files. If None, attempts to auto-detect.
+            transcription_source: A dictionary compatible with Whisper's output, or a path to
+    +            a Whisper-compatible JSON file.
+            output_format: The desired output format ("srt", "vtt", "ass", or "json").
+            max_chars: The maximum number of characters per subtitle line.
+            min_words: The minimum number of words per line before a punctuation break.
+            max_lines: The maximum number of lines per subtitle segment.
+            style_config_path: Optional path to a JSON file for the dynamic style engine.
+                               Required for ASS output.
+            encoding: The encoding of any input files. If None, attempts to auto-detect.
 
     Returns:
-        A string containing the generated subtitle content.
+            A string containing the generated subtitle content.
     """
     if isinstance(transcription_source, (str, Path)):
         path = Path(transcription_source)

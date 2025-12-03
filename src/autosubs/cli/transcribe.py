@@ -81,7 +81,7 @@ def transcribe(
         typer.Option(
             "--encoding",
             "-e",
-            help="Encoding of the style config file. Auto-detected if not specified.",
+            help="Encoding of the style config JSON file (if provided). Auto-detected if not specified.",
         ),
     ] = None,
 ) -> None:

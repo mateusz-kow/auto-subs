@@ -105,7 +105,7 @@ def generate(
                 fg=typer.colors.RED,
             )
             has_errors = True
-        except OSError as e:
+        except (OSError, ImportError) as e:
             typer.secho(
                 f"Error processing file {in_file.name}: {e}",
                 fg=typer.colors.RED,
