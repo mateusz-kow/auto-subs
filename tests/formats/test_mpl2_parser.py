@@ -5,7 +5,6 @@ import pytest
 from autosubs.api import load
 from autosubs.core.generator import to_mpl2, to_srt
 from autosubs.core.parser import parse_mpl2
-from autosubs.models.subtitles import Subtitles
 
 
 @pytest.fixture
@@ -48,7 +47,7 @@ def test_parse_mpl2_edge_cases() -> None:
         "[10][xyz]Malformed end\n"
         "Just some random text without timestamps\n"
         "[10][5]Timestamp start > end\n"
-        "[100][100]\n"  # This is an invalid line because it has no text content
+        "[100][100]\n"  # Invalid: no text after timestamps (regex requires at least one char)
     )
     segments = parse_mpl2(malformed_content)
     assert not segments, "Parser should skip all malformed lines"
@@ -68,7 +67,7 @@ def test_mpl2_round_trip(sample_mpl2_path: Path, tmp_path: Path) -> None:
     reparsed_subs = load(round_trip_file)
 
     assert len(reparsed_subs.segments) == len(original_subs.segments)
-    for original_seg, reparsed_seg in zip(original_subs.segments, reparsed_subs.segments):
+    for original_seg, reparsed_seg in zip(original_subs.segments, reparsed_subs.segments, strict=False):
         assert original_seg.start == pytest.approx(reparsed_seg.start, abs=0.1)
         assert original_seg.end == pytest.approx(reparsed_seg.end, abs=0.1)
         assert original_seg.text == reparsed_seg.text
@@ -102,7 +101,7 @@ def test_srt_to_mpl2_to_srt_round_trip(tmp_path: Path) -> None:
 
     # Check timings and text (with tolerance for MPL2's precision)
     assert len(converted_mpl2_subs.segments) == len(original_srt_subs.segments)
-    for srt_seg, mpl2_seg in zip(original_srt_subs.segments, converted_mpl2_subs.segments):
+    for srt_seg, mpl2_seg in zip(original_srt_subs.segments, converted_mpl2_subs.segments, strict=False):
         assert srt_seg.start == pytest.approx(mpl2_seg.start, abs=0.1)
         assert srt_seg.end == pytest.approx(mpl2_seg.end, abs=0.1)
         assert srt_seg.text == mpl2_seg.text
@@ -116,7 +115,7 @@ def test_srt_to_mpl2_to_srt_round_trip(tmp_path: Path) -> None:
 
     # Compare original SRT with reconstructed SRT
     assert len(reconstructed_srt_subs.segments) == len(original_srt_subs.segments)
-    for srt_seg, reconstructed_seg in zip(original_srt_subs.segments, reconstructed_srt_subs.segments):
+    for srt_seg, reconstructed_seg in zip(original_srt_subs.segments, reconstructed_srt_subs.segments, strict=False):
         assert srt_seg.start == pytest.approx(reconstructed_seg.start, abs=0.1)
         assert srt_seg.end == pytest.approx(reconstructed_seg.end, abs=0.1)
         assert srt_seg.text == reconstructed_seg.text

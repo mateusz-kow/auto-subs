@@ -166,7 +166,9 @@ def load(
                 "Only MPL2 is supported for .txt files."
             )
     else:
-        supported = ", ".join(f".{fmt}" for fmt in SubtitleFormat if fmt not in [SubtitleFormat.JSON, SubtitleFormat.MPL2])
+        supported = ", ".join(
+            f".{fmt}" for fmt in SubtitleFormat if fmt not in [SubtitleFormat.JSON, SubtitleFormat.MPL2]
+        )
         supported += ", .txt (MPL2)"
         raise ValueError(f"Unsupported format: {suffix}. Supported: {supported}.")
 
