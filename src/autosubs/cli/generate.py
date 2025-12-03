@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Annotated
 
@@ -61,6 +60,14 @@ def generate(
             help="[ASS] Path to a JSON file with the style engine configuration.",
         ),
     ] = None,
+    encoding: Annotated[
+        str | None,
+        typer.Option(
+            "--encoding",
+            "-e",
+            help="Encoding of the input file(s). Auto-detected if not specified.",
+        ),
+    ] = None,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
     final_output_format = determine_output_format(output_format, output_path)
@@ -79,30 +86,28 @@ def generate(
             out_file = out_file_base.with_suffix(f".{final_output_format.value}")
 
         try:
-            with in_file.open("r", encoding="utf-8") as f:
-                raw_data = json.load(f)
-
             content = generate_api(
-                raw_data,
+                in_file,
                 output_format=final_output_format,
                 max_chars=max_chars,
                 min_words=min_words,
                 max_lines=max_lines,
                 style_config_path=style_config,
+                encoding=encoding,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
             out_file.write_text(content, encoding="utf-8")
             typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
 
-        except (OSError, json.JSONDecodeError) as e:
-            typer.secho(
-                f"Error reading or parsing input file {in_file.name}: {e}",
-                fg=typer.colors.RED,
-            )
-            has_errors = True
         except ValueError as e:
             typer.secho(
                 f"Input file validation error for {in_file.name}: {e}",
+                fg=typer.colors.RED,
+            )
+            has_errors = True
+        except (OSError, ImportError) as e:
+            typer.secho(
+                f"Error processing file {in_file.name}: {e}",
                 fg=typer.colors.RED,
             )
             has_errors = True

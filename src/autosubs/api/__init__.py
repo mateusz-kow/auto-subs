@@ -7,6 +7,7 @@ from typing import Any
 
 from autosubs.core import generator, parser
 from autosubs.core.builder import create_subtitles_from_transcription
+from autosubs.core.encoding import read_with_encoding_detection
 from autosubs.core.styler import AssStyler
 from autosubs.core.transcriber import run_transcription
 from autosubs.models.enums import TimingDistribution
@@ -60,27 +61,33 @@ def generate(
     min_words: int = 1,
     max_lines: int = 1,
     style_config_path: str | Path | None = None,
+    encoding: str | None = None,
 ) -> str:
     """Generate subtitle content from a transcription dictionary.
 
     Args:
-        transcription_source: A dictionary compatible with Whisper's output.
-        output_format: The desired output format ("srt", "vtt", "ass", or "json").
-        max_chars: The maximum number of characters per subtitle line.
-        min_words: The minimum number of words per line before a punctuation break.
-        max_lines: The maximum number of lines per subtitle segment.
-        style_config_path: Optional path to a JSON file for the dynamic style engine.
-                           Required for ASS output.
+            transcription_source: A dictionary compatible with Whisper's output, or a path to
+    +            a Whisper-compatible JSON file.
+            output_format: The desired output format ("srt", "vtt", "ass", or "json").
+            max_chars: The maximum number of characters per subtitle line.
+            min_words: The minimum number of words per line before a punctuation break.
+            max_lines: The maximum number of lines per subtitle segment.
+            style_config_path: Optional path to a JSON file for the dynamic style engine.
+                               Required for ASS output.
+            encoding: The encoding of any input files. If None, attempts to auto-detect.
 
     Returns:
-        A string containing the generated subtitle content.
+            A string containing the generated subtitle content.
     """
     if isinstance(transcription_source, (str, Path)):
         path = Path(transcription_source)
         if not path.is_file():
             raise FileNotFoundError(f"Transcription file not found at: {path}")
-        with path.open("r", encoding="utf-8") as f:
-            transcription_dict = json.load(f)
+        content = read_with_encoding_detection(path, encoding)
+        try:
+            transcription_dict = json.loads(content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON from: {path}") from e
     else:
         transcription_dict = transcription_source
 
@@ -103,7 +110,11 @@ def generate(
         schema = _DEFAULT_STYLE_CONFIG
         if style_config_path:
             config_path = Path(style_config_path)
-            schema = StyleEngineConfigSchema.model_validate_json(config_path.read_text(encoding="utf-8"))
+            config_content = read_with_encoding_detection(config_path, encoding)
+            try:
+                schema = StyleEngineConfigSchema.model_validate_json(config_content)
+            except ValueError as e:
+                raise ValueError(f"Failed to parse style config from: {config_path}") from e
         domain_config = schema.to_domain()
         styler_engine = AssStyler(domain_config)
         return writer_func(subtitles, styler_engine=styler_engine)
@@ -119,6 +130,7 @@ def transcribe(
     max_lines: int = 2,
     style_config_path: str | Path | None = None,
     verbose: bool | None = None,
+    encoding: str | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content."""
     media_path = Path(media_file)
@@ -132,6 +144,7 @@ def transcribe(
         min_words=min_words,
         max_lines=max_lines,
         style_config_path=style_config_path,
+        encoding=encoding,
     )
 
 
@@ -139,14 +152,31 @@ def load(
     file_path: str | Path,
     generate_word_timings: bool = False,
     timing_strategy: TimingDistribution = TimingDistribution.BY_CHAR_COUNT,
+    encoding: str | None = None,
 ) -> Subtitles:
-    """Load and parse a subtitle file into a Subtitles object."""
+    """Load and parse a subtitle file into a Subtitles object.
+
+    Args:
+        file_path: Path to the subtitle file.
+        generate_word_timings: If True, splits segments into words with estimated timings.
+        timing_strategy: Strategy for generating word timings (by char or word count).
+        encoding: The encoding of the file. If None, attempts to read as UTF-8 first,
+                  then falls back to automatic detection using 'charset-normalizer' if installed.
+
+    Returns:
+        A parsed Subtitles object.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file format is unsupported or auto-detection confidence is low.
+        ImportError: If encoding detection is needed but 'charset-normalizer' is missing.
+    """
     path = Path(file_path)
     if not path.is_file():
         raise FileNotFoundError(f"Subtitle file not found at: {path}")
 
     suffix = path.suffix.lower()
-    content = path.read_text(encoding="utf-8")
+    content = read_with_encoding_detection(path, encoding)
     subtitles: Subtitles
 
     if suffix == ".srt":

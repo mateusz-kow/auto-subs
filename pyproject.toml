@@ -37,6 +37,9 @@ cli = [
 transcribe = [
     "openai-whisper"
 ]
+encoding = [
+    "charset-normalizer~=3.4.0"
+]
 dev = [
     "ruff~=0.14.0",
     "mypy~=1.18.2",

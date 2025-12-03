@@ -34,12 +34,16 @@ dev = [
     { name = "ruff" },
     { name = "types-regex" },
 ]
+encoding = [
+    { name = "charset-normalizer" },
+]
 transcribe = [
     { name = "openai-whisper" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "charset-normalizer", marker = "extra == 'encoding'", specifier = "~=3.4.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "~=1.18.2" },
     { name = "openai-whisper", marker = "extra == 'transcribe'" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = "~=4.3.0" },
@@ -51,7 +55,7 @@ requires-dist = [
     { name = "typer", specifier = "~=0.20.0" },
     { name = "types-regex", marker = "extra == 'dev'" },
 ]
-provides-extras = ["transcribe", "dev"]
+provides-extras = ["transcribe", "encoding", "dev"]
 
 [[package]]
 name = "certifi"
