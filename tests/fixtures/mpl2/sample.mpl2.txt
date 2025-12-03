@@ -1,0 +1,4 @@
+[10][50]Hello, world.
+[60][120]This is a test|with multiple lines.
+
+[155][200]Another line here.

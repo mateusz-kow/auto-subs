@@ -38,6 +38,11 @@ def format_ass_timestamp(seconds: float) -> str:
     return f"{h}:{m:02}:{s:02}.{cs:02}"
 
 
+def format_mpl2_timestamp(seconds: float) -> str:
+    """Formats mpl2 timestamps."""
+    return str(int(round(seconds * 10)))
+
+
 def _reconstruct_dialogue_text(segment: AssSubtitleSegment) -> str:
     parts: list[str] = []
     for word in segment.words:
@@ -168,6 +173,18 @@ def to_vtt(subtitles: Subtitles) -> str:
         end_time = format_vtt_timestamp(segment.end)
         vtt_blocks.append(f"{start_time} --> {end_time}\n{segment.text}")
     return "\n\n".join(vtt_blocks) + "\n\n"
+
+
+def to_mpl2(subtitles: Subtitles) -> str:
+    """Generate the content for an MPL2 subtitle file."""
+    logger.info("Generating subtitles in MPL2 format...")
+    mpl2_lines: list[str] = []
+    for segment in subtitles.segments:
+        start_time = format_mpl2_timestamp(segment.start)
+        end_time = format_mpl2_timestamp(segment.end)
+        text = segment.text.replace("\n", "|")
+        mpl2_lines.append(f"[{start_time}][{end_time}]{text}")
+    return "\n".join(mpl2_lines) + "\n" if mpl2_lines else ""
 
 
 def to_json(subtitles: Subtitles) -> str:

@@ -8,3 +8,4 @@ class SubtitleFormat(StrEnum):
     SRT = auto()
     VTT = auto()
     JSON = auto()
+    MPL2 = auto()
