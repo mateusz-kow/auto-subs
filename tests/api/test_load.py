@@ -5,7 +5,7 @@ import pytest
 from autosubs.api import load
 
 
-def test_load_microdvd_with_fps_from_header():
+def test_load_microdvd_with_fps_from_header() -> None:
     """Test loading a MicroDVD file where FPS is read from the header."""
     fixture_path = Path("tests/fixtures/microdvd/sample.sub")
     subtitles = load(fixture_path)
@@ -22,7 +22,7 @@ def test_load_microdvd_with_fps_from_header():
     assert seg2.text == "This is a test\nwith a pipe."
 
 
-def test_load_microdvd_with_explicit_fps(tmp_path: Path):
+def test_load_microdvd_with_explicit_fps(tmp_path: Path) -> None:
     """Test loading a MicroDVD file using an explicit FPS parameter."""
     content = "{24}{48}Hello world."
     file_path = tmp_path / "sample_no_header.sub"
@@ -36,7 +36,7 @@ def test_load_microdvd_with_explicit_fps(tmp_path: Path):
     assert segment.text == "Hello world."
 
 
-def test_load_microdvd_raises_error_if_no_fps(tmp_path: Path):
+def test_load_microdvd_raises_error_if_no_fps(tmp_path: Path) -> None:
     """Test that load raises a ValueError if FPS is not available."""
     content = "{24}{48}Hello world."
     file_path = tmp_path / "sample_no_header.sub"

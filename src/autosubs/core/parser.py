@@ -60,7 +60,7 @@ def microdvd_frames_to_seconds(start_frame: int, end_frame: int, fps: float) -> 
     """Converts MicroDVD frame numbers to start and end seconds."""
     return start_frame / fps, end_frame / fps
 
-  
+
 def mpl2_timestamp_to_seconds(deciseconds: str) -> float:
     """Converts an MPL2 timestamp (in deciseconds) string to seconds."""
     return int(deciseconds) / 10
@@ -398,14 +398,16 @@ def parse_microdvd(file_content: str, fps: float | None = None) -> list[Subtitle
 
             if start_time > end_time:
                 logger.warning(f"Skipping MicroDVD line with invalid timestamp (start > end): {line}")
-                
+
             word = SubtitleWord(text=text, start=start_time, end=end_time)
             segments.append(SubtitleSegment(words=[word]))
         except (ValueError, IndexError) as e:
             logger.warning(f"Skipping malformed MicroDVD line: {line} ({e})")
             continue
-                
-                
+
+    return segments
+
+
 def parse_mpl2(file_content: str) -> list[SubtitleSegment]:
     """Parses content from an MPL2 file into subtitle segments."""
     logger.info("Parsing MPL2 file content.")
