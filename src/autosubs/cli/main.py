@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Annotated
+from typing import Annotated, Any
 
 from autosubs import __version__
 
@@ -12,12 +12,12 @@ try:
 except ImportError:
     typer = None  # type: ignore[assignment]
 
+# We declare app as Any to satisfy mypy.
+app: Any
 
 if typer is None:
     # If typer is not installed, define a dummy app function that prints an error.
-    # This prevents the "auto-subs" command from crashing with a ModuleNotFoundError
-    # and instead informs the user about the missing optional dependencies.
-    def app() -> None:
+    def app_shim() -> None:  # type: ignore[unreachable]
         """Shim entry point for when the CLI dependencies are missing."""
         error_msg = (
             "The 'auto-subs' CLI requires the optional 'cli' dependencies.\n"
@@ -26,9 +26,9 @@ if typer is None:
         print(error_msg, file=sys.stderr)
         sys.exit(1)
 
+    app = app_shim
 else:
     # Only import subcommands if typer is present.
-    # Importing them at the top level would cause crashes because they depend on typer.
     from autosubs.cli.burn import burn
     from autosubs.cli.convert import convert
     from autosubs.cli.generate import generate
@@ -51,7 +51,7 @@ else:
             typer.echo(f"auto-subs version: {__version__}")
             raise typer.Exit()
 
-    @app.callback()
+    @app.callback()  # type: ignore[misc]
     def main(
         version: Annotated[
             bool,
