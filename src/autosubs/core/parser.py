@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 SRT_TIMESTAMP_REGEX = re.compile(r"(\d{2}):(\d{2}):(\d{2}),(\d{3})")
 VTT_TIMESTAMP_REGEX = re.compile(r"(?:(\d{1,2}):)?(\d{2}):(\d{2})\.(\d{3})")
 ASS_TIMESTAMP_REGEX = re.compile(r"(\d+):(\d{2}):(\d{2})\.(\d{2})")
+MPL2_TIMESTAMP_REGEX = re.compile(r"\[(\d+)]\[(\d+)](.+)")
 ASS_STYLE_TAG_REGEX = re.compile(r"{[^}]+}")
 MICRODVD_TIMESTAMP_REGEX = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
 
@@ -58,6 +59,11 @@ def ass_timestamp_to_seconds(timestamp: str) -> float:
 def microdvd_frames_to_seconds(start_frame: int, end_frame: int, fps: float) -> tuple[float, float]:
     """Converts MicroDVD frame numbers to start and end seconds."""
     return start_frame / fps, end_frame / fps
+
+  
+def mpl2_timestamp_to_seconds(deciseconds: str) -> float:
+    """Converts an MPL2 timestamp (in deciseconds) string to seconds."""
+    return int(deciseconds) / 10
 
 
 def parse_srt(file_content: str) -> list[SubtitleSegment]:
@@ -392,11 +398,40 @@ def parse_microdvd(file_content: str, fps: float | None = None) -> list[Subtitle
 
             if start_time > end_time:
                 logger.warning(f"Skipping MicroDVD line with invalid timestamp (start > end): {line}")
+                
+            word = SubtitleWord(text=text, start=start_time, end=end_time)
+            segments.append(SubtitleSegment(words=[word]))
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Skipping malformed MicroDVD line: {line} ({e})")
+            continue
+                
+                
+def parse_mpl2(file_content: str) -> list[SubtitleSegment]:
+    """Parses content from an MPL2 file into subtitle segments."""
+    logger.info("Parsing MPL2 file content.")
+    segments: list[SubtitleSegment] = []
+    lines = file_content.strip().replace("\r\n", "\n").split("\n")
+
+    for line in lines:
+        match = MPL2_TIMESTAMP_REGEX.match(line)
+        if not match:
+            if line.strip():
+                logger.warning(f"Skipping malformed MPL2 line: {line}")
+            continue
+
+        try:
+            start_ds, end_ds, text = match.groups()
+            start_time = mpl2_timestamp_to_seconds(start_ds)
+            end_time = mpl2_timestamp_to_seconds(end_ds)
+            text = text.replace("|", "\n")
+
+            if start_time > end_time:
+                logger.warning(f"Skipping MPL2 line with invalid timestamp (start > end): {line}")
                 continue
 
             word = SubtitleWord(text=text, start=start_time, end=end_time)
             segments.append(SubtitleSegment(words=[word]))
         except (ValueError, IndexError) as e:
-            logger.warning(f"Skipping malformed MicroDVD line: {line} ({e})")
+            logger.warning(f"Skipping malformed MPL2 line: {line} ({e})")
             continue
     return segments

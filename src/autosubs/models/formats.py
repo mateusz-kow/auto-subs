@@ -9,3 +9,4 @@ class SubtitleFormat(StrEnum):
     VTT = auto()
     JSON = auto()
     MICRODVD = auto()
+    MPL2 = auto()

@@ -42,6 +42,11 @@ def seconds_to_microdvd_frame(seconds: float, fps: float) -> int:
     """Converts seconds to a MicroDVD frame number."""
     return round(seconds * fps)
 
+  
+def format_mpl2_timestamp(seconds: float) -> str:
+    """Formats mpl2 timestamps."""
+    return str(int(round(seconds * 10)))
+
 
 def _reconstruct_dialogue_text(segment: AssSubtitleSegment) -> str:
     parts: list[str] = []
@@ -188,6 +193,18 @@ def to_microdvd(subtitles: Subtitles, fps: float) -> str:
         text = segment.text.replace("\n", "|")
         microdvd_lines.append(f"{{{start_frame}}}{{{end_frame}}}{text}")
     return "\n".join(microdvd_lines) + "\n" if microdvd_lines else ""
+
+  
+def to_mpl2(subtitles: Subtitles) -> str:
+    """Generate the content for an MPL2 subtitle file."""
+    logger.info("Generating subtitles in MPL2 format...")
+    mpl2_lines: list[str] = []
+    for segment in subtitles.segments:
+        start_time = format_mpl2_timestamp(segment.start)
+        end_time = format_mpl2_timestamp(segment.end)
+        text = segment.text.replace("\n", "|")
+        mpl2_lines.append(f"[{start_time}][{end_time}]{text}")
+    return "\n".join(mpl2_lines) + "\n" if mpl2_lines else ""
 
 
 def to_json(subtitles: Subtitles) -> str:
