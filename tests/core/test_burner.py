@@ -18,7 +18,7 @@ def test_burn_subtitles_success(mock_run: MagicMock, tmp_path: Path) -> None:
     burn_subtitles(video_in, subs_in, video_out)
 
     mock_run.assert_called_once()
-    args, kwargs = mock_run.call_args
+    args, _ = mock_run.call_args
     command = args[0]
 
     assert command[0] == "ffmpeg"

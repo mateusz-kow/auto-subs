@@ -398,6 +398,7 @@ def parse_microdvd(file_content: str, fps: float | None = None) -> list[Subtitle
 
             if start_time > end_time:
                 logger.warning(f"Skipping MicroDVD line with invalid timestamp (start > end): {line}")
+                continue
 
             word = SubtitleWord(text=text, start=start_time, end=end_time)
             segments.append(SubtitleSegment(words=[word]))

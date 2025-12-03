@@ -43,7 +43,7 @@ def test_cli_logging_level_quiet(mock_basic_config: MagicMock) -> None:
     """Test that --quiet sets the logging level to WARNING."""
     runner.invoke(app, ["--quiet", "generate", "dummy.json"])
     # The first positional argument to basicConfig is 'level'
-    args, kwargs = mock_basic_config.call_args
+    _, kwargs = mock_basic_config.call_args
     assert kwargs["level"] == logging.WARNING
 
 
@@ -52,5 +52,5 @@ def test_cli_logging_level_quiet(mock_basic_config: MagicMock) -> None:
 def test_cli_logging_level_verbose(mock_basic_config: MagicMock, verbose_flag: str) -> None:
     """Test that -v or --verbose sets the logging level to DEBUG."""
     runner.invoke(app, [verbose_flag, "generate", "dummy.json"])
-    args, kwargs = mock_basic_config.call_args
+    _, kwargs = mock_basic_config.call_args
     assert kwargs["level"] == logging.DEBUG
