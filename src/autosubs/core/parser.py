@@ -365,12 +365,13 @@ def parse_microdvd(file_content: str, fps: float | None = None) -> list[Subtitle
     # Check for FPS in the first line, e.g., {1}{1}23.976
     first_line_match = re.match(r"\{1\}\{1\}([\d\.]+)", lines[0])
     if first_line_match:
-        try:
-            fps = float(first_line_match.group(1))
-            lines.pop(0)
-            logger.info(f"Detected FPS from MicroDVD header: {fps}")
-        except ValueError:
-            logger.warning("Invalid FPS value in MicroDVD header, ignoring.")
+        if fps is None:
+            try:
+                fps = float(first_line_match.group(1))
+                logger.info(f"Detected FPS from MicroDVD header: {fps}")
+            except ValueError:
+                logger.warning("Invalid FPS value in MicroDVD header, ignoring.")
+        lines.pop(0)
 
     if fps is None:
         raise ValueError("FPS must be provided to parse MicroDVD files.")
