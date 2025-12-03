@@ -23,16 +23,16 @@ def empty_segment() -> SubtitleSegment:
 
 def test_segment_boundary_calculation(sample_segment: SubtitleSegment) -> None:
     """Test that start is the first start and end is the last end."""
-    assert sample_segment.start == 10.0
-    assert sample_segment.end == 12.5
+    assert sample_segment.start == pytest.approx(10.0)
+    assert sample_segment.end == pytest.approx(12.5)
 
 
 def test_add_word_to_empty_segment(empty_segment: SubtitleSegment) -> None:
     """Test adding a word to an empty segment correctly sets boundaries."""
     word = SubtitleWord("First", 9.0, 9.5)
     empty_segment.add_word(word)
-    assert empty_segment.start == 9.0
-    assert empty_segment.end == 9.5
+    assert empty_segment.start == pytest.approx(9.0)
+    assert empty_segment.end == pytest.approx(9.5)
     assert empty_segment.words == [word]
 
 
@@ -43,20 +43,20 @@ def test_add_word_maintains_order_and_updates_boundaries(
     # Word that should be inserted in the middle
     middle_word = SubtitleWord("middle", 11.1, 11.4)
     sample_segment.add_word(middle_word)
-    assert [w.start for w in sample_segment.words] == [10.0, 10.6, 11.1, 11.5]
-    assert sample_segment.start == 10.0  # Should not change
-    assert sample_segment.end == 12.5  # Should not change
+    assert [w.start for w in sample_segment.words] == pytest.approx([10.0, 10.6, 11.1, 11.5])
+    assert sample_segment.start == pytest.approx(10.0)  # Should not change
+    assert sample_segment.end == pytest.approx(12.5)  # Should not change
 
     # Word that should become the new start
     first_word = SubtitleWord("first", 9.0, 9.5)
     sample_segment.add_word(first_word)
-    assert [w.start for w in sample_segment.words] == [9.0, 10.0, 10.6, 11.1, 11.5]
-    assert sample_segment.start == 9.0  # Should update
+    assert [w.start for w in sample_segment.words] == pytest.approx([9.0, 10.0, 10.6, 11.1, 11.5])
+    assert sample_segment.start == pytest.approx(9.0)  # Should update
 
     # Word that should become the new end
     last_word = SubtitleWord("last", 13.0, 13.5)
     sample_segment.add_word(last_word)
-    assert sample_segment.end == 13.5  # Should update
+    assert sample_segment.end == pytest.approx(13.5)  # Should update
 
 
 def test_remove_last_word_from_segment() -> None:
@@ -65,8 +65,8 @@ def test_remove_last_word_from_segment() -> None:
     segment = SubtitleSegment(words=[word])
     segment.remove_word(word)
     assert not segment.words
-    assert segment.start == 0.0
-    assert segment.end == 0.0
+    assert segment.start == pytest.approx(0.0)
+    assert segment.end == pytest.approx(0.0)
 
 
 def test_remove_boundary_word_recalculates_segment_boundaries() -> None:
@@ -76,19 +76,19 @@ def test_remove_boundary_word_recalculates_segment_boundaries() -> None:
     word3 = SubtitleWord("C", 3.5, 4.5)
     segment = SubtitleSegment(words=[word1, word2, word3])
 
-    assert segment.start == 1.0
-    assert segment.end == 4.5
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(4.5)
 
     # Remove the first word, forcing a start time recalculation
 
     segment.remove_word(word1)
-    assert segment.start == 2.5
-    assert segment.end == 4.5
+    assert segment.start == pytest.approx(2.5)
+    assert segment.end == pytest.approx(4.5)
 
     # Remove the (new) last word, forcing an end time recalculation
     segment.remove_word(word3)
-    assert segment.start == 2.5
-    assert segment.end == 3.0
+    assert segment.start == pytest.approx(2.5)
+    assert segment.end == pytest.approx(3.0)
 
 
 def test_remove_non_existent_word(sample_segment: SubtitleSegment) -> None:
@@ -107,35 +107,35 @@ def test_shift_by(sample_segment: SubtitleSegment) -> None:
 
     sample_segment.shift_by(offset)
 
-    assert sample_segment.start == 10.0 + offset
-    assert sample_segment.end == 12.5 + offset
+    assert sample_segment.start == pytest.approx(10.0 + offset)
+    assert sample_segment.end == pytest.approx(12.5 + offset)
     for i, word in enumerate(sample_segment.words):
-        assert word.start == original_starts[i] + offset
-        assert word.end == original_ends[i] + offset
+        assert word.start == pytest.approx(original_starts[i] + offset)
+        assert word.end == pytest.approx(original_ends[i] + offset)
 
 
 def test_shift_by_on_empty_segment(empty_segment: SubtitleSegment) -> None:
     """Test that shifting an empty segment is a no-op."""
     empty_segment.shift_by(10.0)
-    assert empty_segment.start == 0.0
-    assert empty_segment.end == 0.0
+    assert empty_segment.start == pytest.approx(0.0)
+    assert empty_segment.end == pytest.approx(0.0)
     assert not empty_segment.words
 
 
 def test_resize_proportional(sample_segment: SubtitleSegment) -> None:
     """Test that resize correctly scales all internal words."""
     sample_segment.resize(new_start=20.0, new_end=25.0)
-    assert sample_segment.start == 20.0
-    assert sample_segment.end == 25.0
-    assert pytest.approx(sample_segment.words[0].start) == 20.0
-    assert pytest.approx(sample_segment.words[-1].start) == 23.0
+    assert sample_segment.start == pytest.approx(20.0)
+    assert sample_segment.end == pytest.approx(25.0)
+    assert sample_segment.words[0].start == pytest.approx(20.0)
+    assert sample_segment.words[-1].start == pytest.approx(23.0)
 
 
 def test_resize_empty_segment(empty_segment: SubtitleSegment) -> None:
     """Test that resizing an empty segment sets its boundaries."""
     empty_segment.resize(10.0, 20.0)
-    assert empty_segment.start == 10.0
-    assert empty_segment.end == 20.0
+    assert empty_segment.start == pytest.approx(10.0)
+    assert empty_segment.end == pytest.approx(20.0)
     assert not empty_segment.words
 
 
@@ -148,12 +148,12 @@ def test_resize_with_invalid_timestamps(sample_segment: SubtitleSegment) -> None
 def test_set_duration(sample_segment: SubtitleSegment) -> None:
     """Test the set_duration helper method with valid anchors."""
     sample_segment.set_duration(5.0, anchor="start")
-    assert sample_segment.start == 10.0
-    assert pytest.approx(sample_segment.end) == 15.0
+    assert sample_segment.start == pytest.approx(10.0)
+    assert sample_segment.end == pytest.approx(15.0)
 
     sample_segment.set_duration(1.0, anchor="end")
-    assert pytest.approx(sample_segment.start) == 14.0
-    assert sample_segment.end == 15.0
+    assert sample_segment.start == pytest.approx(14.0)
+    assert sample_segment.end == pytest.approx(15.0)
 
 
 def test_set_duration_negative(sample_segment: SubtitleSegment) -> None:
@@ -176,8 +176,8 @@ def test_merge_segments() -> None:
     subs.merge_segments(0, 1)
     assert len(subs.segments) == 1
     merged = subs.segments[0]
-    assert merged.start == 1.0
-    assert merged.end == 4.0
+    assert merged.start == pytest.approx(1.0)
+    assert merged.end == pytest.approx(4.0)
     assert len(merged.words) == 2
 
 
@@ -189,8 +189,8 @@ def test_merge_into_empty_segment() -> None:
     subs.merge_segments(0, 1)
     assert len(subs.segments) == 1
     merged = subs.segments[0]
-    assert merged.start == 3.0
-    assert merged.end == 4.0
+    assert merged.start == pytest.approx(3.0)
+    assert merged.end == pytest.approx(4.0)
     assert len(merged.words) == 1
 
 
@@ -219,7 +219,7 @@ def test_split_segment() -> None:
     assert len(subs.segments) == 2
     assert subs.segments[0].text == "A"
     assert subs.segments[1].text == "B C"
-    assert subs.segments[1].start == 3.0
+    assert subs.segments[1].start == pytest.approx(3.0)
 
 
 @pytest.mark.parametrize("invalid_index", [0, 3])
@@ -279,9 +279,9 @@ def test_generate_word_timings_strategies(strategy: TimingDistribution, expected
     assert seg.words[0].text == "A"
     current_time = 1.0
     for i, word in enumerate(seg.words):
-        assert pytest.approx(word.start) == current_time
+        assert word.start == pytest.approx(current_time)
         duration = word.end - word.start
-        assert pytest.approx(duration) == expected_durations[i]
+        assert duration == pytest.approx(expected_durations[i])
         current_time += duration
 
 
@@ -349,7 +349,7 @@ def test_complex_editing_sequence_maintains_integrity() -> None:
     assert subs.segments[0].text == "New A B1 B2"
     assert subs.segments[1].text == "C1"
     assert subs.segments[2].text == "C2 C3"
-    assert pytest.approx(subs.segments[2].start) == 25.3
+    assert subs.segments[2].start == pytest.approx(25.3)
 
 
 def test_generate_word_timings_handles_whitespace_only_word() -> None:
@@ -357,5 +357,5 @@ def test_generate_word_timings_handles_whitespace_only_word() -> None:
     segment = SubtitleSegment(words=[SubtitleWord(" \t ", 5.0, 10.0)])
     segment.generate_word_timings()
     assert not segment.words
-    assert segment.start == 0.0
-    assert segment.end == 0.0
+    assert segment.start == pytest.approx(0.0)
+    assert segment.end == pytest.approx(0.0)

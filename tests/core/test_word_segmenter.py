@@ -86,10 +86,10 @@ def test_segment_words_max_lines_combines_short_lines(
     assert len(segments) == 2
     assert segments[0].text == "This is a test transcription for\nthe auto-subs library."
     assert segments[1].text == "It includes punctuation!\nAnd a final line."
-    assert segments[0].start == 0.1
-    assert segments[0].end == 4.2
-    assert segments[1].start == 5.1
-    assert segments[1].end == 9.0
+    assert segments[0].start == pytest.approx(0.1)
+    assert segments[0].end == pytest.approx(4.2)
+    assert segments[1].start == pytest.approx(5.1)
+    assert segments[1].end == pytest.approx(9.0)
 
 
 def test_segment_words_max_lines_with_odd_number_of_lines(

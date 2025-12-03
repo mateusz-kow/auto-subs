@@ -21,8 +21,8 @@ def test_parse_ass_dialogue_metadata(simple_ass_content: str) -> None:
     assert len(subs.segments) == 1
     segment = subs.segments[0]
     assert isinstance(segment, AssSubtitleSegment)
-    assert segment.start == 1.0
-    assert segment.end == 2.0
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(2.0)
     assert segment.style_name == "Default"
     assert segment.layer == 0
 

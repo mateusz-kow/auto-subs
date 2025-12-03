@@ -38,6 +38,11 @@ def format_ass_timestamp(seconds: float) -> str:
     return f"{h}:{m:02}:{s:02}.{cs:02}"
 
 
+def seconds_to_microdvd_frame(seconds: float, fps: float) -> int:
+    """Converts seconds to a MicroDVD frame number."""
+    return round(seconds * fps)
+
+
 def format_mpl2_timestamp(seconds: float) -> str:
     """Formats mpl2 timestamps."""
     return str(int(round(seconds * 10)))
@@ -173,6 +178,23 @@ def to_vtt(subtitles: Subtitles) -> str:
         end_time = format_vtt_timestamp(segment.end)
         vtt_blocks.append(f"{start_time} --> {end_time}\n{segment.text}")
     return "\n\n".join(vtt_blocks) + "\n\n"
+
+
+def to_microdvd(subtitles: Subtitles, fps: float, include_fps_header: bool = False) -> str:
+    """Generate the content for a MicroDVD subtitle file."""
+    if not fps or fps <= 0:
+        raise ValueError("A positive FPS value is required to generate MicroDVD files.")
+
+    logger.info(f"Generating subtitles in MicroDVD format with FPS={fps}...")
+    microdvd_lines: list[str] = []
+    if include_fps_header:
+        microdvd_lines.append(f"{{1}}{{1}}{fps}")
+    for segment in subtitles.segments:
+        start_frame = seconds_to_microdvd_frame(segment.start, fps)
+        end_frame = seconds_to_microdvd_frame(segment.end, fps)
+        text = segment.text.replace("\n", "|")
+        microdvd_lines.append(f"{{{start_frame}}}{{{end_frame}}}{text}")
+    return "\n".join(microdvd_lines) + "\n" if microdvd_lines else ""
 
 
 def to_mpl2(subtitles: Subtitles) -> str:

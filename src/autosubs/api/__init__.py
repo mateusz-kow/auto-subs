@@ -20,6 +20,7 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.VTT: generator.to_vtt,
     SubtitleFormat.ASS: generator.to_ass,
     SubtitleFormat.JSON: generator.to_json,
+    SubtitleFormat.MICRODVD: generator.to_microdvd,
     SubtitleFormat.MPL2: generator.to_mpl2,
 }
 
@@ -63,6 +64,7 @@ def generate(
     max_lines: int = 1,
     style_config_path: str | Path | None = None,
     encoding: str | None = None,
+    fps: float | None = None,
 ) -> str:
     """Generate subtitle content from a transcription dictionary.
 
@@ -76,6 +78,7 @@ def generate(
             style_config_path: Optional path to a JSON file for the dynamic style engine.
                                Required for ASS output.
             encoding: The encoding of any input files. If None, attempts to auto-detect.
+            fps: The framerate to use for frame-based subtitle formats like MicroDVD.
 
     Returns:
             A string containing the generated subtitle content.
@@ -119,6 +122,10 @@ def generate(
         domain_config = schema.to_domain()
         styler_engine = AssStyler(domain_config)
         return writer_func(subtitles, styler_engine=styler_engine)
+    if format_enum == SubtitleFormat.MICRODVD:
+        if fps is None:
+            raise ValueError("FPS is required for MicroDVD format.")
+        return writer_func(subtitles, fps=fps)
     return writer_func(subtitles)
 
 
@@ -132,6 +139,7 @@ def transcribe(
     style_config_path: str | Path | None = None,
     verbose: bool | None = None,
     encoding: str | None = None,
+    fps: float | None = None,
 ) -> str:
     """Transcribe a media file and generate subtitle content."""
     media_path = Path(media_file)
@@ -146,6 +154,7 @@ def transcribe(
         max_lines=max_lines,
         style_config_path=style_config_path,
         encoding=encoding,
+        fps=fps,
     )
 
 
@@ -154,6 +163,7 @@ def load(
     generate_word_timings: bool = False,
     timing_strategy: TimingDistribution = TimingDistribution.BY_CHAR_COUNT,
     encoding: str | None = None,
+    fps: float | None = None,
 ) -> Subtitles:
     """Load and parse a subtitle file into a Subtitles object.
 
@@ -163,6 +173,8 @@ def load(
         timing_strategy: Strategy for generating word timings (by char or word count).
         encoding: The encoding of the file. If None, attempts to read as UTF-8 first,
                   then falls back to automatic detection using 'charset-normalizer' if installed.
+        fps: The framerate to use for frame-based subtitle formats like MicroDVD.
+             If not provided for MicroDVD, it will be inferred from the file if possible.
 
     Returns:
         A parsed Subtitles object.
@@ -186,6 +198,8 @@ def load(
         subtitles = Subtitles(segments=parser.parse_vtt(content))
     elif suffix == ".ass":
         subtitles = parser.parse_ass(content)
+    elif suffix == ".sub":
+        subtitles = Subtitles(segments=parser.parse_microdvd(content, fps=fps))
     elif suffix == ".txt":
         first_line = content.split("\n", 1)[0].strip()
         if parser.MPL2_TIMESTAMP_REGEX.match(first_line):
