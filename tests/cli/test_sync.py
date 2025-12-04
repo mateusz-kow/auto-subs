@@ -82,7 +82,6 @@ def test_cli_sync_default_output_name(tmp_srt_file: Path) -> None:
     )
     assert result.exit_code == 0, result.stdout
     assert expected_output.exists()
-    expected_output.unlink()  # Clean up
 
 
 @pytest.mark.parametrize(
