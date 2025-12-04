@@ -14,6 +14,7 @@ def problematic_transcription(tmp_path: Path) -> Path:
     """Creates a transcription file with a character that fails in some encodings."""
     content = {
         "text": "Hello world 🤔.",
+        "language": "en",
         "segments": [
             {
                 "start": 0.0,
@@ -97,9 +98,9 @@ def test_cli_generate_invalid_error_handler(problematic_transcription: Path) -> 
         ],
     )
     assert result.exit_code != 0
-    assert "Invalid value" in result.stdout
-    assert "invalid-handler" in result.stdout
-    assert "is not one of" in result.stdout
+    assert "Invalid value" in result.stderr
+    assert "invalid-handler" in result.stderr
+    assert "is not one of" in result.stderr
 
 
 def test_cli_generate_encoding_strict_fails(

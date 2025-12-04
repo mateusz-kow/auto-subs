@@ -82,9 +82,9 @@ def test_cli_convert_invalid_error_handler(problematic_srt_file: Path) -> None:
         ],
     )
     assert result.exit_code != 0
-    assert "Invalid value" in result.stdout
-    assert "invalid-handler" in result.stdout
-    assert "is not one of" in result.stdout
+    assert "Invalid value" in result.stderr
+    assert "invalid-handler" in result.stderr
+    assert "is not one of" in result.stderr
 
 
 def test_cli_convert_encoding_strict_fails(
