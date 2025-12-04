@@ -5,6 +5,7 @@ import pytest
 from typer.testing import CliRunner
 
 from autosubs.cli.main import app
+from tests.utils import strip_ansi
 
 runner = CliRunner()
 
@@ -98,9 +99,10 @@ def test_cli_generate_invalid_error_handler(problematic_transcription: Path) -> 
         ],
     )
     assert result.exit_code != 0
-    assert "Invalid value" in result.stderr
-    assert "invalid-handler" in result.stderr
-    assert "is not one of" in result.stderr
+    stderr = strip_ansi(result.stderr)
+    assert "Invalid value" in stderr
+    assert "invalid-handler" in stderr
+    assert "is not one of" in stderr
 
 
 def test_cli_generate_encoding_strict_fails(

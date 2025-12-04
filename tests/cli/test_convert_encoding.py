@@ -4,6 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from autosubs.cli.main import app
+from tests.utils import strip_ansi
 
 runner = CliRunner()
 
@@ -82,9 +83,10 @@ def test_cli_convert_invalid_error_handler(problematic_srt_file: Path) -> None:
         ],
     )
     assert result.exit_code != 0
-    assert "Invalid value" in result.stderr
-    assert "invalid-handler" in result.stderr
-    assert "is not one of" in result.stderr
+    stderr = strip_ansi(result.stderr)
+    assert "Invalid value" in stderr
+    assert "invalid-handler" in stderr
+    assert "is not one of" in stderr
 
 
 def test_cli_convert_encoding_strict_fails(
