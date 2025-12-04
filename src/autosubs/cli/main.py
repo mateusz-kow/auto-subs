@@ -32,6 +32,7 @@ else:
     from autosubs.cli.burn import burn
     from autosubs.cli.convert import convert
     from autosubs.cli.generate import generate
+    from autosubs.cli.sync import sync
     from autosubs.cli.transcribe import transcribe
 
     app = typer.Typer(
@@ -42,6 +43,7 @@ else:
 
     app.command()(generate)
     app.command()(convert)
+    app.command()(sync)
     app.command()(transcribe)
     app.command()(burn)
 

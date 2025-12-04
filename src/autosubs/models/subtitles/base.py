@@ -33,6 +33,32 @@ class SubtitleWord:
 
         return self
 
+    def linear_sync(self, old_start: float, old_end: float, new_start: float, new_end: float) -> SubtitleWord:
+        """Performs a linear time transformation on the word's timestamps.
+
+        Args:
+            old_start: The start time of the original reference period.
+            old_end: The end time of the original reference period.
+            new_start: The start time of the new reference period.
+            new_end: The end time of the new reference period.
+
+        Returns:
+            The word itself, for method chaining.
+        """
+        if old_start == old_end:
+            raise ValueError("Original start and end times cannot be the same for linear sync.")
+
+        scale_factor = (new_end - new_start) / (old_end - old_start)
+        offset = new_start - (old_start * scale_factor)
+
+        self.start = self.start * scale_factor + offset
+        self.end = self.end * scale_factor + offset
+
+        if self.start < 0 or self.end < 0:
+            raise ValueError("Linear sync resulted in negative timestamps.")
+
+        return self
+
 
 @dataclass(eq=True)
 class SubtitleSegment:
@@ -97,6 +123,27 @@ class SubtitleSegment:
         for word in self.words:
             word.shift_by(offset)
 
+        return self
+
+    def linear_sync(self, old_start: float, old_end: float, new_start: float, new_end: float) -> SubtitleSegment:
+        """Performs a linear time transformation on the segment and all its words.
+
+        Args:
+            old_start: The start time of the original reference period.
+            old_end: The end time of the original reference period.
+            new_start: The start time of the new reference period.
+            new_end: The end time of the new reference period.
+
+        Returns:
+            The segment itself, for method chaining.
+        """
+        if not self.words:
+            return self
+
+        for word in self.words:
+            word.linear_sync(old_start, old_end, new_start, new_end)
+
+        self._recalculate_boundaries_full()
         return self
 
     def resize(self, new_start: float, new_end: float) -> SubtitleSegment:
@@ -280,6 +327,25 @@ class Subtitles:
         new_seg1, new_seg2 = segment_to_split._split_at_word_index(word_index)
         self.segments[segment_index : segment_index + 1] = [new_seg1, new_seg2]
         return new_seg1, new_seg2
+
+    def linear_sync(self, old_start: float, old_end: float, new_start: float, new_end: float) -> Subtitles:
+        """Performs a linear time transformation on all segments.
+
+        Args:
+            old_start: The start time of the original reference period.
+            old_end: The end time of the original reference period.
+            new_start: The start time of the new reference period.
+            new_end: The end time of the new reference period.
+
+        Returns:
+            The subtitles object itself, for method chaining.
+        """
+        for segment in self.segments:
+            segment.linear_sync(old_start, old_end, new_start, new_end)
+
+        self.segments.sort(key=lambda s: s.start)
+        self._validate_overlaps()
+        return self
 
     @property
     def text(self) -> str:
