@@ -67,6 +67,13 @@ def convert(
             help="Encoding of the input file(s). Auto-detected if not specified.",
         ),
     ] = None,
+    output_encoding: Annotated[
+        str,
+        typer.Option(
+            "--output-encoding",
+            help="Encoding for the output file(s). Defaults to utf-8.",
+        ),
+    ] = "utf-8",
 ) -> None:
     """Convert an existing subtitle file to a different format."""
     final_output_format = determine_output_format(output_format, output_path)
@@ -91,7 +98,7 @@ def convert(
             content = writer_func(subtitles)
 
             out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding="utf-8")
+            out_file.write_text(content, encoding=output_encoding, errors="replace")
             typer.secho(
                 f"Successfully saved converted subtitles to: {out_file}",
                 fg=typer.colors.GREEN,
