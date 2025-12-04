@@ -12,6 +12,7 @@ from autosubs.cli.utils import (
 )
 from autosubs.core import generator
 from autosubs.core.styler import AssStyler
+from autosubs.models.enums import EncodingErrorStrategy
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.subtitles import Subtitles
 
@@ -67,6 +68,22 @@ def convert(
             help="Encoding of the input file(s). Auto-detected if not specified.",
         ),
     ] = None,
+    output_encoding: Annotated[
+        str,
+        typer.Option(
+            "--output-encoding",
+            help="Encoding for the output file(s). Defaults to utf-8.",
+        ),
+    ] = "utf-8",
+    output_encoding_errors: Annotated[
+        EncodingErrorStrategy,
+        typer.Option(
+            "--output-encoding-errors",
+            case_sensitive=False,
+            help="How to handle encoding errors for the output file(s). "
+            "Defaults to 'replace', which substitutes unencodable characters.",
+        ),
+    ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
     """Convert an existing subtitle file to a different format."""
     final_output_format = determine_output_format(output_format, output_path)
@@ -91,12 +108,12 @@ def convert(
             content = writer_func(subtitles)
 
             out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding="utf-8")
+            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors)
             typer.secho(
                 f"Successfully saved converted subtitles to: {out_file}",
                 fg=typer.colors.GREEN,
             )
-        except (OSError, ValueError, ImportError) as e:
+        except (OSError, ValueError, ImportError, LookupError) as e:
             typer.secho(f"Error processing file {in_file.name}: {e}", fg=typer.colors.RED)
             has_errors = True
             continue
