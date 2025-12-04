@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from autosubs.cli.main import app
 
-runner = CliRunner()
+runner = CliRunner(mix_stderr=False)
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def test_cli_generate_encoding_errors(
             error_handler,
         ],
     )
-    assert result.exit_code == 0, result.stderr
+    assert result.exit_code == 0, result.stderr or result.stdout
     assert "Successfully saved" in result.stdout
     content = output_file.read_text(encoding="latin-1")
     assert content == expected_output

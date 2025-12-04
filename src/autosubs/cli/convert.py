@@ -117,7 +117,7 @@ def convert(
                 f"Successfully saved converted subtitles to: {out_file}",
                 fg=typer.colors.GREEN,
             )
-        except (OSError, ValueError, ImportError) as e:
+        except (OSError, ValueError, ImportError, LookupError) as e:
             typer.secho(f"Error processing file {in_file.name}: {e}", fg=typer.colors.RED)
             has_errors = True
             continue
