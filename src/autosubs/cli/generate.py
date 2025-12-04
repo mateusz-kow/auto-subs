@@ -1,3 +1,4 @@
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -10,6 +11,11 @@ from autosubs.cli.utils import (
     determine_output_format,
 )
 from autosubs.models.formats import SubtitleFormat
+
+
+class EncodingErrorStrategy(StrEnum):
+    REPLACE = "replace"
+    IGNORE = "ignore"
 
 
 def generate(
@@ -75,6 +81,14 @@ def generate(
             help="Encoding for the output file(s). Defaults to utf-8.",
         ),
     ] = "utf-8",
+    output_encoding_errors: Annotated[
+        EncodingErrorStrategy,
+        typer.Option(
+            "--output-encoding-errors",
+            case_sensitive=False,
+            help="How to handle encoding errors for the output file(s).",
+        ),
+    ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
     """Generate a subtitle file from a transcription JSON."""
     final_output_format = determine_output_format(output_format, output_path)
@@ -103,7 +117,7 @@ def generate(
                 encoding=encoding,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding=output_encoding, errors="replace")
+            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors.value)
             typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
 
         except ValueError as e:

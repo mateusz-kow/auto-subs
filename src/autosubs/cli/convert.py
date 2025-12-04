@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -28,6 +29,11 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.ASS: lambda subs: generator.to_ass(subs, styler_engine=_get_default_styler_engine()),
     SubtitleFormat.JSON: generator.to_json,
 }
+
+
+class EncodingErrorStrategy(StrEnum):
+    REPLACE = "replace"
+    IGNORE = "ignore"
 
 
 def convert(
@@ -74,6 +80,14 @@ def convert(
             help="Encoding for the output file(s). Defaults to utf-8.",
         ),
     ] = "utf-8",
+    output_encoding_errors: Annotated[
+        EncodingErrorStrategy,
+        typer.Option(
+            "--output-encoding-errors",
+            case_sensitive=False,
+            help="How to handle encoding errors for the output file(s).",
+        ),
+    ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
     """Convert an existing subtitle file to a different format."""
     final_output_format = determine_output_format(output_format, output_path)
@@ -98,7 +112,7 @@ def convert(
             content = writer_func(subtitles)
 
             out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding=output_encoding, errors="replace")
+            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors.value)
             typer.secho(
                 f"Successfully saved converted subtitles to: {out_file}",
                 fg=typer.colors.GREEN,
