@@ -34,6 +34,10 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
 class EncodingErrorStrategy(StrEnum):
     REPLACE = "replace"
     IGNORE = "ignore"
+    STRICT = "strict"
+    XMLCHARREFREPLACE = "xmlcharrefreplace"
+    BACKSLASHREPLACE = "backslashreplace"
+    NAMEREPLACE = "namereplace"
 
 
 def convert(

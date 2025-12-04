@@ -78,9 +78,34 @@ def test_cli_convert_invalid_error_handler(problematic_srt_file: Path) -> None:
             "convert",
             str(problematic_srt_file),
             "--output-encoding-errors",
-            "strict",
+            "invalid-handler",
         ],
     )
     assert result.exit_code != 0
-    assert "Invalid value" in result.stderr
-    assert "'strict' is not one of 'replace', 'ignore'" in result.stderr
+    assert "Invalid value" in result.stdout
+    assert "invalid-handler" in result.stdout
+    assert "is not one of" in result.stdout
+
+
+def test_cli_convert_encoding_strict_fails(
+    problematic_srt_file: Path,
+    tmp_path: Path,
+) -> None:
+    """Tests that the 'strict' error handler fails when an invalid character is present."""
+    output_file = tmp_path / "output.srt"
+    result = runner.invoke(
+        app,
+        [
+            "convert",
+            str(problematic_srt_file),
+            "--output",
+            str(output_file),
+            "--output-encoding",
+            "latin-1",
+            "--output-encoding-errors",
+            "strict",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Error processing file" in result.stdout
+    assert "codec can't encode character" in result.stdout

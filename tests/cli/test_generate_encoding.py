@@ -93,9 +93,34 @@ def test_cli_generate_invalid_error_handler(problematic_transcription: Path) -> 
             "generate",
             str(problematic_transcription),
             "--output-encoding-errors",
-            "strict",
+            "invalid-handler",
         ],
     )
     assert result.exit_code != 0
-    assert "Invalid value" in result.stderr
-    assert "'strict' is not one of 'replace', 'ignore'" in result.stderr
+    assert "Invalid value" in result.stdout
+    assert "invalid-handler" in result.stdout
+    assert "is not one of" in result.stdout
+
+
+def test_cli_generate_encoding_strict_fails(
+    problematic_transcription: Path,
+    tmp_path: Path,
+) -> None:
+    """Tests that the 'strict' error handler fails when an invalid character is present."""
+    output_file = tmp_path / "output.srt"
+    result = runner.invoke(
+        app,
+        [
+            "generate",
+            str(problematic_transcription),
+            "--output",
+            str(output_file),
+            "--output-encoding",
+            "latin-1",
+            "--output-encoding-errors",
+            "strict",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Error processing file" in result.stdout
+    assert "codec can't encode character" in result.stdout
