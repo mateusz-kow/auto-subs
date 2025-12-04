@@ -81,7 +81,8 @@ def generate(
         typer.Option(
             "--output-encoding-errors",
             case_sensitive=False,
-            help="How to handle encoding errors for the output file(s).",
+            help="How to handle encoding errors for the output file(s). "
+            "Defaults to 'replace', which substitutes unencodable characters.",
         ),
     ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
