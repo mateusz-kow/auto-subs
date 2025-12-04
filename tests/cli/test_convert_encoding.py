@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 
 from autosubs.cli.main import app
 
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 
 @pytest.fixture
