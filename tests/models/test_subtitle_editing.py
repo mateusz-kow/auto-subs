@@ -167,13 +167,13 @@ def test_subtitles_linear_sync_drift_correction() -> None:
     # A 1-hour video (3600s) has a 1s drift. The end is at 3601s instead.
     subs.linear_sync(old_start=0.0, old_end=3600.0, new_start=0.0, new_end=3601.0)
 
-    # scale = 3601/3600, offset = 0
+    # Scale factor is 3601/3600 with zero offset
     assert subs.segments[0].start == pytest.approx(0.0)
     assert subs.segments[0].end == pytest.approx(1.0 * 3601.0 / 3600.0)
 
-    # Middle point should be shifted by ~0.5s
+    # Middle point should be shifted by ~0.5s (1799.5 * 3601/3600 ≈ 1800.0)
     assert subs.segments[1].start == pytest.approx(1799.5 * 3601.0 / 3600.0)
-    assert subs.segments[1].start == pytest.approx(1800.0)
+
     assert subs.segments[1].end == pytest.approx(1800.5 * 3601.0 / 3600.0)
 
     assert subs.segments[2].start == pytest.approx(3599.0 * 3601.0 / 3600.0)

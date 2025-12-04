@@ -54,6 +54,9 @@ class SubtitleWord:
         self.start = self.start * scale_factor + offset
         self.end = self.end * scale_factor + offset
 
+        if self.start < 0 or self.end < 0:
+            raise ValueError("Linear sync resulted in negative timestamps.")
+
         return self
 
 
