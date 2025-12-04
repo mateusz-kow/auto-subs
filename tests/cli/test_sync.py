@@ -113,11 +113,11 @@ def test_cli_sync_invalid_points(tmp_srt_file: Path, args: list[str], error_msg:
     """Test various invalid --point argument scenarios."""
     result = runner.invoke(app, ["sync", str(tmp_srt_file), *args])
     assert result.exit_code != 0
-    assert error_msg in result.stdout
+    assert error_msg in result.output
 
 
 def test_cli_sync_input_file_not_found() -> None:
     """Test that the command fails if the input file doesn't exist."""
     result = runner.invoke(app, ["sync", "non_existent.srt", "--point", "1,2", "--point", "3,4"])
     assert result.exit_code != 0
-    assert "does not exist" in result.stdout
+    assert "does not exist" in result.output
