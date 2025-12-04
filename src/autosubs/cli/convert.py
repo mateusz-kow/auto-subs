@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -13,6 +12,7 @@ from autosubs.cli.utils import (
 )
 from autosubs.core import generator
 from autosubs.core.styler import AssStyler
+from autosubs.models.enums import EncodingErrorStrategy
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.subtitles import Subtitles
 
@@ -29,15 +29,6 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.ASS: lambda subs: generator.to_ass(subs, styler_engine=_get_default_styler_engine()),
     SubtitleFormat.JSON: generator.to_json,
 }
-
-
-class EncodingErrorStrategy(StrEnum):
-    REPLACE = "replace"
-    IGNORE = "ignore"
-    STRICT = "strict"
-    XMLCHARREFREPLACE = "xmlcharrefreplace"
-    BACKSLASHREPLACE = "backslashreplace"
-    NAMEREPLACE = "namereplace"
 
 
 def convert(
@@ -116,7 +107,7 @@ def convert(
             content = writer_func(subtitles)
 
             out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors.value)
+            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors)
             typer.secho(
                 f"Successfully saved converted subtitles to: {out_file}",
                 fg=typer.colors.GREEN,

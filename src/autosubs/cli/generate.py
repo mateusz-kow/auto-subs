@@ -1,4 +1,3 @@
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -10,16 +9,8 @@ from autosubs.cli.utils import (
     SupportedExtension,
     determine_output_format,
 )
+from autosubs.models.enums import EncodingErrorStrategy
 from autosubs.models.formats import SubtitleFormat
-
-
-class EncodingErrorStrategy(StrEnum):
-    REPLACE = "replace"
-    IGNORE = "ignore"
-    STRICT = "strict"
-    XMLCHARREFREPLACE = "xmlcharrefreplace"
-    BACKSLASHREPLACE = "backslashreplace"
-    NAMEREPLACE = "namereplace"
 
 
 def generate(
@@ -121,7 +112,7 @@ def generate(
                 encoding=encoding,
             )
             out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors.value)
+            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors)
             typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
 
         except UnicodeEncodeError as e:
