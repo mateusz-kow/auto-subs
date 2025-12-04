@@ -122,6 +122,72 @@ def test_shift_by_on_empty_segment(empty_segment: SubtitleSegment) -> None:
     assert not empty_segment.words
 
 
+def test_word_linear_sync() -> None:
+    """Test linear_sync on a single SubtitleWord."""
+    word = SubtitleWord("test", start=50.0, end=51.0)
+    # Scenario: A 100s clip is stretched to 200s and shifted forward by 10s.
+    # old: 0-100, new: 10-210. Scale = 2, Offset = 10.
+    # new_start = 50 * 2 + 10 = 110
+    # new_end = 51 * 2 + 10 = 112
+    word.linear_sync(old_start=0.0, old_end=100.0, new_start=10.0, new_end=210.0)
+    assert word.start == pytest.approx(110.0)
+    assert word.end == pytest.approx(112.0)
+
+
+def test_word_linear_sync_zero_division() -> None:
+    """Test that linear_sync raises ValueError if old points are identical."""
+    word = SubtitleWord("test", 1.0, 2.0)
+    with pytest.raises(ValueError, match="Original start and end times cannot be the same"):
+        word.linear_sync(10.0, 10.0, 20.0, 30.0)
+
+
+def test_segment_linear_sync(sample_segment: SubtitleSegment) -> None:
+    """Test that linear_sync on a segment cascades to its words."""
+    # old: 10-12.5, new: 20-25. Scale = 2, Offset = 20 - (10*2) = 0.
+    sample_segment.linear_sync(old_start=10.0, old_end=12.5, new_start=20.0, new_end=25.0)
+    assert sample_segment.start == pytest.approx(20.0)
+    assert sample_segment.end == pytest.approx(25.0)
+    assert sample_segment.words[0].start == pytest.approx(20.0)
+    assert sample_segment.words[0].end == pytest.approx(21.0)
+    assert sample_segment.words[1].start == pytest.approx(21.2)
+    assert sample_segment.words[1].end == pytest.approx(22.0)
+    assert sample_segment.words[2].start == pytest.approx(23.0)
+    assert sample_segment.words[2].end == pytest.approx(25.0)
+
+
+def test_subtitles_linear_sync_drift_correction() -> None:
+    """Test linear_sync on a full Subtitles object to correct a 1-second drift over an hour."""
+    segments = [
+        SubtitleSegment(words=[SubtitleWord("start", 0.0, 1.0)]),
+        SubtitleSegment(words=[SubtitleWord("middle", 1799.5, 1800.5)]),
+        SubtitleSegment(words=[SubtitleWord("end", 3599.0, 3600.0)]),
+    ]
+    subs = Subtitles(segments=segments)
+
+    # A 1-hour video (3600s) has a 1s drift. The end is at 3601s instead.
+    subs.linear_sync(old_start=0.0, old_end=3600.0, new_start=0.0, new_end=3601.0)
+
+    # scale = 3601/3600, offset = 0
+    assert subs.segments[0].start == pytest.approx(0.0)
+    assert subs.segments[0].end == pytest.approx(1.0 * 3601.0 / 3600.0)
+
+    # Middle point should be shifted by ~0.5s
+    assert subs.segments[1].start == pytest.approx(1799.5 * 3601.0 / 3600.0)
+    assert subs.segments[1].start == pytest.approx(1800.0)
+    assert subs.segments[1].end == pytest.approx(1800.5 * 3601.0 / 3600.0)
+
+    assert subs.segments[2].start == pytest.approx(3599.0 * 3601.0 / 3600.0)
+    assert subs.segments[2].end == pytest.approx(3601.0)
+
+
+def test_segment_linear_sync_on_empty_segment(empty_segment: SubtitleSegment) -> None:
+    """Test that sync on an empty segment is a no-op."""
+    empty_segment.linear_sync(0.0, 1.0, 0.0, 2.0)
+    assert empty_segment.start == pytest.approx(0.0)
+    assert empty_segment.end == pytest.approx(0.0)
+    assert not empty_segment.words
+
+
 def test_resize_proportional(sample_segment: SubtitleSegment) -> None:
     """Test that resize correctly scales all internal words."""
     sample_segment.resize(new_start=20.0, new_end=25.0)
