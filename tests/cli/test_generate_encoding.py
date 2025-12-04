@@ -102,7 +102,7 @@ def test_cli_generate_invalid_error_handler(problematic_transcription: Path) -> 
     stderr = strip_ansi(result.stderr)
     assert "Invalid value" in stderr
     assert "invalid-handler" in stderr
-    assert "is not one of" in stderr
+    assert "strict" in stderr
 
 
 def test_cli_generate_encoding_strict_fails(

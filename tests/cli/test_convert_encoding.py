@@ -86,7 +86,7 @@ def test_cli_convert_invalid_error_handler(problematic_srt_file: Path) -> None:
     stderr = strip_ansi(result.stderr)
     assert "Invalid value" in stderr
     assert "invalid-handler" in stderr
-    assert "is not one of" in stderr
+    assert "strict" in stderr
 
 
 def test_cli_convert_encoding_strict_fails(
