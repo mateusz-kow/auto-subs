@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -17,7 +17,7 @@ def _parse_time(time_str: str) -> float:
     try:
         return float(time_str.strip())
     except ValueError:
-        raise typer.BadParameter(f"Invalid time format: '{time_str}'. Please use seconds (e.g., '123.45').")
+        raise typer.BadParameter(f"Invalid time format: '{time_str}'. Please use seconds (e.g., '123.45').") from None
 
 
 def _determine_output_format(
@@ -65,7 +65,7 @@ def sync(
         ),
     ],
     output_path: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             "--output",
             "-o",
@@ -75,17 +75,15 @@ def sync(
         ),
     ] = None,
     output_format: Annotated[
-        Optional[SubtitleFormat],
+        SubtitleFormat | None,
         typer.Option("--format", "-f", help="Format of the output subtitle file.", case_sensitive=False),
     ] = None,
     encoding: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--encoding", "-e", help="Encoding of the input and output files."),
     ] = None,
 ) -> None:
-    """
-    Linearly synchronizes a subtitle file based on two reference points.
-    """
+    """Linearly synchronizes a subtitle file based on two reference points."""
     if len(points) != 2:
         raise typer.BadParameter("Exactly two synchronization points (--point) are required.")
 
@@ -98,7 +96,7 @@ def sync(
         old_end = _parse_time(old2_str)
         new_end = _parse_time(new2_str)
     except ValueError:
-        raise typer.BadParameter('Each --point must be in "old_time,new_time" format.')
+        raise typer.BadParameter('Each --point must be in "old_time,new_time" format.') from None
 
     if old_start == old_end:
         raise typer.BadParameter("The two 'old_time' values cannot be the same.")
@@ -111,9 +109,11 @@ def sync(
 
     final_output_path = output_path
     if not final_output_path:
-        final_output_path = input_path.with_stem(f"{input_path.stem}_synced").with_suffix(f".{final_output_format.value}")
+        final_output_path = input_path.with_stem(f"{input_path.stem}_synced").with_suffix(
+            f".{final_output_format.value}"
+        )
 
-    GENERATORS = {
+    generators = {
         SubtitleFormat.SRT: to_srt,
         SubtitleFormat.VTT: to_vtt,
         SubtitleFormat.ASS: lambda subs: to_ass(subs, _get_default_styler_engine()),
@@ -121,7 +121,7 @@ def sync(
         SubtitleFormat.JSON: to_json,
     }
 
-    generator_func = GENERATORS.get(final_output_format)
+    generator_func = generators.get(final_output_format)
     if not generator_func:
         # This should be caught by _determine_output_format, but as a safeguard:
         raise typer.BadParameter(f"Unsupported output format: {final_output_format}")
@@ -140,4 +140,4 @@ def sync(
 
     except Exception as e:
         logger.error(f"An error occurred during synchronization: {e}", exc_info=True)
-        raise typer.Abort()
+        raise typer.Abort() from e
