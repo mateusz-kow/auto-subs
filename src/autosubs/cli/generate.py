@@ -8,6 +8,8 @@ from autosubs.cli.utils import (
     PathProcessor,
     SupportedExtension,
     determine_output_format,
+    process_batch,
+    write_content_to_file,
 )
 from autosubs.models.enums import EncodingErrorStrategy
 from autosubs.models.formats import SubtitleFormat
@@ -86,54 +88,26 @@ def generate(
         ),
     ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
-    """Generate a subtitle file from a transcription JSON."""
-    final_output_format = determine_output_format(output_format, output_path)
-
-    typer.echo(f"Generating subtitles in {final_output_format.upper()} format...")
+    """Generate subtitle file from a transcription JSON."""
+    target_format = determine_output_format(output_format, output_path, default=SubtitleFormat.SRT)
+    typer.echo(f"Generating subtitles in {target_format.upper()} format...")
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.JSON)
-    is_batch = input_path.is_dir()
-    has_errors = False
 
-    for in_file, out_file_base in processor.process():
+    def _generate_single(in_file: Path, out_base: Path) -> None:
         typer.echo(f"Processing: {in_file.name}")
-        if is_batch:
-            out_file = out_file_base.with_name(f"{in_file.stem}.{final_output_format.value}")
-        else:
-            out_file = out_file_base.with_suffix(f".{final_output_format.value}")
+        final_out = out_base.with_suffix(f".{target_format.value}")
 
-        try:
-            content = generate_api(
-                in_file,
-                output_format=final_output_format,
-                max_chars=max_chars,
-                min_words=min_words,
-                max_lines=max_lines,
-                style_config_path=style_config,
-                encoding=encoding,
-            )
-            out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors)
-            typer.secho(f"Successfully saved subtitles to: {out_file}", fg=typer.colors.GREEN)
+        content = generate_api(
+            in_file,
+            output_format=target_format,
+            max_chars=max_chars,
+            min_words=min_words,
+            max_lines=max_lines,
+            style_config_path=style_config,
+            encoding=encoding,
+        )
 
-        except UnicodeEncodeError as e:
-            typer.secho(
-                f"Error processing file {in_file.name}: {e}",
-                fg=typer.colors.RED,
-            )
-            has_errors = True
-        except ValueError as e:
-            typer.secho(
-                f"Input file validation error for {in_file.name}: {e}",
-                fg=typer.colors.RED,
-            )
-            has_errors = True
-        except (OSError, ImportError, LookupError) as e:
-            typer.secho(
-                f"Error processing file {in_file.name}: {e}",
-                fg=typer.colors.RED,
-            )
-            has_errors = True
+        write_content_to_file(final_out, content, output_encoding, output_encoding_errors)
 
-    if has_errors:
-        raise typer.Exit(code=1)
+    process_batch(processor, _generate_single)

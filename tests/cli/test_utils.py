@@ -23,7 +23,7 @@ def test_path_processor_single_file(tmp_path: Path) -> None:
     processor = PathProcessor(in_file, None, SupportedExtension.MEDIA)
     results = list(processor.process())
     assert len(results) == 1
-    assert results[0] == (in_file, in_file)
+    assert results[0] == (in_file, in_file.with_suffix(""))
 
 
 def test_path_processor_single_file_with_output(tmp_path: Path) -> None:
@@ -34,7 +34,7 @@ def test_path_processor_single_file_with_output(tmp_path: Path) -> None:
     processor = PathProcessor(in_file, out_file, SupportedExtension.MEDIA)
     results = list(processor.process())
     assert len(results) == 1
-    assert results[0] == (in_file, out_file)
+    assert results[0] == (in_file, out_file.with_suffix(""))
 
 
 def test_path_processor_unsupported_file_type(tmp_path: Path) -> None:
@@ -57,8 +57,8 @@ def test_path_processor_directory(tmp_path: Path) -> None:
     processor = PathProcessor(in_dir, None, SupportedExtension.JSON)
     results = list(processor.process())
     assert len(results) == 2
-    assert results[0] == (in_dir / "test1.json", in_dir / "test1.json")
-    assert results[1] == (in_dir / "test2.json", in_dir / "test2.json")
+    assert results[0] == (in_dir / "test1.json", in_dir / "test1")
+    assert results[1] == (in_dir / "test2.json", in_dir / "test2")
 
 
 def test_path_processor_directory_with_output_dir(tmp_path: Path) -> None:
@@ -72,7 +72,7 @@ def test_path_processor_directory_with_output_dir(tmp_path: Path) -> None:
     processor = PathProcessor(in_dir, out_dir, SupportedExtension.JSON)
     results = list(processor.process())
     assert len(results) == 1
-    assert results[0] == (in_dir / "test1.json", out_dir / "test1.json")
+    assert results[0] == (in_dir / "test1.json", out_dir / "test1")
 
 
 def test_path_processor_empty_directory(tmp_path: Path) -> None:
@@ -111,13 +111,13 @@ def test_determine_output_format_fallback_to_default(
     capsys: CaptureFixture[str],
 ) -> None:
     """Test that the function falls back to the default when no format can be determined."""
-    result1 = determine_output_format(None, None)
+    result1 = determine_output_format(None, None, default=SubtitleFormat.SRT)
     assert result1 == SubtitleFormat.SRT
     assert "Defaulting to SRT" in capsys.readouterr().out
 
-    result2 = determine_output_format(None, Path("output.txt"))
-    assert result2 == SubtitleFormat.SRT
-    assert "Defaulting to SRT" in capsys.readouterr().out
+    # .txt is now recognized as MPL2, so it won't default to SRT
+    result2 = determine_output_format(None, Path("output.txt"), default=SubtitleFormat.SRT)
+    assert result2 == SubtitleFormat.MPL2
 
 
 @patch("shutil.which", return_value="/path/to/ffmpeg")
@@ -186,5 +186,4 @@ def test_handle_burn_operation_srt_vtt_styling_warning(
         )
 
     captured = capsys.readouterr()
-    assert "Warning: Burning in SRT/VTT format" in captured.out
-    assert "styling options from --style-config will be ignored" in captured.out
+    assert "Warning: Burning SRT/VTT ignores style config." in captured.out

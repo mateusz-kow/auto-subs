@@ -425,3 +425,62 @@ def test_generate_word_timings_handles_whitespace_only_word() -> None:
     assert not segment.words
     assert segment.start == pytest.approx(0.0)
     assert segment.end == pytest.approx(0.0)
+
+
+def test_transform_framerate() -> None:
+    """Test framerate conversion on a Subtitles object."""
+    segments = [
+        SubtitleSegment(words=[SubtitleWord("A", 12.0, 13.0)]),
+        SubtitleSegment(words=[SubtitleWord("B", 24.0, 25.0)]),
+    ]
+    subs = Subtitles(segments=segments)
+
+    # 24fps -> 25fps: speed-up, timestamps should decrease.
+    # Scale factor = 24 / 25 = 0.96
+    subs.transform_framerate(source_fps=24.0, target_fps=25.0)
+
+    assert subs.segments[0].start == pytest.approx(12.0 * 0.96)
+    assert subs.segments[0].end == pytest.approx(13.0 * 0.96)
+    assert subs.segments[1].start == pytest.approx(24.0 * 0.96)
+    assert subs.segments[1].end == pytest.approx(25.0 * 0.96)
+
+
+def test_transform_framerate_common_conversions() -> None:
+    """Test common framerate conversions (e.g., 23.976 -> 25)."""
+    segments = [SubtitleSegment(words=[SubtitleWord("test", 100.0, 101.0)])]
+    subs = Subtitles(segments=segments)
+
+    # 23.976 -> 25.0 (PAL speed-up)
+    scale_factor = 23.976 / 25.0
+    subs.transform_framerate(source_fps=23.976, target_fps=25.0)
+    assert subs.segments[0].start == pytest.approx(100.0 * scale_factor)
+    assert subs.segments[0].end == pytest.approx(101.0 * scale_factor)
+
+    # Reset
+    subs = Subtitles(segments=[SubtitleSegment(words=[SubtitleWord("test", 100.0, 101.0)])])
+
+    # 29.97 -> 30.0
+    scale_factor = 29.97 / 30.0
+    subs.transform_framerate(source_fps=29.97, target_fps=30.0)
+    assert subs.segments[0].start == pytest.approx(100.0 * scale_factor)
+    assert subs.segments[0].end == pytest.approx(101.0 * scale_factor)
+
+
+def test_transform_framerate_validation() -> None:
+    """Test that transform_framerate validates its inputs."""
+    subs = Subtitles(segments=[SubtitleSegment(words=[SubtitleWord("A", 1.0, 2.0)])])
+    with pytest.raises(ValueError, match="Source and target framerates must be positive"):
+        subs.transform_framerate(-24.0, 25.0)
+    with pytest.raises(ValueError, match="Source and target framerates must be positive"):
+        subs.transform_framerate(24.0, 0.0)
+    with pytest.raises(ValueError, match="Source and target framerates cannot be the same"):
+        subs.transform_framerate(25.0, 25.0)
+
+
+def test_transform_framerate_empty_subtitles() -> None:
+    """Test that framerate conversion on empty subtitles is a no-op."""
+    subs = Subtitles(segments=[])
+    # Should not raise any error
+    result = subs.transform_framerate(24.0, 25.0)
+    assert not result.segments
+    assert result is subs

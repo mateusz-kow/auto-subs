@@ -347,6 +347,40 @@ class Subtitles:
         self._validate_overlaps()
         return self
 
+    def transform_framerate(self, source_fps: float, target_fps: float) -> Subtitles:
+        """Converts subtitle timings from a source to a target framerate.
+
+        This is useful when a video's framerate has been changed without altering its
+        content (i.e., no frames were dropped or added, just played back at a
+        different speed). The method scales all timestamps proportionally.
+
+        For example, converting a 23.976 FPS video to 25 FPS means the video
+        plays slightly faster. This function adjusts all subtitle timestamps to
+        match this new speed.
+
+        Args:
+            source_fps: The original framerate of the media.
+            target_fps: The new framerate of the media.
+
+        Returns:
+            The subtitles object itself, for method chaining.
+
+        Raises:
+            ValueError: If FPS values are not positive or are identical.
+        """
+        if source_fps <= 0 or target_fps <= 0:
+            raise ValueError("Source and target framerates must be positive.")
+        if source_fps == target_fps:
+            raise ValueError("Source and target framerates cannot be the same.")
+
+        if not self.segments:
+            return self
+
+        scale_factor = source_fps / target_fps
+        self.linear_sync(old_start=0.0, old_end=1.0, new_start=0.0, new_end=scale_factor)
+
+        return self
+
     @property
     def text(self) -> str:
         """Returns the segment text by concatenating the words."""

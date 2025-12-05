@@ -36,7 +36,7 @@ def test_cli_transcribe_success(mock_api_transcribe: MagicMock, fake_media_file:
     assert args[0] == fake_media_file
     assert kwargs["output_format"] == "vtt"
     assert kwargs["model_name"] == "tiny"
-    assert "Successfully saved subtitles" in result.stdout
+    assert "Successfully saved to:" in result.stdout
 
 
 @patch("autosubs.cli.transcribe.transcribe_api")
@@ -73,8 +73,8 @@ def test_cli_transcribe_import_error(mock_transcribe_api: MagicMock, fake_media_
     result = runner.invoke(app, ["transcribe", str(fake_media_file)])
 
     assert result.exit_code == 1
-    assert "Error: whisper not found" in result.stdout
-    assert "Please ensure 'auto-subs[transcribe]' is installed" in result.stdout
+
+    assert "whisper not found" in result.stdout
 
 
 @patch(
@@ -86,8 +86,7 @@ def test_cli_transcribe_generic_error(mock_transcribe_api: MagicMock, fake_media
     result = runner.invoke(app, ["transcribe", str(fake_media_file)])
 
     assert result.exit_code == 1
-    assert f"An unexpected error occurred while processing {fake_media_file.name}" in result.stdout
-    assert "A generic error occurred" in result.stdout
+    assert f"Error processing {fake_media_file.name}: A generic error occurred" in result.stdout
 
 
 @patch("autosubs.cli.transcribe.transcribe_api")
@@ -131,7 +130,7 @@ def test_cli_transcribe_burn_success(
     assert result.exit_code == 0
     mock_transcribe.assert_called_once()
     mock_run.assert_called_once()
-    assert "Successfully burned subtitles into video" in result.stdout
+    assert "Successfully burned into:" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -174,7 +173,7 @@ def test_cli_transcribe_burn_skips_non_video_files(
     result = runner.invoke(app, ["transcribe", str(audio_file), "--burn"])
 
     assert result.exit_code == 0
-    assert "Skipping non-video file for burning: test.mp3" in result.stdout
+    assert "Skipping burn for non-video: test.mp3" in result.stdout
     mock_burn.assert_not_called()
 
 
@@ -201,7 +200,7 @@ def test_cli_transcribe_burn_batch_preserves_extension(
 
     assert result.exit_code == 0
     mock_burn.assert_called_once()
-    _, kwargs = mock_burn.call_args
+    args, _ = mock_burn.call_args
     expected_output_path = output_dir / "video.mkv"
-    assert kwargs["video_output"] == expected_output_path
-    assert kwargs["subtitle_format"] == SubtitleFormat.SRT
+    assert args[1] == expected_output_path
+    assert args[3] == SubtitleFormat.SRT

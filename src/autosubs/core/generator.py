@@ -151,6 +151,7 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
     for seg in subtitles.segments:
         result = styler_engine.process_segment(seg, default_style)
         start, end = format_ass_timestamp(seg.start), format_ass_timestamp(seg.end)
+
         # We can assume it's AssStylingResult because we are in to_ass
         lines.append(f"Dialogue: 0,{start},{end},{result.style_name},,0,0,0,,{result.text}")
     return "\n".join(lines) + "\n"

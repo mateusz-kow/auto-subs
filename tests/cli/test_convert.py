@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
 
 from autosubs.cli import app
-from autosubs.cli.convert import _get_default_styler_engine
+from autosubs.cli.utils import get_default_styler_engine
 from autosubs.core.styler import BaseStyler
 
 runner = CliRunner()
@@ -16,7 +16,7 @@ def test_cli_convert_success(tmp_srt_file: Path) -> None:
     result = runner.invoke(app, ["convert", str(tmp_srt_file), "-o", str(output_file), "-f", "vtt"])
 
     assert result.exit_code == 0
-    assert "Successfully saved converted subtitles" in result.stdout
+    assert "Successfully saved to:" in result.stdout
     assert output_file.exists()
     content = output_file.read_text()
     assert "WEBVTT" in content
@@ -30,16 +30,16 @@ def test_cli_convert_batch(tmp_path: Path, tmp_srt_file: Path, tmp_vtt_file: Pat
     input_dir.mkdir()
     output_dir.mkdir()
 
-    tmp_srt_file.rename(input_dir / tmp_srt_file.name)
-    tmp_vtt_file.rename(input_dir / tmp_vtt_file.name)
+    (input_dir / "test1.srt").write_text(tmp_srt_file.read_text())
+    (input_dir / "test2.vtt").write_text(tmp_vtt_file.read_text())
 
     result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_dir), "-f", "srt"])
 
     assert result.exit_code == 0
-    assert "Processing: test.srt" in result.stdout
-    assert "Processing: test.vtt" in result.stdout
-    assert (output_dir / "test.srt.srt").exists()
-    assert (output_dir / "test.vtt.srt").exists()
+    assert "Processing: test1.srt" in result.stdout
+    assert "Processing: test2.vtt" in result.stdout
+    assert (output_dir / "test1.srt").exists()
+    assert (output_dir / "test2.srt").exists()
 
 
 def test_cli_convert_batch_with_long_filename(tmp_path: Path, sample_srt_content: str) -> None:
@@ -50,14 +50,16 @@ def test_cli_convert_batch_with_long_filename(tmp_path: Path, sample_srt_content
     output_dir.mkdir()
 
     # Create a filename close to the common 255-character limit
-    long_name = "a" * 100 + ".srt"
+    stem = "a" * 100
+    long_name = f"{stem}.srt"
     (input_dir / long_name).write_text(sample_srt_content)
 
     result = runner.invoke(app, ["convert", str(input_dir), "-o", str(output_dir), "-f", "vtt"])
 
     assert result.exit_code == 0
     assert f"Processing: {long_name}" in result.stdout
-    expected_output_name = f"{long_name}.vtt"
+
+    expected_output_name = f"{stem}.vtt"
     output_file = output_dir / expected_output_name
     assert output_file.exists()
     assert "WEBVTT" in output_file.read_text()
@@ -65,12 +67,12 @@ def test_cli_convert_batch_with_long_filename(tmp_path: Path, sample_srt_content
 
 def test_cli_convert_unsupported_input(tmp_path: Path) -> None:
     """Test that `convert` fails for an unsupported input file type."""
-    input_file = tmp_path / "test.txt"
+    input_file = tmp_path / "test.jpg"
     input_file.touch()
 
     result = runner.invoke(app, ["convert", str(input_file), "-f", "srt"])
     assert result.exit_code == 1
-    assert "Error: Unsupported input file format: .txt" in result.stdout
+    assert "Error: Unsupported input file format: .jpg" in result.stdout
 
 
 def test_cli_convert_input_dir_output_file_error(tmp_path: Path) -> None:
@@ -90,13 +92,13 @@ def test_cli_convert_processing_error(mock_load: MagicMock, tmp_srt_file: Path) 
     result = runner.invoke(app, ["convert", str(tmp_srt_file), "-f", "vtt"])
 
     assert result.exit_code == 1
-    assert "Error processing file" in result.stdout
+    assert "Error processing" in result.stdout
     assert "Corrupted subtitle file" in result.stdout
 
 
 def test_get_default_styler_engine() -> None:
     """Test that _get_default_styler_engine returns a valid StylerEngine."""
-    engine = _get_default_styler_engine()
+    engine = get_default_styler_engine()
     assert isinstance(engine, BaseStyler)
     assert engine.config.styles
     assert engine.config.styles[0]["Name"] == "Default"
