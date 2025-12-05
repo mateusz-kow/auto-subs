@@ -19,7 +19,7 @@ def test_cli_generate_srt_success(tmp_path: Path, sample_transcription: dict[str
     result = runner.invoke(app, ["generate", str(input_file), "-o", str(output_file), "-f", "srt"])
 
     assert result.exit_code == 0
-    assert "Successfully saved subtitles" in result.stdout
+    assert "Successfully saved to:" in result.stdout
     assert output_file.exists()
     content = output_file.read_text()
     assert "-->" in content
@@ -67,7 +67,8 @@ def test_cli_invalid_json(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["generate", str(input_file)])
     assert result.exit_code == 1
-    assert "Input file validation error" in result.stdout
+    assert "Error processing" in result.stdout
+    assert "Failed to parse JSON" in result.stdout
 
 
 def test_cli_validation_error(tmp_path: Path) -> None:
@@ -77,7 +78,8 @@ def test_cli_validation_error(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["generate", str(input_file)])
     assert result.exit_code == 1
-    assert "Input file validation error" in result.stdout
+    assert "Error processing" in result.stdout
+    assert "validation error" in result.stdout
 
 
 def test_cli_write_error(tmp_path: Path, sample_transcription: dict[str, Any]) -> None:
@@ -90,7 +92,7 @@ def test_cli_write_error(tmp_path: Path, sample_transcription: dict[str, Any]) -
     result = runner.invoke(app, ["generate", str(input_file), "-f", "srt"])
 
     assert result.exit_code == 1
-    assert f"Error processing file {input_file.name}" in result.stdout
+    assert f"Error processing {input_file.name}" in result.stdout
 
 
 @patch("autosubs.cli.generate.generate_api")

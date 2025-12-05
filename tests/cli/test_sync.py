@@ -46,17 +46,8 @@ def test_cli_sync_success(tmp_path: Path, tmp_srt_file: Path) -> None:
     )
 
     assert result.exit_code == 0, result.stdout
-    assert "Successfully synchronized subtitles" in result.stdout
+    assert "Successfully saved to:" in result.stdout
     assert output_path.exists()
-
-    # old_start=10, new_start=20, old_end=15, new_end=30
-    # The CLI auto-sorts points, so old_start=10, old_end=15
-    # scale = (30-20)/(15-10) = 10/5 = 2.
-    # offset = 20 - 10*2 = 0.
-    # New time = old_time * 2.
-    #
-    # Seg 1: 10s -> 20s, 12s -> 24s
-    # Seg 2: 15s -> 30s, 17.5s -> 35s
 
     segments = parse_srt(output_path.read_text())
     assert len(segments) == 2
@@ -89,19 +80,20 @@ def test_cli_sync_default_output_name(tmp_srt_file: Path) -> None:
     [
         (
             ["--point", "1,2"],
-            "Exactly two synchronization points (--point) are required.",
+            "Exactly two synchronization points required.",
         ),
         (
             ["--point", "1,2", "--point", "3,4", "--point", "5,6"],
-            "Exactly two synchronization points (--point) are required.",
+            "Exactly two synchronization points required.",
         ),
         (
             ["--point", "1-2", "--point", "3,4"],
-            'Each --point must be in "old_time,new_time" format.',
+            # This triggers _parse_time first, causing BadParameter "Invalid time"
+            "Invalid time: '1-2'",
         ),
         (
             ["--point", "a,b", "--point", "c,d"],
-            "Invalid time format: 'a'",
+            "Invalid time: 'a'",
         ),
         (
             ["--point", "10,20", "--point", "10,30"],

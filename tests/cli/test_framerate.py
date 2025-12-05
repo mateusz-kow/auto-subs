@@ -46,7 +46,7 @@ def test_cli_framerate_success(mock_load: MagicMock, mock_subtitles: Subtitles, 
     )
 
     assert result.exit_code == 0, result.stdout
-    assert "Successfully converted subtitles" in result.stdout
+    assert "Successfully saved to:" in result.stdout
     mock_load.assert_called_once_with(input_file, encoding=None)
     mock_subtitles.transform_framerate.assert_called_once()  # type: ignore[attr-defined]
     _args, kwargs = mock_subtitles.transform_framerate.call_args  # type: ignore[attr-defined]
@@ -71,7 +71,7 @@ def test_cli_framerate_default_output(mock_load: MagicMock, mock_subtitles: Subt
     )
 
     assert result.exit_code == 0, result.stdout
-    assert f"Successfully converted subtitles to {expected_output}" in result.stdout
+    assert f"Successfully saved to: {expected_output}" in result.stdout
     assert expected_output.exists()
 
 
@@ -101,7 +101,7 @@ def test_cli_framerate_format_inference(mock_load: MagicMock, mock_subtitles: Su
     assert "[Events]" in output_ass.read_text()
 
 
-@patch("autosubs.cli.framerate._get_default_styler_engine")
+@patch("autosubs.cli.utils.get_default_styler_engine")
 @patch("autosubs.cli.framerate.load")
 def test_cli_framerate_ass_format_uses_styler(
     mock_load: MagicMock, mock_styler: MagicMock, mock_subtitles: Subtitles, tmp_path: Path

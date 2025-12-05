@@ -63,7 +63,7 @@ def test_cli_generate_encoding_errors(
         ],
     )
     assert result.exit_code == 0, result.stderr or result.stdout
-    assert "Successfully saved" in result.stdout
+    assert "Successfully saved to:" in result.stdout
     content = output_file.read_text(encoding="latin-1")
     assert content == expected_output
 
@@ -83,7 +83,7 @@ def test_cli_generate_invalid_encoding(problematic_transcription: Path, tmp_path
         ],
     )
     assert result.exit_code == 1
-    assert "Error processing file" in result.stdout
+    assert "Error processing" in result.stdout
     assert "unknown encoding: invalid-encoding" in result.stdout
 
 
@@ -125,5 +125,5 @@ def test_cli_generate_encoding_strict_fails(
         ],
     )
     assert result.exit_code == 1
-    assert "Error processing file" in result.stdout
+    assert "Error processing" in result.stdout
     assert "codec can't encode character" in result.stdout
