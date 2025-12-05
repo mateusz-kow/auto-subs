@@ -23,10 +23,6 @@ def burn_subtitles(video_input: Path, subtitle_file: Path, video_output: Path) -
         FFmpegError: If the ffmpeg command fails.
     """
     # FFmpeg's filter syntax for subtitles is notoriously tricky, especially on Windows.
-    # The most robust method is to use the `filename` option explicitly.
-    # 1. Get the absolute path to ensure no relative path issues.
-    # 2. Escape backslashes for the filter string.
-    # 3. Escape the colon in the drive letter for Windows.
     subtitle_path_str = str(subtitle_file.resolve()).replace("\\", "\\\\")
     if ":" in subtitle_path_str:
         subtitle_path_str = subtitle_path_str.replace(":", "\\:")
