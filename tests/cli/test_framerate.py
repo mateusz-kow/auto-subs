@@ -19,7 +19,7 @@ def mock_subtitles() -> Subtitles:
         SubtitleSegment(words=[SubtitleWord("world", 3.0, 4.0)]),
     ]
     subtitles = Subtitles(segments=segments)
-    subtitles.transform_framerate = MagicMock(return_value=subtitles)
+    subtitles.transform_framerate = MagicMock(return_value=subtitles)  # type: ignore[method-assign]
     return subtitles
 
 
@@ -48,8 +48,8 @@ def test_cli_framerate_success(mock_load: MagicMock, mock_subtitles: Subtitles, 
     assert result.exit_code == 0, result.stdout
     assert "Successfully converted subtitles" in result.stdout
     mock_load.assert_called_once_with(input_file, encoding=None)
-    mock_subtitles.transform_framerate.assert_called_once()
-    _args, kwargs = mock_subtitles.transform_framerate.call_args
+    mock_subtitles.transform_framerate.assert_called_once()  # type: ignore[attr-defined]
+    _args, kwargs = mock_subtitles.transform_framerate.call_args  # type: ignore[attr-defined]
     assert kwargs["source_fps"] == pytest.approx(23.976)
     assert kwargs["target_fps"] == pytest.approx(25.0)
     assert output_file.exists()
