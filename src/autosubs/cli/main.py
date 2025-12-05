@@ -31,6 +31,7 @@ else:
     # Only import subcommands if typer is present.
     from autosubs.cli.burn import burn
     from autosubs.cli.convert import convert
+    from autosubs.cli.framerate import framerate
     from autosubs.cli.generate import generate
     from autosubs.cli.sync import sync
     from autosubs.cli.transcribe import transcribe
@@ -43,6 +44,7 @@ else:
 
     app.command()(generate)
     app.command()(convert)
+    app.command()(framerate)
     app.command()(sync)
     app.command()(transcribe)
     app.command()(burn)
