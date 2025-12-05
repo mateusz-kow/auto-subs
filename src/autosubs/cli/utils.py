@@ -142,7 +142,9 @@ def get_generator_func(fmt: SubtitleFormat) -> Callable[[Subtitles], str]:
         SubtitleFormat.ASS: lambda s: generator.to_ass(s, styler_engine=get_default_styler_engine()),
         SubtitleFormat.JSON: generator.to_json,
         SubtitleFormat.MPL2: generator.to_mpl2,
-        SubtitleFormat.MICRODVD: lambda s: generator.to_microdvd(s, fps=23.976),  # Fallback FPS
+        SubtitleFormat.MICRODVD: lambda s: generator.to_microdvd(
+            s, fps=23.976
+        ),  # Fallback FPS; frame-based formats require explicit FPS
     }
     if fmt not in _map:
         raise ValueError(f"Unsupported format for generation: {fmt}")

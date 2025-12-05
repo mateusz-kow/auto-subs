@@ -93,4 +93,5 @@ def sync(
 
     except Exception as e:
         logger.error(f"An error occurred during synchronization: {e}", exc_info=True)
+        typer.secho(f"Error: {e}", fg=typer.colors.RED)
         raise typer.Abort() from e

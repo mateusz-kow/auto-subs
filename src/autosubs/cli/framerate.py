@@ -87,9 +87,8 @@ def framerate(
         content = generator_func(subtitles)
 
         write_content_to_file(final_output_path, content, encoding=encoding or "utf-8")
-        typer.secho(f"Successfully converted subtitles to {final_output_path}", fg=typer.colors.GREEN)
 
-    except Exception as e:
+    except (ValueError, FileNotFoundError, PermissionError, OSError) as e:
         logger.error(f"Framerate conversion error: {e}", exc_info=True)
         typer.secho(f"Error: {e}", fg=typer.colors.RED)
         raise typer.Abort() from e
