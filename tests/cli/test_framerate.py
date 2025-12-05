@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from autosubs.cli.main import app
 from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
+from tests.utils import strip_ansi
 
 runner = CliRunner()
 
@@ -47,7 +48,10 @@ def test_cli_framerate_success(mock_load: MagicMock, mock_subtitles: Subtitles, 
     assert result.exit_code == 0, result.stdout
     assert "Successfully converted subtitles" in result.stdout
     mock_load.assert_called_once_with(input_file, encoding=None)
-    mock_subtitles.transform_framerate.assert_called_once_with(source_fps=23.976, target_fps=25.0)
+    mock_subtitles.transform_framerate.assert_called_once()
+    _args, kwargs = mock_subtitles.transform_framerate.call_args
+    assert kwargs["source_fps"] == pytest.approx(23.976)
+    assert kwargs["target_fps"] == pytest.approx(25.0)
     assert output_file.exists()
     # The subtitles object returned by the fixture is real, so we can check real output
     assert "Hello" in output_file.read_text(encoding="utf-8")
@@ -118,15 +122,15 @@ def test_cli_framerate_invalid_fps_values(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "24", "--fps-to", "24"])
     assert result.exit_code != 0
-    assert "Source and target framerates cannot be the same" in result.stdout
+    assert "Source and target framerates cannot be the same" in strip_ansi(result.stdout)
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "-1", "--fps-to", "25"])
     assert result.exit_code != 0
-    assert "Framerate values must be positive" in result.stdout
+    assert "Framerate values must be positive" in strip_ansi(result.stdout)
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "24", "--fps-to", "0"])
     assert result.exit_code != 0
-    assert "Framerate values must be positive" in result.stdout
+    assert "Framerate values must be positive" in strip_ansi(result.stdout)
 
 
 def test_cli_framerate_missing_fps_options(tmp_path: Path) -> None:
@@ -136,11 +140,11 @@ def test_cli_framerate_missing_fps_options(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-to", "25"])
     assert result.exit_code != 0
-    assert "Missing option '--fps-from'" in result.stdout
+    assert "Missing option '--fps-from'" in strip_ansi(result.stdout)
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "24"])
     assert result.exit_code != 0
-    assert "Missing option '--fps-to'" in result.stdout
+    assert "Missing option '--fps-to'" in strip_ansi(result.stdout)
 
 
 @patch("autosubs.cli.framerate.load")
