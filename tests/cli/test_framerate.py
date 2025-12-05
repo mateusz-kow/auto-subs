@@ -122,15 +122,15 @@ def test_cli_framerate_invalid_fps_values(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "24", "--fps-to", "24"])
     assert result.exit_code != 0
-    assert "Source and target framerates cannot be the same" in strip_ansi(result.stdout)
+    assert "Source and target framerates cannot be the same" in strip_ansi(result.stderr)
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "-1", "--fps-to", "25"])
     assert result.exit_code != 0
-    assert "Framerate values must be positive" in strip_ansi(result.stdout)
+    assert "Framerate values must be positive" in strip_ansi(result.stderr)
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "24", "--fps-to", "0"])
     assert result.exit_code != 0
-    assert "Framerate values must be positive" in strip_ansi(result.stdout)
+    assert "Framerate values must be positive" in strip_ansi(result.stderr)
 
 
 def test_cli_framerate_missing_fps_options(tmp_path: Path) -> None:
@@ -140,11 +140,11 @@ def test_cli_framerate_missing_fps_options(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-to", "25"])
     assert result.exit_code != 0
-    assert "Missing option '--fps-from'" in strip_ansi(result.stdout)
+    assert "Missing option '--fps-from'" in strip_ansi(result.stderr)
 
     result = runner.invoke(app, ["framerate", str(input_file), "--fps-from", "24"])
     assert result.exit_code != 0
-    assert "Missing option '--fps-to'" in strip_ansi(result.stdout)
+    assert "Missing option '--fps-to'" in strip_ansi(result.stderr)
 
 
 @patch("autosubs.cli.framerate.load")
