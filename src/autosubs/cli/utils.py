@@ -1,35 +1,19 @@
 import os
 import shutil
 import tempfile
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from enum import Enum, auto
 from pathlib import Path
 
 import typer
 
+from autosubs.api import _DEFAULT_STYLE_CONFIG
+from autosubs.core import generator
 from autosubs.core.burner import FFmpegError, burn_subtitles
+from autosubs.core.styler import AssStyler
+from autosubs.models.enums import EncodingErrorStrategy
 from autosubs.models.formats import SubtitleFormat
-
-
-def determine_output_format(
-    output_format_option: SubtitleFormat | None,
-    output_path_option: Path | None,
-    default: SubtitleFormat = SubtitleFormat.SRT,
-) -> SubtitleFormat:
-    """Determines the final subtitle format based on user options."""
-    if output_format_option:
-        return output_format_option
-
-    if output_path_option:
-        suffix = output_path_option.suffix.lower().strip(".")
-        if suffix in SubtitleFormat.__members__.values():
-            return SubtitleFormat(suffix)
-
-    typer.secho(
-        f"No output format specified or inferred. Defaulting to {default.upper()}.",
-        fg=typer.colors.YELLOW,
-    )
-    return default
+from autosubs.models.subtitles import Subtitles
 
 
 class SupportedExtension(Enum):
@@ -42,18 +26,8 @@ class SupportedExtension(Enum):
 
 
 _EXTENSION_MAP: dict[SupportedExtension, set[str]] = {
-    SupportedExtension.MEDIA: {
-        ".mp3",
-        ".mp4",
-        ".m4a",
-        ".mkv",
-        ".avi",
-        ".wav",
-        ".flac",
-        ".mov",
-        ".webm",
-    },
-    SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass"},
+    SupportedExtension.MEDIA: {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac", ".mov", ".webm"},
+    SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass", ".txt", ".sub"},
     SupportedExtension.JSON: {".json"},
     SupportedExtension.VIDEO: {".mp4", ".mkv", ".avi", ".mov", ".webm"},
 }
@@ -95,7 +69,7 @@ class PathProcessor:
         return sorted(files)
 
     def process(self) -> Generator[tuple[Path, Path], None, None]:
-        """Yields tuples of (input_file, output_file_base) for processing."""
+        """Yields tuples of (input_file, output_file_base_path) for processing."""
         files_to_process: list[Path] = []
         if self.input_path.is_dir():
             files_to_process.extend(self._get_files_from_dir())
@@ -110,10 +84,108 @@ class PathProcessor:
 
         for file in files_to_process:
             if self.output_path:
-                out_file = self.output_path / file.name if self.output_path.is_dir() else self.output_path
+                out_base = (
+                    self.output_path / file.stem if self.output_path.is_dir() else self.output_path.with_suffix("")
+                )
             else:
-                out_file = file
-            yield file, out_file
+                out_base = file.with_suffix("")
+            yield file, out_base
+
+
+def determine_output_format(
+    output_format_option: SubtitleFormat | None,
+    output_path_option: Path | None,
+    input_path: Path | None = None,
+    default: SubtitleFormat | None = None,
+) -> SubtitleFormat:
+    """Unified logic to determine output format from flags, filenames, or defaults."""
+    if output_format_option:
+        return output_format_option
+
+    # Try checking the explicitly provided output path extension
+    if output_path_option and not output_path_option.is_dir():
+        suffix = output_path_option.suffix.lstrip(".").lower()
+        if suffix:
+            try:
+                return SubtitleFormat(suffix)
+            except ValueError:
+                pass
+
+    # If allowed, try checking the input path extension (e.g. for conversions)
+    if input_path:
+        suffix = input_path.suffix.lstrip(".").lower()
+        try:
+            return SubtitleFormat(suffix)
+        except ValueError:
+            pass
+
+    if default:
+        typer.secho(f"No output format specified or inferred. Defaulting to {default.upper()}.", fg=typer.colors.YELLOW)
+        return default
+
+    raise typer.BadParameter(
+        "Cannot determine output format. Please specify --format or provide an output path with a valid extension."
+    )
+
+
+def get_default_styler_engine() -> AssStyler:
+    """Creates an AssStyler with a minimal default configuration."""
+    domain_config = _DEFAULT_STYLE_CONFIG.to_domain()
+    return AssStyler(domain_config)
+
+
+def get_generator_func(fmt: SubtitleFormat) -> Callable[[Subtitles], str]:
+    """Returns the appropriate generator function for the format."""
+    _map = {
+        SubtitleFormat.SRT: generator.to_srt,
+        SubtitleFormat.VTT: generator.to_vtt,
+        SubtitleFormat.ASS: lambda s: generator.to_ass(s, styler_engine=get_default_styler_engine()),
+        SubtitleFormat.JSON: generator.to_json,
+        SubtitleFormat.MPL2: generator.to_mpl2,
+        SubtitleFormat.MICRODVD: lambda s: generator.to_microdvd(s, fps=23.976),  # Fallback FPS
+    }
+    if fmt not in _map:
+        raise ValueError(f"Unsupported format for generation: {fmt}")
+    return _map[fmt]
+
+
+def write_content_to_file(
+    path: Path, content: str, encoding: str = "utf-8", errors: EncodingErrorStrategy = EncodingErrorStrategy.REPLACE
+) -> None:
+    """Helper to ensure parent dirs exist and write content."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding=encoding, errors=errors)
+        typer.secho(f"Successfully saved to: {path}", fg=typer.colors.GREEN)
+    except OSError as e:
+        typer.secho(f"Error writing file {path}: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=1) from e
+
+
+def process_batch(
+    processor: PathProcessor, process_func: Callable[[Path, Path], None], continue_on_error: bool = True
+) -> None:
+    """Generic loop for processing a batch of files.
+
+    Args:
+        processor: The initialized PathProcessor.
+        process_func: A callback taking (input_file, output_base_path).
+                      It should raise specific exceptions or handle logic.
+        continue_on_error: Determines whether function should continue on error
+    """
+    has_errors = False
+
+    for in_file, out_base in processor.process():
+        try:
+            process_func(in_file, out_base)
+        except Exception as e:
+            typer.secho(f"Error processing {in_file.name}: {e}", fg=typer.colors.RED)
+            has_errors = True
+            if not continue_on_error:
+                break
+
+    if has_errors:
+        raise typer.Exit(code=1)
 
 
 def check_ffmpeg_installed() -> None:
@@ -138,41 +210,24 @@ def handle_burn_operation(
     subtitle_format: SubtitleFormat,
     styling_options_used: bool,
 ) -> None:
-    """Central handler for burning subtitles into video."""
-    if styling_options_used and subtitle_format in {
-        SubtitleFormat.SRT,
-        SubtitleFormat.VTT,
-    }:
-        typer.secho(
-            "Warning: Burning in SRT/VTT format. All styling options from --style-config "
-            "will be ignored. For styled subtitles, use the ASS format.",
-            fg=typer.colors.YELLOW,
-        )
+    """Helper function for handling burn operation."""
+    if styling_options_used and subtitle_format in {SubtitleFormat.SRT, SubtitleFormat.VTT}:
+        typer.secho("Warning: Burning SRT/VTT ignores style config.", fg=typer.colors.YELLOW)
 
-    typer.secho(
-        "Starting video burn process. This may take a significant amount of time...",
-        fg=typer.colors.CYAN,
-    )
+    typer.secho("Starting video burn process...", fg=typer.colors.CYAN)
 
-    temp_sub_file = None
+    temp_sub = None
     try:
         suffix = f".{subtitle_format.value}"
         with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False, encoding="utf-8") as f:
-            temp_sub_file = Path(f.name)
+            temp_sub = Path(f.name)
             f.write(subtitle_content)
 
-        burn_subtitles(video_input, temp_sub_file, video_output)
-
-        typer.secho(
-            f"Successfully burned subtitles into video: {video_output}",
-            fg=typer.colors.GREEN,
-        )
+        burn_subtitles(video_input, temp_sub, video_output)
+        typer.secho(f"Successfully burned into: {video_output}", fg=typer.colors.GREEN)
     except (FFmpegError, Exception) as e:
-        typer.secho(
-            f"An unexpected error occurred while burning subtitles: {e}",
-            fg=typer.colors.RED,
-        )
+        typer.secho(f"Burn failed: {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
     finally:
-        if temp_sub_file and temp_sub_file.exists():
-            os.remove(temp_sub_file)
+        if temp_sub and temp_sub.exists():
+            os.remove(temp_sub)

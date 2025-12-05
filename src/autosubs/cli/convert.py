@@ -1,34 +1,20 @@
-from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from autosubs.api import _DEFAULT_STYLE_CONFIG, load
+from autosubs.api import load
 from autosubs.cli.utils import (
     PathProcessor,
     SupportedExtension,
     determine_output_format,
+    get_generator_func,
+    process_batch,
+    write_content_to_file,
 )
-from autosubs.core import generator
-from autosubs.core.styler import AssStyler
 from autosubs.models.enums import EncodingErrorStrategy
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.subtitles import Subtitles
-
-
-def _get_default_styler_engine() -> AssStyler:
-    """Creates an AssStyler with a minimal default configuration."""
-    domain_config = _DEFAULT_STYLE_CONFIG.to_domain()
-    return AssStyler(domain_config)
-
-
-_format_map: dict[SubtitleFormat, Callable[..., str]] = {
-    SubtitleFormat.SRT: generator.to_srt,
-    SubtitleFormat.VTT: generator.to_vtt,
-    SubtitleFormat.ASS: lambda subs: generator.to_ass(subs, styler_engine=_get_default_styler_engine()),
-    SubtitleFormat.JSON: generator.to_json,
-}
 
 
 def convert(
@@ -85,38 +71,20 @@ def convert(
         ),
     ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
-    """Convert an existing subtitle file to a different format."""
-    final_output_format = determine_output_format(output_format, output_path)
-
-    typer.echo(f"Converting subtitles to {final_output_format.upper()} format...")
+    """Convert subtitle files to a different format."""
+    target_format = determine_output_format(output_format, output_path, default=SubtitleFormat.SRT)
+    typer.echo(f"Converting subtitles to {target_format.upper()} format...")
 
     processor = PathProcessor(input_path, output_path, SupportedExtension.SUBTITLE)
-    is_batch = input_path.is_dir()
-    has_errors = False
+    writer_func = get_generator_func(target_format)
 
-    for in_file, out_file_base in processor.process():
+    def _convert_single(in_file: Path, out_base: Path) -> None:
         typer.echo(f"Processing: {in_file.name}")
 
-        if is_batch:
-            out_file = out_file_base.with_name(f"{in_file.name}.{final_output_format.value}")
-        else:
-            out_file = out_file_base.with_suffix(f".{final_output_format.value}")
+        final_out = out_base.with_suffix(f".{target_format.value}")
+        subtitles: Subtitles = load(in_file, encoding=encoding)
+        content = writer_func(subtitles)
 
-        try:
-            subtitles: Subtitles = load(in_file, encoding=encoding)
-            writer_func = _format_map[final_output_format]
-            content = writer_func(subtitles)
+        write_content_to_file(final_out, content, output_encoding, output_encoding_errors)
 
-            out_file.parent.mkdir(parents=True, exist_ok=True)
-            out_file.write_text(content, encoding=output_encoding, errors=output_encoding_errors)
-            typer.secho(
-                f"Successfully saved converted subtitles to: {out_file}",
-                fg=typer.colors.GREEN,
-            )
-        except (OSError, ValueError, ImportError, LookupError) as e:
-            typer.secho(f"Error processing file {in_file.name}: {e}", fg=typer.colors.RED)
-            has_errors = True
-            continue
-
-    if has_errors:
-        raise typer.Exit(code=1)
+    process_batch(processor, _convert_single)

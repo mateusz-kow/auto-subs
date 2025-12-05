@@ -11,9 +11,19 @@ from autosubs.cli.utils import (
     check_ffmpeg_installed,
     determine_output_format,
     handle_burn_operation,
+    process_batch,
+    write_content_to_file,
 )
 from autosubs.models.formats import SubtitleFormat
 from autosubs.models.whisper import WhisperModel
+
+
+def _determine_output_path(in_file: Path, output_path: Path | None, media_path: Path) -> Path:
+    if output_path and not output_path.is_dir() and not media_path.is_dir():
+        return output_path
+    elif output_path and output_path.is_dir():
+        return output_path / in_file.name
+    return in_file.with_stem(f"{in_file.stem}_burned")
 
 
 def transcribe(
@@ -85,85 +95,42 @@ def transcribe(
         ),
     ] = None,
 ) -> None:
-    """Transcribe a media file and generate subtitles."""
+    """Transcribe media and generate subtitles."""
     if burn:
         check_ffmpeg_installed()
 
-    final_output_format = determine_output_format(output_format, output_path)
+    target_format = determine_output_format(output_format, output_path, default=SubtitleFormat.SRT)
 
-    verbose_level: bool | None = None
-    if whisper_verbose:
-        verbose_level = True
-    elif stream:
-        verbose_level = False
+    verbose_level: bool | None = True if whisper_verbose else (False if stream else None)
 
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
-    is_batch = media_path.is_dir()
-    has_errors = False
 
-    for in_file, out_file_base in processor.process():
-        try:
-            if verbose_level is None:
-                typer.echo(f"Transcribing: {in_file.name} (using '{model.value}' model)")
+    def _transcribe_single(in_file: Path, out_base: Path) -> None:
+        if verbose_level is None:
+            typer.echo(f"Transcribing: {in_file.name} (model: {model.value})")
 
-            content = transcribe_api(
-                in_file,
-                output_format=final_output_format,
-                model_name=model,
-                max_chars=max_chars,
-                min_words=min_words,
-                max_lines=max_lines,
-                style_config_path=style_config,
-                verbose=verbose_level,
-                encoding=encoding,
-            )
+        content = transcribe_api(
+            in_file,
+            output_format=target_format,
+            model_name=model,
+            max_chars=max_chars,
+            min_words=min_words,
+            max_lines=max_lines,
+            style_config_path=style_config,
+            verbose=verbose_level,
+            encoding=encoding,
+        )
 
-            if burn:
-                video_extensions = _EXTENSION_MAP[SupportedExtension.VIDEO]
-                if in_file.suffix.lower() not in video_extensions:
-                    typer.secho(
-                        f"Skipping non-video file for burning: {in_file.name}",
-                        fg=typer.colors.YELLOW,
-                    )
-                    continue
+        if burn:
+            video_exts = _EXTENSION_MAP[SupportedExtension.VIDEO]
+            if in_file.suffix.lower() not in video_exts:
+                typer.secho(f"Skipping burn for non-video: {in_file.name}", fg=typer.colors.YELLOW)
+                return
 
-                if is_batch:
-                    video_output_path = out_file_base.with_suffix(in_file.suffix)
-                else:
-                    video_output_path = output_path or in_file.with_stem(f"{in_file.stem}_burned")
+            video_out = _determine_output_path(in_file, output_path, media_path)
+            handle_burn_operation(in_file, video_out, content, target_format, bool(style_config))
+        else:
+            final_out = out_base.with_suffix(f".{target_format.value}")
+            write_content_to_file(final_out, content)
 
-                handle_burn_operation(
-                    video_input=in_file,
-                    video_output=video_output_path,
-                    subtitle_content=content,
-                    subtitle_format=final_output_format,
-                    styling_options_used=bool(style_config),
-                )
-            else:
-                if is_batch:
-                    out_file = out_file_base.with_name(f"{in_file.stem}.{final_output_format.value}")
-                else:
-                    out_file = out_file_base.with_suffix(f".{final_output_format.value}")
-
-                out_file.parent.mkdir(parents=True, exist_ok=True)
-                out_file.write_text(content, encoding="utf-8")
-                typer.secho(
-                    f"Successfully saved subtitles to: {out_file}",
-                    fg=typer.colors.GREEN,
-                )
-        except (ImportError, FileNotFoundError) as e:
-            typer.secho(f"Error: {e}", fg=typer.colors.RED)
-            typer.secho(
-                "Please ensure 'auto-subs[transcribe]' is installed and ffmpeg is in your PATH.",
-                fg=typer.colors.YELLOW,
-            )
-            raise typer.Exit(code=1) from e
-        except Exception as e:
-            typer.secho(
-                f"An unexpected error occurred while processing {in_file.name}: {e}",
-                fg=typer.colors.RED,
-            )
-            has_errors = True
-
-    if has_errors:
-        raise typer.Exit(code=1)
+    process_batch(processor, _transcribe_single)
