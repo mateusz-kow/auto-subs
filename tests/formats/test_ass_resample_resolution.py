@@ -296,3 +296,20 @@ Dialogue: 00:00:10.00,00:00:15.00,Default,NTP,30,40,15,{\pos(300,300)}Line 3
         style = seg.words[0].styles[0].tag_block
         assert style.position_x == pytest.approx(expected_x)
         assert style.position_y == pytest.approx(expected_y)
+
+
+def test_resample_resolution_with_invalid_playres() -> None:
+    """Test that resampling fails gracefully with invalid PlayRes values."""
+    content = r"""[Script Info]
+PlayResX: invalid
+PlayResY: 720
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 00:00:00.00,00:00:10.00,Default,Test
+"""
+
+    subs = parse_ass(content)
+
+    with pytest.raises(ValueError, match="Invalid PlayResX or PlayResY value"):
+        subs.resample_resolution(1920, 1080)

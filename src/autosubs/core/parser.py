@@ -184,6 +184,8 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
                 "move_t1": int(parts[4]),
                 "move_t2": int(parts[5]),
             })
+        else:
+            logger.warning(f"Invalid \\move tag parameter count: {len(parts)} (expected 4 or 6)")
 
     _dispatch_table = {
         # Boolean styles
