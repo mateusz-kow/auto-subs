@@ -100,9 +100,14 @@ class AssTagBlock:
 
         _append_paired("pos", "position_x", "position_y")
         _append_paired("org", "origin_x", "origin_y")
-        
+
         # Handle \move tag with optional time parameters
-        if self.move_x1 is not None and self.move_y1 is not None and self.move_x2 is not None and self.move_y2 is not None:
+        if (
+            self.move_x1 is not None
+            and self.move_y1 is not None
+            and self.move_x2 is not None
+            and self.move_y2 is not None
+        ):
             move_parts = [
                 _format_ass_tag_number(self.move_x1),
                 _format_ass_tag_number(self.move_y1),
