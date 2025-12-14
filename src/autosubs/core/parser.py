@@ -166,6 +166,25 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         t1, t2 = [int(v) for v in value.split(",")]
         kwargs["fade"] = (t1, t2)
 
+    def _parse_move(value: str, kwargs: dict[str, Any]) -> None:
+        parts = [v.strip() for v in value.split(",")]
+        if len(parts) == 4:
+            kwargs.update({
+                "move_x1": float(parts[0]),
+                "move_y1": float(parts[1]),
+                "move_x2": float(parts[2]),
+                "move_y2": float(parts[3]),
+            })
+        elif len(parts) == 6:
+            kwargs.update({
+                "move_x1": float(parts[0]),
+                "move_y1": float(parts[1]),
+                "move_x2": float(parts[2]),
+                "move_y2": float(parts[3]),
+                "move_t1": int(parts[4]),
+                "move_t2": int(parts[5]),
+            })
+
     _dispatch_table = {
         # Boolean styles
         "b": _parse_bool("bold"),
@@ -186,6 +205,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         "an": _parse_int("alignment"),
         "pos": _parse_pos("position_x", "position_y"),
         "org": _parse_pos("origin_x", "origin_y"),
+        "move": _parse_move,
         # Spacing/Scaling
         "fsp": _parse_float("spacing"),
         "fscx": _parse_float("scale_x"),
