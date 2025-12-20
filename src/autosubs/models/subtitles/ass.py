@@ -175,3 +175,4 @@ class AssSubtitles(Subtitles):
     segments: list[AssSubtitleSegment] = field(default_factory=list)  # type: ignore[assignment]
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)
+    custom_sections: dict[str, list[str]] = field(default_factory=dict)
