@@ -129,6 +129,12 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
                 values = [str(dialogue_data.get(key, "")) for key in events_format_keys]
                 lines.append(f"Dialogue: {','.join(values)}")
 
+        # Add custom sections
+        for section_name, section_lines in subtitles.custom_sections.items():
+            lines.append("")
+            lines.append(section_name)
+            lines.extend(section_lines)
+
         return "\n".join(lines) + "\n"
 
     if not styler_engine:
