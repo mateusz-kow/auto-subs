@@ -18,39 +18,22 @@ jobs:
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
+          enable-cache: true
           python-version: "3.11"
 
-      - name: Set up uv cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Install dependencies from lock file
-        run: uv pip install -e .[dev,encoding,cli]
-
-      - name: Lint with ruff
-        run: uv run ruff check .
-
-      - name: Check formatting with ruff
-        run: uv run ruff format --check .
+      - name: Lint and Format check
+        run: |
+          uv run --extra dev ruff check .
+          uv run --extra dev ruff format --check .
 
       - name: Run mypy for type checking
-        run: uv run mypy .
 
-      - name: Build package to check for errors
+        run: uv run --extra dev --extra encoding --extra cli mypy .
+
+      - name: Build package and check metadata
         run: |
-          uv pip install --system build twine
           uv build
-          twine check dist/*
+          uvx twine check dist/*
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
@@ -68,25 +51,21 @@ jobs:
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up uv cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
-
-      - name: Install dependencies from lock file
-        run: uv pip install --system -e .[dev,encoding,cli]
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
 
       - name: Run pytest with coverage
-        run: uv run pytest --cov=autosubs --cov-report=xml
+
+        run: >
+          uv run --frozen
+          --extra dev
+          --extra encoding
+          --extra cli
+          pytest --cov=autosubs --cov-report=xml
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
