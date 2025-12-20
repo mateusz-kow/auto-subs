@@ -211,7 +211,7 @@ line3
 
 
 def test_custom_section_preserves_whitespace() -> None:
-    """Test that leading/trailing whitespace is preserved in custom sections."""
+    """Test that leading whitespace is preserved in custom sections."""
     content = """[Script Info]
 Title: Test
 
@@ -221,9 +221,9 @@ Dialogue: 0:00:00.00,0:00:05.00,Test
 
 [Fonts]
   fontname: Arial.ttf
-"""  # noqa: W291
+"""
     subs = parse_ass(content)
 
     assert "[Fonts]" in subs.custom_sections
-    # The raw line should preserve trailing whitespace (we use rstrip in parser)
+    # Leading whitespace should be preserved, trailing whitespace is stripped (rstrip)
     assert subs.custom_sections["[Fonts]"][0] == "  fontname: Arial.ttf"
