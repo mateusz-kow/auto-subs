@@ -32,7 +32,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies from lock file
-        run: uv pip install --system -e .[dev,encoding,cli]
+        run: uv pip install -e .[dev,encoding,cli]
 
       - name: Lint with ruff
         run: uv run ruff check .
