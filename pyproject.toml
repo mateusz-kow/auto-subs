@@ -62,6 +62,9 @@ sources = ["src"]
 [tool.hatch.build.targets.wheel]
 packages = ["autosubs"]
 
+[tool.hatch.build.targets.editable]
+packages = ["autosubs"]
+
 [tool.ruff]
 fix = true
 line-length = 120
