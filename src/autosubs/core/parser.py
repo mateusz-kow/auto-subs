@@ -1,9 +1,11 @@
 """Core module for parsing subtitle file formats."""
 
 import dataclasses
+import html
 from collections.abc import Callable
 from logging import getLogger
 from typing import Any
+from xml.etree import ElementTree as ET
 
 import regex as re
 
@@ -437,4 +439,174 @@ def parse_mpl2(file_content: str) -> list[SubtitleSegment]:
         except (ValueError, IndexError) as e:
             logger.warning(f"Skipping malformed MPL2 line: {line} ({e})")
             continue
+    return segments
+
+
+def parse_sami(file_content: str) -> list[SubtitleSegment]:
+    """Parses content from a SAMI (.smi) file into subtitle segments.
+
+    SAMI format uses <SYNC Start=milliseconds> tags to mark timing points.
+    Each SYNC tag starts a new subtitle that lasts until the next SYNC tag.
+    """
+    logger.info("Parsing SAMI file content.")
+    segments: list[SubtitleSegment] = []
+
+    # Normalize line endings and parse as case-insensitive HTML/XML
+    content = file_content.replace("\r\n", "\n")
+
+    try:
+        # Try to parse as XML, but be lenient about malformed HTML
+        # SAMI files are often not well-formed XML
+        # Remove XML declaration if present and normalize
+        content_upper = content.upper()
+        if not content_upper.strip().startswith("<SAMI"):
+            # Wrap in SAMI tags if not present
+            content = f"<SAMI>{content}</SAMI>"
+
+        # Parse with ElementTree in a lenient way
+        root = ET.fromstring(content)
+    except ET.ParseError:
+        # If XML parsing fails, fall back to regex-based parsing
+        logger.warning("SAMI file is not well-formed XML, using regex-based parsing.")
+        return _parse_sami_regex(content)
+
+    # Find all SYNC elements
+    sync_elements = root.findall(".//SYNC") + root.findall(".//sync")
+
+    if not sync_elements:
+        logger.warning("No SYNC elements found in SAMI file.")
+        return segments
+
+    # Process SYNC elements into segments
+    for i, sync_elem in enumerate(sync_elements):
+        try:
+            # Get start time from Start attribute (in milliseconds)
+            start_attr = sync_elem.get("Start") or sync_elem.get("START") or sync_elem.get("start")
+            if start_attr is None:
+                logger.warning(f"SYNC element {i} missing Start attribute, skipping.")
+                continue
+
+            start_ms = int(start_attr)
+            start_time = start_ms / 1000.0
+
+            # Extract text from P tags within this SYNC
+            text_parts: list[str] = []
+            for p_elem in sync_elem.findall(".//P") + sync_elem.findall(".//p"):
+                text = _extract_text_from_element(p_elem)
+                if text and text.strip() and text.strip() != "&nbsp;":
+                    text_parts.append(text)
+
+            subtitle_text = " ".join(text_parts).strip()
+
+            # Skip empty subtitles or those with only &nbsp;
+            if not subtitle_text or subtitle_text == "&nbsp;":
+                continue
+
+            # Determine end time (next SYNC start, or add default duration)
+            if i + 1 < len(sync_elements):
+                next_start_attr = (
+                    sync_elements[i + 1].get("Start")
+                    or sync_elements[i + 1].get("START")
+                    or sync_elements[i + 1].get("start")
+                )
+                end_time = int(next_start_attr) / 1000.0 if next_start_attr else start_time + 2.0
+            else:
+                end_time = start_time + 2.0  # Default duration for last segment
+
+            if start_time >= end_time:
+                logger.warning(f"SYNC element {i} has invalid timing (start >= end), skipping.")
+                continue
+
+            word = SubtitleWord(text=subtitle_text, start=start_time, end=end_time)
+            segments.append(SubtitleSegment(words=[word]))
+
+        except (ValueError, AttributeError) as e:
+            logger.warning(f"Error processing SYNC element {i}: {e}")
+            continue
+
+    return segments
+
+
+def _extract_text_from_element(elem: ET.Element) -> str:
+    """Extracts text content from an XML element, handling HTML entities and br tags."""
+    parts: list[str] = []
+
+    # Add the element's text content
+    if elem.text:
+        parts.append(html.unescape(elem.text))
+
+    # Process child elements
+    for child in elem:
+        # Handle <br> tags as newlines
+        if child.tag.upper() == "BR":
+            parts.append("\n")
+        else:
+            # Recursively extract text from nested elements
+            parts.append(_extract_text_from_element(child))
+
+        # Add tail text (text after the closing tag)
+        if child.tail:
+            parts.append(html.unescape(child.tail))
+
+    return "".join(parts).strip()
+
+
+def _parse_sami_regex(content: str) -> list[SubtitleSegment]:
+    """Fallback regex-based parser for malformed SAMI files."""
+    segments: list[SubtitleSegment] = []
+
+    # Find all SYNC tags with Start attribute
+    # Stop matching at the next SYNC or at closing BODY/SAMI tags
+    sync_pattern = re.compile(
+        r"<SYNC\s+Start\s*=\s*[\"']?(\d+)[\"']?\s*>(.+?)(?=<SYNC|</BODY>|</SAMI>|$)",
+        re.IGNORECASE | re.DOTALL
+    )
+
+    matches = list(sync_pattern.finditer(content))
+
+    for i, match in enumerate(matches):
+        try:
+            start_ms = int(match.group(1))
+            start_time = start_ms / 1000.0
+            content_block = match.group(2)
+
+            # Extract text from P tags
+            p_pattern = re.compile(r"<P[^>]*>(.+?)(?=</?P|<SYNC|</BODY>|</SAMI>|$)", re.IGNORECASE | re.DOTALL)
+            p_matches = p_pattern.findall(content_block)
+
+            if not p_matches:
+                # Try to extract any text content
+                text = re.sub(r"<[^>]+>", " ", content_block).strip()
+            else:
+                # Process each P match: convert <br> to newlines first
+                text_parts = []
+                for raw_p_text in p_matches:
+                    # Convert br tags to newlines before removing other tags
+                    p_text_with_newlines = re.sub(r"<br\s*/?>", "\n", raw_p_text, flags=re.IGNORECASE)
+                    # Now unescape HTML entities
+                    cleaned_p_text = html.unescape(p_text_with_newlines).strip()
+                    if cleaned_p_text and cleaned_p_text != "&nbsp;":
+                        text_parts.append(cleaned_p_text)
+                text = " ".join(text_parts)
+
+            # Clean up whitespace and HTML entities
+            text = html.unescape(text).strip()
+
+            # Skip empty subtitles
+            if not text or text == "&nbsp;":
+                continue
+
+            # Determine end time
+            end_time = int(matches[i + 1].group(1)) / 1000.0 if i + 1 < len(matches) else start_time + 2.0
+
+            if start_time >= end_time:
+                continue
+
+            word = SubtitleWord(text=text, start=start_time, end=end_time)
+            segments.append(SubtitleSegment(words=[word]))
+
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Error processing SYNC match {i}: {e}")
+            continue
+
     return segments
