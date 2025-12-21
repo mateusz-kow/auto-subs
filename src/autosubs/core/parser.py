@@ -21,12 +21,16 @@ from autosubs.models.subtitles.ass import AssTagBlock
 
 logger = getLogger(__name__)
 
+# Regex patterns for timestamp parsing
 SRT_TIMESTAMP_REGEX = re.compile(r"(\d{2}):(\d{2}):(\d{2}),(\d{3})")
 VTT_TIMESTAMP_REGEX = re.compile(r"(?:(\d{1,2}):)?(\d{2}):(\d{2})\.(\d{3})")
 ASS_TIMESTAMP_REGEX = re.compile(r"(\d+):(\d{2}):(\d{2})\.(\d{2})")
 MPL2_TIMESTAMP_REGEX = re.compile(r"\[(\d+)]\[(\d+)](.+)")
 ASS_STYLE_TAG_REGEX = re.compile(r"{[^}]+}")
 MICRODVD_TIMESTAMP_REGEX = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
+
+# Constants for SAMI parsing
+SAMI_EMPTY_SUBTITLE = "&nbsp;"
 
 
 def srt_timestamp_to_seconds(timestamp: str) -> float:
@@ -447,6 +451,12 @@ def parse_sami(file_content: str) -> list[SubtitleSegment]:
 
     SAMI format uses <SYNC Start=milliseconds> tags to mark timing points.
     Each SYNC tag starts a new subtitle that lasts until the next SYNC tag.
+
+    Args:
+        file_content: The raw content of the SAMI file as a string.
+
+    Returns:
+        A list of SubtitleSegment objects parsed from the file.
     """
     logger.info("Parsing SAMI file content.")
     segments: list[SubtitleSegment] = []
@@ -493,13 +503,14 @@ def parse_sami(file_content: str) -> list[SubtitleSegment]:
             text_parts: list[str] = []
             for p_elem in sync_elem.findall(".//P") + sync_elem.findall(".//p"):
                 text = _extract_text_from_element(p_elem)
-                if text and text.strip() and text.strip() != "&nbsp;":
+                text_stripped = text.strip()
+                if text_stripped and text_stripped != SAMI_EMPTY_SUBTITLE:
                     text_parts.append(text)
 
             subtitle_text = " ".join(text_parts).strip()
 
             # Skip empty subtitles or those with only &nbsp;
-            if not subtitle_text or subtitle_text == "&nbsp;":
+            if not subtitle_text or subtitle_text == SAMI_EMPTY_SUBTITLE:
                 continue
 
             # Determine end time (next SYNC start, or add default duration)
@@ -585,7 +596,7 @@ def _parse_sami_regex(content: str) -> list[SubtitleSegment]:
                     p_text_with_newlines = re.sub(r"<br\s*/?>", "\n", raw_p_text, flags=re.IGNORECASE)
                     # Now unescape HTML entities
                     cleaned_p_text = html.unescape(p_text_with_newlines).strip()
-                    if cleaned_p_text and cleaned_p_text != "&nbsp;":
+                    if cleaned_p_text and cleaned_p_text != SAMI_EMPTY_SUBTITLE:
                         text_parts.append(cleaned_p_text)
                 text = " ".join(text_parts)
 
@@ -593,7 +604,7 @@ def _parse_sami_regex(content: str) -> list[SubtitleSegment]:
             text = html.unescape(text).strip()
 
             # Skip empty subtitles
-            if not text or text == "&nbsp;":
+            if not text or text == SAMI_EMPTY_SUBTITLE:
                 continue
 
             # Determine end time

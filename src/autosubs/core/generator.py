@@ -222,6 +222,12 @@ def to_sami(subtitles: Subtitles) -> str:
 
     SAMI (Synchronized Accessible Media Interchange) is an HTML/XML-based format
     that uses <SYNC Start=milliseconds> tags for timing.
+
+    Args:
+        subtitles: The Subtitles object to convert to SAMI format.
+
+    Returns:
+        A string containing the generated SAMI file content.
     """
     logger.info("Generating subtitles in SAMI format...")
 
