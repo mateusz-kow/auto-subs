@@ -205,3 +205,57 @@ def test_load_ttml_file(sample_ttml_path: Path) -> None:
     assert subtitles.segments[0].text == "Hello, world."
     assert subtitles.segments[1].text == "This is a test\nwith multiple lines."
     assert subtitles.segments[2].text == "Another line here."
+
+
+def test_load_netflix_style_ttml() -> None:
+    """Tests loading a more complex Netflix-style TTML file."""
+    netflix_path = Path(__file__).parent.parent / "fixtures" / "ttml" / "netflix_style.ttml"
+    subtitles = load(netflix_path)
+
+    assert len(subtitles.segments) == 4
+    assert subtitles.segments[0].start == pytest.approx(1.0)
+    assert subtitles.segments[0].end == pytest.approx(3.5)
+    assert "Welcome to the video" in subtitles.segments[0].text
+
+    # Verify multi-line subtitle
+    assert "Important message at the top" in subtitles.segments[2].text
+    assert "with multiple lines" in subtitles.segments[2].text
+    assert "\n" in subtitles.segments[2].text
+
+
+def test_ttml_with_different_extensions() -> None:
+    """Tests that both .xml and .ttml extensions work."""
+    import tempfile
+
+    ttml_content = """<?xml version="1.0" encoding="UTF-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml">
+  <body>
+    <div>
+      <p begin="00:00:01.000" end="00:00:02.000">Test subtitle</p>
+    </div>
+  </body>
+</tt>"""
+
+    # Test with .xml extension
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False, encoding='utf-8') as f:
+        f.write(ttml_content)
+        xml_path = Path(f.name)
+
+    try:
+        subtitles_xml = load(xml_path)
+        assert len(subtitles_xml.segments) == 1
+        assert subtitles_xml.segments[0].text == "Test subtitle"
+    finally:
+        xml_path.unlink()
+
+    # Test with .ttml extension
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.ttml', delete=False, encoding='utf-8') as f:
+        f.write(ttml_content)
+        ttml_path = Path(f.name)
+
+    try:
+        subtitles_ttml = load(ttml_path)
+        assert len(subtitles_ttml.segments) == 1
+        assert subtitles_ttml.segments[0].text == "Test subtitle"
+    finally:
+        ttml_path.unlink()
