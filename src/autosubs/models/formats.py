@@ -12,3 +12,4 @@ class SubtitleFormat(StrEnum):
     JSON = auto()
     MICRODVD = "sub"
     MPL2 = "txt"
+    SAMI = "smi"

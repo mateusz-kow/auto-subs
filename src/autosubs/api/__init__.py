@@ -22,6 +22,7 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.JSON: generator.to_json,
     SubtitleFormat.MICRODVD: generator.to_microdvd,
     SubtitleFormat.MPL2: generator.to_mpl2,
+    SubtitleFormat.SAMI: generator.to_sami,
 }
 
 _DEFAULT_STYLE_CONFIG = StyleEngineConfigSchema(
@@ -200,6 +201,8 @@ def load(
         subtitles = parser.parse_ass(content)
     elif suffix == ".sub":
         subtitles = Subtitles(segments=parser.parse_microdvd(content, fps=fps))
+    elif suffix == ".smi":
+        subtitles = Subtitles(segments=parser.parse_sami(content))
     elif suffix == ".txt":
         first_line = content.split("\n", 1)[0].strip()
         if parser.MPL2_TIMESTAMP_REGEX.match(first_line):

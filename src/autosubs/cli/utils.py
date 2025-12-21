@@ -27,7 +27,7 @@ class SupportedExtension(Enum):
 
 _EXTENSION_MAP: dict[SupportedExtension, set[str]] = {
     SupportedExtension.MEDIA: {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac", ".mov", ".webm"},
-    SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass", ".txt", ".sub"},
+    SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass", ".txt", ".sub", ".smi"},
     SupportedExtension.JSON: {".json"},
     SupportedExtension.VIDEO: {".mp4", ".mkv", ".avi", ".mov", ".webm"},
 }
@@ -145,6 +145,7 @@ def get_generator_func(fmt: SubtitleFormat) -> Callable[[Subtitles], str]:
         SubtitleFormat.MICRODVD: lambda s: generator.to_microdvd(
             s, fps=23.976
         ),  # Fallback FPS; frame-based formats require explicit FPS
+        SubtitleFormat.SAMI: generator.to_sami,
     }
     if fmt not in _map:
         raise ValueError(f"Unsupported format for generation: {fmt}")
