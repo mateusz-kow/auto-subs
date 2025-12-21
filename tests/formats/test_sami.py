@@ -136,19 +136,19 @@ def sample_subtitles() -> Subtitles:
 def test_generate_sami_basic(sample_subtitles: Subtitles) -> None:
     """Test basic generation of a SAMI file."""
     result = to_sami(sample_subtitles)
-    
+
     # Check structure
     assert result.startswith("<SAMI>")
     assert "</SAMI>" in result
     assert "<HEAD>" in result
     assert "<BODY>" in result
-    
+
     # Check timing
     assert "<SYNC Start=1000>" in result
     assert "<SYNC Start=6000>" in result
     assert "<SYNC Start=15500>" in result
     assert "<SYNC Start=20000>" in result  # Final clear
-    
+
     # Check content
     assert "Hello, world." in result
     assert "This is a test<br>with multiple lines." in result
@@ -190,7 +190,7 @@ def test_sami_round_trip(sample_sami_path: Path, tmp_path: Path) -> None:
     reparsed_subs = load(round_trip_file)
 
     assert len(reparsed_subs.segments) == len(original_subs.segments)
-    for original_seg, reparsed_seg in zip(original_subs.segments, reparsed_subs.segments, strict=False):
+    for original_seg, reparsed_seg in zip(original_subs.segments, reparsed_subs.segments, strict=True):
         assert original_seg.start == pytest.approx(reparsed_seg.start, abs=0.01)
         assert original_seg.end == pytest.approx(reparsed_seg.end, abs=0.01)
         assert original_seg.text == reparsed_seg.text
@@ -198,7 +198,7 @@ def test_sami_round_trip(sample_sami_path: Path, tmp_path: Path) -> None:
 
 def test_srt_to_sami_to_srt_round_trip(tmp_path: Path) -> None:
     """Tests conversion from SRT to SAMI and back, checking for data integrity.
-    
+
     Note: SAMI format doesn't encode end times explicitly. Each subtitle lasts until
     the next SYNC tag, so gaps between subtitles will be filled. This test verifies
     that text content and start times are preserved, while acknowledging that end
@@ -230,12 +230,12 @@ def test_srt_to_sami_to_srt_round_trip(tmp_path: Path) -> None:
 
     # Check that we have the same number of segments
     assert len(converted_sami_subs.segments) == len(original_srt_subs.segments)
-    
+
     # Check start times and text content
-    for srt_seg, sami_seg in zip(original_srt_subs.segments, converted_sami_subs.segments, strict=False):
+    for srt_seg, sami_seg in zip(original_srt_subs.segments, converted_sami_subs.segments, strict=True):
         assert srt_seg.start == pytest.approx(sami_seg.start, abs=0.01)
         assert srt_seg.text == sami_seg.text
-    
+
     # Note: End times will differ because SAMI format extends subtitles until the next SYNC
     # The first subtitle will end at the start of the second (6.25s) instead of its original end (5.0s)
     assert converted_sami_subs.segments[0].end == pytest.approx(6.25, abs=0.01)
@@ -250,7 +250,7 @@ def test_srt_to_sami_to_srt_round_trip(tmp_path: Path) -> None:
 
     # Compare SAMI-converted SRT with reconstructed SRT (should match exactly)
     assert len(reconstructed_srt_subs.segments) == len(converted_sami_subs.segments)
-    for sami_seg, reconstructed_seg in zip(converted_sami_subs.segments, reconstructed_srt_subs.segments, strict=False):
+    for sami_seg, reconstructed_seg in zip(converted_sami_subs.segments, reconstructed_srt_subs.segments, strict=True):
         assert sami_seg.start == pytest.approx(reconstructed_seg.start, abs=0.01)
         assert sami_seg.end == pytest.approx(reconstructed_seg.end, abs=0.01)
         assert sami_seg.text == reconstructed_seg.text
