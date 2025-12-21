@@ -247,7 +247,7 @@ def to_ttml(subtitles: Subtitles) -> str:
     # Add styling section
     styling = ET.SubElement(head, 'styling')
     ET.SubElement(styling, 'style', attrib={
-        '{http://www.w3.org/2001/XMLSchema-instance}id': 's1',
+        '{http://www.w3.org/XML/1998/namespace}id': 's1',
         '{http://www.w3.org/ns/ttml#styling}color': 'white',
         '{http://www.w3.org/ns/ttml#styling}fontFamily': 'Arial',
         '{http://www.w3.org/ns/ttml#styling}fontSize': '100%',
@@ -256,7 +256,7 @@ def to_ttml(subtitles: Subtitles) -> str:
     # Add layout section with default region
     layout = ET.SubElement(head, 'layout')
     ET.SubElement(layout, 'region', attrib={
-        '{http://www.w3.org/2001/XMLSchema-instance}id': 'r1',
+        '{http://www.w3.org/XML/1998/namespace}id': 'r1',
         '{http://www.w3.org/ns/ttml#styling}origin': '10% 80%',
         '{http://www.w3.org/ns/ttml#styling}extent': '80% 20%',
         '{http://www.w3.org/ns/ttml#styling}displayAlign': 'center',
