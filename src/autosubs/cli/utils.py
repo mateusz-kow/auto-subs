@@ -27,7 +27,7 @@ class SupportedExtension(Enum):
 
 _EXTENSION_MAP: dict[SupportedExtension, set[str]] = {
     SupportedExtension.MEDIA: {".mp3", ".mp4", ".m4a", ".mkv", ".avi", ".wav", ".flac", ".mov", ".webm"},
-    SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass", ".txt", ".sub"},
+    SupportedExtension.SUBTITLE: {".srt", ".vtt", ".ass", ".txt", ".sub", ".smi"},
     SupportedExtension.JSON: {".json"},
     SupportedExtension.VIDEO: {".mp4", ".mkv", ".avi", ".mov", ".webm"},
 }

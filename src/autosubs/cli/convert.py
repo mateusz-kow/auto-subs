@@ -25,7 +25,7 @@ def convert(
             file_okay=True,
             dir_okay=True,
             readable=True,
-            help="Path to a subtitle file (.srt, .vtt, .ass) or a directory of such files.",
+            help="Path to a subtitle file (.srt, .vtt, .ass, .smi) or a directory of such files.",
         ),
     ],
     output_path: Annotated[
