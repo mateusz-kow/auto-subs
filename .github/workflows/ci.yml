@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: ["main", "dev", "ci-enhancements"]
   pull_request:
     branches: ["main", "dev"]
   workflow_dispatch:
@@ -36,6 +36,14 @@ jobs:
         run: |
           uv build
           uvx twine check dist/*
+
+      - name: Install built wheel and smoke test
+        run: |
+          uv pip install --system dist/*.whl
+          python - << 'EOF'
+          import autosubs
+          print("autosubs OK, version:", getattr(autosubs, "__version__", "unknown"))
+          EOF
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
