@@ -294,4 +294,3 @@ class AssSubtitles(Subtitles):
                         end_char_index=style_range.end_char_index,
                         tag_block=scaled_tag_block,
                     )
-                    

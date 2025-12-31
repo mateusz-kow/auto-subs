@@ -156,9 +156,7 @@ def test_parser_handles_invalid_move_tag_parameter_count() -> None:
 
     # Test with 1 parameter (invalid)
     content_1_param = (
-        "[Events]\n"
-        "Format: Start, End, Style, Text\n"
-        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100)}Invalid move\n"
+        "[Events]\nFormat: Start, End, Style, Text\nDialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100)}Invalid move\n"
     )
     subs = parse_ass(content_1_param)
     assert len(subs.segments) == 1
