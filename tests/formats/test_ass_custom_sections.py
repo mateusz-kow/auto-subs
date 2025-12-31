@@ -202,7 +202,7 @@ line3
 """
     subs = parse_ass(content)
 
-    # Empty lines and comment lines should be skipped during parsing
+    # Empty lines should be skipped during parsing
     assert "[Custom]" in subs.custom_sections
     # Only non-empty, non-comment lines should be stored
     assert "line1" in subs.custom_sections["[Custom]"]
