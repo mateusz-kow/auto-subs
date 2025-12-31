@@ -226,3 +226,30 @@ Dialogue: 0:00:00.00,0:00:05.00,Test
     assert "[Fonts]" in subs.custom_sections
     # Leading whitespace should be preserved, trailing whitespace is stripped (rstrip)
     assert subs.custom_sections["[Fonts]"][0] == "  fontname: Arial.ttf"
+
+
+def test_custom_section_skips_comment_lines() -> None:
+    """Test that comment lines (starting with semicolons) are skipped in custom sections."""
+    content = """[Script Info]
+Title: Test
+
+[Events]
+Format: Start, End, Text
+Dialogue: 0:00:00.00,0:00:05.00,Test
+
+[Fonts]
+; This is a comment and should be skipped
+fontname: Arial.ttf
+; Another comment
+M5&AE('-T>6QE/3-$)T9/3E0M1D%-24Q9
+; End comment
+"""
+    subs = parse_ass(content)
+
+    assert "[Fonts]" in subs.custom_sections
+    # Comment lines should be skipped (same behavior as standard sections)
+    assert len(subs.custom_sections["[Fonts]"]) == 2
+    assert subs.custom_sections["[Fonts]"][0] == "fontname: Arial.ttf"
+    assert subs.custom_sections["[Fonts]"][1] == "M5&AE('-T>6QE/3-$)T9/3E0M1D%-24Q9"
+    # Verify comments are not included
+    assert not any(";" in line and line.strip().startswith(";") for line in subs.custom_sections["[Fonts]"])
