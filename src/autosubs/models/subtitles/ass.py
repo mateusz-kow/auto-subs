@@ -171,7 +171,7 @@ class AssTagBlock:
             shadow_color=self.shadow_color,
             alpha=self.alpha,
             # Spacing and Scaling - unchanged (these are percentages, not absolute)
-            spacing=self.spacing,
+            spacing=self.spacing * scale_x if self.spacing is not None else None,
             scale_x=self.scale_x,
             scale_y=self.scale_y,
             # Rotation - unchanged
@@ -263,8 +263,11 @@ class AssSubtitles(Subtitles):
         if not current_x_str or not current_y_str:
             raise ValueError("PlayResX and PlayResY must be set in script_info to resample resolution")
 
-        current_x = int(current_x_str)
-        current_y = int(current_y_str)
+        try:
+            current_x = int(current_x_str)
+            current_y = int(current_y_str)
+        except ValueError as e:
+            raise ValueError(f"Invalid PlayResX or PlayResY value: {e}") from e
 
         # Calculate scale factors
         scale_x = target_x / current_x
@@ -290,4 +293,3 @@ class AssSubtitles(Subtitles):
                         end_char_index=style_range.end_char_index,
                         tag_block=scaled_tag_block,
                     )
-
