@@ -1,0 +1,28 @@
+<SAMI>
+<HEAD>
+<TITLE>Sample SAMI File</TITLE>
+<STYLE TYPE="text/css">
+<!--
+P { margin-left: 8pt; margin-right: 8pt; margin-bottom: 2pt;
+    margin-top: 2pt; text-align: center; font-size: 12pt;
+    font-family: Arial, sans-serif; font-weight: normal;
+    color: white; background-color: black; }
+.ENCC { Name: English; lang: en-US; }
+-->
+</STYLE>
+</HEAD>
+<BODY>
+<SYNC Start="1000">
+  <P Class="ENCC">Hello, world.</P>
+</SYNC>
+<SYNC Start="6000">
+  <P Class="ENCC">This is a test<br/>with multiple lines.</P>
+</SYNC>
+<SYNC Start="15500">
+  <P Class="ENCC">Another line here.</P>
+</SYNC>
+<SYNC Start="20000">
+  <P Class="ENCC">&nbsp;</P>
+</SYNC>
+</BODY>
+</SAMI>
