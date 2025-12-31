@@ -108,3 +108,97 @@ def test_parser_weird_tags(weird_ass_content: str) -> None:
     assert subs.segments[0].text == "Line 1"
     # The text field is the last one, so it consumes the rest of the line.
     assert subs.segments[1].text == ",Some text with extra fields,"
+
+
+def test_parser_handles_invalid_move_tag_parameter_count() -> None:
+    """Test that move tags with invalid parameter counts are handled gracefully."""
+    # Test with 3 parameters (invalid)
+    content_3_params = (
+        "[Events]\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100,200,300)}Invalid move\n"
+    )
+    subs = parse_ass(content_3_params)
+    # Should parse but move tag fields should be None (warning is logged)
+    assert len(subs.segments) == 1
+    tag_block = subs.segments[0].words[0].styles[0].tag_block
+    assert tag_block.move_x1 is None
+    assert tag_block.move_y1 is None
+    assert tag_block.move_x2 is None
+    assert tag_block.move_y2 is None
+    # The tag is silently ignored (with warning) - it's not in unknown_tags
+    assert "move" not in "".join(tag_block.unknown_tags)
+
+    # Test with 5 parameters (invalid)
+    content_5_params = (
+        "[Events]\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100,200,300,400,500)}Invalid move\n"
+    )
+    subs = parse_ass(content_5_params)
+    assert len(subs.segments) == 1
+    tag_block = subs.segments[0].words[0].styles[0].tag_block
+    assert tag_block.move_x1 is None
+    assert tag_block.move_x2 is None
+    assert "move" not in "".join(tag_block.unknown_tags)
+
+    # Test with 7 parameters (invalid)
+    content_7_params = (
+        "[Events]\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(1,2,3,4,5,6,7)}Invalid move\n"
+    )
+    subs = parse_ass(content_7_params)
+    assert len(subs.segments) == 1
+    tag_block = subs.segments[0].words[0].styles[0].tag_block
+    assert tag_block.move_x1 is None
+    assert "move" not in "".join(tag_block.unknown_tags)
+
+    # Test with 1 parameter (invalid)
+    content_1_param = (
+        "[Events]\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100)}Invalid move\n"
+    )
+    subs = parse_ass(content_1_param)
+    assert len(subs.segments) == 1
+    tag_block = subs.segments[0].words[0].styles[0].tag_block
+    assert tag_block.move_x1 is None
+
+
+def test_parser_handles_valid_move_tag_4_params() -> None:
+    """Test that move tags with 4 parameters are parsed correctly."""
+    content = (
+        "[Events]\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100,200,300,400)}Valid move\n"
+    )
+    subs = parse_ass(content)
+    assert len(subs.segments) == 1
+    tag_block = subs.segments[0].words[0].styles[0].tag_block
+    assert tag_block.move_x1 == 100.0
+    assert tag_block.move_y1 == 200.0
+    assert tag_block.move_x2 == 300.0
+    assert tag_block.move_y2 == 400.0
+    assert tag_block.move_t1 is None
+    assert tag_block.move_t2 is None
+    assert "move" not in "".join(tag_block.unknown_tags)
+
+
+def test_parser_handles_valid_move_tag_6_params() -> None:
+    """Test that move tags with 6 parameters are parsed correctly."""
+    content = (
+        "[Events]\n"
+        "Format: Start, End, Style, Text\n"
+        "Dialogue: 0:00:00.00,0:00:05.00,Default,{\\move(100,200,300,400,0,5000)}Valid move with time\n"
+    )
+    subs = parse_ass(content)
+    assert len(subs.segments) == 1
+    tag_block = subs.segments[0].words[0].styles[0].tag_block
+    assert tag_block.move_x1 == 100.0
+    assert tag_block.move_y1 == 200.0
+    assert tag_block.move_x2 == 300.0
+    assert tag_block.move_y2 == 400.0
+    assert tag_block.move_t1 == 0
+    assert tag_block.move_t2 == 5000
+    assert "move" not in "".join(tag_block.unknown_tags)
