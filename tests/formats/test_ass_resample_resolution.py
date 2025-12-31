@@ -32,7 +32,7 @@ Dialogue: 00:00:00.00,00:00:10.00,Default,NTP,10,20,5,{\pos(640,360)}{\fs48}Test
     seg = subs.segments[0]
     assert seg.margin_l == 15  # 10 * 1.5
     assert seg.margin_r == 30  # 20 * 1.5
-    assert seg.margin_v == 7  # 5 * 1.5 = 7.5 -> 7
+    assert seg.margin_v == 8  # 5 * 1.5 = 7.5 -> 8
 
     # Check position scaled
     style = seg.words[0].styles[0].tag_block
@@ -285,7 +285,7 @@ Dialogue: 00:00:10.00,00:00:15.00,Default,NTP,30,40,15,{\pos(300,300)}Line 3
     # Check all segments are scaled correctly
     for i, (expected_l, expected_r, expected_v, expected_x, expected_y) in enumerate(
         [
-            (15, 30, 7, 150.0, 150.0),
+            (15, 30, 8, 150.0, 150.0),
             (30, 45, 15, 300.0, 300.0),
             (45, 60, 22, 450.0, 450.0),
         ]
