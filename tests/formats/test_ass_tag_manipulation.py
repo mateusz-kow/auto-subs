@@ -1,5 +1,7 @@
 import dataclasses
 
+import pytest
+
 from autosubs.core.generator import to_ass
 from autosubs.core.parser import parse_ass
 from autosubs.models.subtitles.ass import AssTagBlock, WordStyleRange
@@ -172,20 +174,20 @@ Dialogue: 0:00:05.00,0:00:10.00,Default,{\move(100,200,300,400)}No time params
 
     # Check first move tag (with time)
     move_tag1 = subs.segments[0].words[0].styles[0].tag_block
-    assert move_tag1.move_x1 == 60.0
-    assert move_tag1.move_y1 == 100.0
-    assert move_tag1.move_x2 == 150.0
-    assert move_tag1.move_y2 == 250.0
+    assert move_tag1.move_x1 == pytest.approx(60.0)
+    assert move_tag1.move_y1 == pytest.approx(100.0)
+    assert move_tag1.move_x2 == pytest.approx(150.0)
+    assert move_tag1.move_y2 == pytest.approx(250.0)
     assert move_tag1.move_t1 == 0
     assert move_tag1.move_t2 == 5000
     assert "\\move(60,100,150,250,0,5000)" in move_tag1.to_ass_string()
 
     # Check second move tag (without time)
     move_tag2 = subs.segments[1].words[0].styles[0].tag_block
-    assert move_tag2.move_x1 == 100.0
-    assert move_tag2.move_y1 == 200.0
-    assert move_tag2.move_x2 == 300.0
-    assert move_tag2.move_y2 == 400.0
+    assert move_tag2.move_x1 == pytest.approx(100.0)
+    assert move_tag2.move_y1 == pytest.approx(200.0)
+    assert move_tag2.move_x2 == pytest.approx(300.0)
+    assert move_tag2.move_y2 == pytest.approx(400.0)
     assert move_tag2.move_t1 is None
     assert move_tag2.move_t2 is None
     assert "\\move(100,200,300,400)" in move_tag2.to_ass_string()

@@ -73,7 +73,7 @@ def test_parser_handles_multiple_trailing_tags() -> None:
     assert len(word_trailing_tags.styles) == 2
     assert word_trailing_tags.styles[0].tag_block == AssTagBlock(bold=False)
     assert word_trailing_tags.styles[1].tag_block == AssTagBlock(alignment=5)
-    assert word_trailing_tags.start == 10.0
+    assert word_trailing_tags.start == pytest.approx(10.0)
 
 
 def test_parser_handles_tag_only_line() -> None:
@@ -95,8 +95,8 @@ def test_parser_handles_tag_only_line() -> None:
     assert word_tags_only.styles[0].tag_block == AssTagBlock(alignment=5)
     assert word_tags_only.styles[1].tag_block == AssTagBlock(font_size=30.0)
     # It should have a zero-duration at the end of the segment timeline.
-    assert word_tags_only.start == 20.0
-    assert word_tags_only.end == 20.0
+    assert word_tags_only.start == pytest.approx(20.0)
+    assert word_tags_only.end == pytest.approx(20.0)
 
 
 def test_parser_weird_tags(weird_ass_content: str) -> None:
@@ -174,10 +174,10 @@ def test_parser_handles_valid_move_tag_4_params() -> None:
     subs = parse_ass(content)
     assert len(subs.segments) == 1
     tag_block = subs.segments[0].words[0].styles[0].tag_block
-    assert tag_block.move_x1 == 100.0
-    assert tag_block.move_y1 == 200.0
-    assert tag_block.move_x2 == 300.0
-    assert tag_block.move_y2 == 400.0
+    assert tag_block.move_x1 == pytest.approx(100.0)
+    assert tag_block.move_y1 == pytest.approx(200.0)
+    assert tag_block.move_x2 == pytest.approx(300.0)
+    assert tag_block.move_y2 == pytest.approx(400.0)
     assert tag_block.move_t1 is None
     assert tag_block.move_t2 is None
     assert "move" not in "".join(tag_block.unknown_tags)
@@ -193,10 +193,10 @@ def test_parser_handles_valid_move_tag_6_params() -> None:
     subs = parse_ass(content)
     assert len(subs.segments) == 1
     tag_block = subs.segments[0].words[0].styles[0].tag_block
-    assert tag_block.move_x1 == 100.0
-    assert tag_block.move_y1 == 200.0
-    assert tag_block.move_x2 == 300.0
-    assert tag_block.move_y2 == 400.0
+    assert tag_block.move_x1 == pytest.approx(100.0)
+    assert tag_block.move_y1 == pytest.approx(200.0)
+    assert tag_block.move_x2 == pytest.approx(300.0)
+    assert tag_block.move_y2 == pytest.approx(400.0)
     assert tag_block.move_t1 == 0
     assert tag_block.move_t2 == 5000
     assert "move" not in "".join(tag_block.unknown_tags)
