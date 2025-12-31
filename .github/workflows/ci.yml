@@ -39,8 +39,9 @@ jobs:
 
       - name: Install built wheel and test import
         run: |
-          source .venv/bin/activate
+          set -e
           uv pip install dist/*.whl
+          source .venv/bin/activate
           python - << 'EOF'
           import autosubs
           print("autosubs OK, version:", getattr(autosubs, '__version__', 'unknown'))
