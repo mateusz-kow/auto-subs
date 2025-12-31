@@ -283,11 +283,13 @@ Dialogue: 00:00:10.00,00:00:15.00,Default,NTP,30,40,15,{\pos(300,300)}Line 3
     subs.resample_resolution(1920, 1080)
 
     # Check all segments are scaled correctly
-    for i, (expected_l, expected_r, expected_v, expected_x, expected_y) in enumerate([
-        (15, 30, 7, 150.0, 150.0),
-        (30, 45, 15, 300.0, 300.0),
-        (45, 60, 22, 450.0, 450.0),
-    ]):
+    for i, (expected_l, expected_r, expected_v, expected_x, expected_y) in enumerate(
+        [
+            (15, 30, 7, 150.0, 150.0),
+            (30, 45, 15, 300.0, 300.0),
+            (45, 60, 22, 450.0, 450.0),
+        ]
+    ):
         seg = subs.segments[i]
         assert seg.margin_l == expected_l
         assert seg.margin_r == expected_r
