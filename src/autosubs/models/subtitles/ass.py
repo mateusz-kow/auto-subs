@@ -281,9 +281,9 @@ class AssSubtitles(Subtitles):
         # Scale all segments
         for segment in self.segments:
             # Scale margins
-            segment.margin_l = int(segment.margin_l * scale_x)
-            segment.margin_r = int(segment.margin_r * scale_x)
-            segment.margin_v = int(segment.margin_v * scale_y)
+            segment.margin_l = int(round(segment.margin_l * scale_x))
+            segment.margin_r = int(round(segment.margin_r * scale_x))
+            segment.margin_v = int(round(segment.margin_v * scale_y))
 
             # Scale all word styles
             for word in segment.words:
