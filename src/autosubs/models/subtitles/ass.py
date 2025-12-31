@@ -270,6 +270,13 @@ class AssSubtitles(Subtitles):
         except ValueError as e:
             raise ValueError(f"Invalid PlayResX or PlayResY value: {e}") from e
 
+        # Negative resolution values are permitted at this stage to allow later normalization to valid values.
+        if current_x == 0 or current_y == 0:
+            raise ValueError("PlayResX and PlayResY must be non-zero to resample resolution")
+
+        if target_y <= 0 or target_x <= 0:
+            raise ValueError("Target resolution must be positive non-zero values")
+
         # Calculate scale factors
         scale_x = target_x / current_x
         scale_y = target_y / current_y
