@@ -31,6 +31,12 @@ class AssTagBlock:
     position_y: int | float | None = None
     origin_x: int | float | None = None
     origin_y: int | float | None = None
+    move_x1: int | float | None = None
+    move_y1: int | float | None = None
+    move_x2: int | float | None = None
+    move_y2: int | float | None = None
+    move_t1: int | None = None
+    move_t2: int | None = None
     # Font Properties
     font_name: str | None = None
     font_size: int | float | None = None
@@ -95,6 +101,23 @@ class AssTagBlock:
         _append_paired("pos", "position_x", "position_y")
         _append_paired("org", "origin_x", "origin_y")
 
+        # Handle \move tag with optional time parameters
+        if (
+            self.move_x1 is not None
+            and self.move_y1 is not None
+            and self.move_x2 is not None
+            and self.move_y2 is not None
+        ):
+            move_parts = [
+                _format_ass_tag_number(self.move_x1),
+                _format_ass_tag_number(self.move_y1),
+                _format_ass_tag_number(self.move_x2),
+                _format_ass_tag_number(self.move_y2),
+            ]
+            if self.move_t1 is not None and self.move_t2 is not None:
+                move_parts.extend([str(self.move_t1), str(self.move_t2)])
+            tags.append(f"\\move({','.join(move_parts)})")
+
         for attr, tag, formatter in tag_descriptors:
             value = getattr(self, attr)
 
@@ -117,6 +140,53 @@ class AssTagBlock:
         if not tag_str:
             return ""
         return f"{{{tag_str}}}"
+
+    def scale(self, scale_x: float, scale_y: float) -> AssTagBlock:
+        """Returns a new AssTagBlock with scaled coordinate and size values."""
+        return AssTagBlock(
+            # Boolean styles - unchanged
+            bold=self.bold,
+            italic=self.italic,
+            underline=self.underline,
+            strikeout=self.strikeout,
+            # Layout and Alignment - scale coordinates
+            alignment=self.alignment,
+            position_x=self.position_x * scale_x if self.position_x is not None else None,
+            position_y=self.position_y * scale_y if self.position_y is not None else None,
+            origin_x=self.origin_x * scale_x if self.origin_x is not None else None,
+            origin_y=self.origin_y * scale_y if self.origin_y is not None else None,
+            move_x1=self.move_x1 * scale_x if self.move_x1 is not None else None,
+            move_y1=self.move_y1 * scale_y if self.move_y1 is not None else None,
+            move_x2=self.move_x2 * scale_x if self.move_x2 is not None else None,
+            move_y2=self.move_y2 * scale_y if self.move_y2 is not None else None,
+            move_t1=self.move_t1,
+            move_t2=self.move_t2,
+            # Font Properties - scale font size
+            font_name=self.font_name,
+            font_size=self.font_size * scale_y if self.font_size is not None else None,
+            # Colors and Alpha - unchanged
+            primary_color=self.primary_color,
+            secondary_color=self.secondary_color,
+            outline_color=self.outline_color,
+            shadow_color=self.shadow_color,
+            alpha=self.alpha,
+            # Spacing (absolute, scaled) and font scaling percentages (unchanged)
+            spacing=self.spacing * scale_x if self.spacing is not None else None,
+            scale_x=self.scale_x,
+            scale_y=self.scale_y,
+            # Rotation - unchanged
+            rotation_x=self.rotation_x,
+            rotation_y=self.rotation_y,
+            rotation_z=self.rotation_z,
+            # Border, Shadow, and Blur - scale by Y factor
+            border=self.border * scale_y if self.border is not None else None,
+            shadow=self.shadow * scale_y if self.shadow is not None else None,
+            blur=self.blur * scale_y if self.blur is not None else None,
+            fade=self.fade,
+            # Complex transforms - unchanged (would need complex parsing)
+            transforms=self.transforms,
+            unknown_tags=self.unknown_tags,
+        )
 
 
 @dataclass(frozen=True, eq=True)
@@ -176,3 +246,58 @@ class AssSubtitles(Subtitles):
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)
     custom_sections: dict[str, list[str]] = field(default_factory=dict)
+
+    def resample_resolution(self, target_x: int, target_y: int) -> None:
+        """Resample subtitle coordinates and sizes to match a new resolution.
+
+        Args:
+            target_x: Target horizontal resolution (PlayResX).
+            target_y: Target vertical resolution (PlayResY).
+
+        Raises:
+            ValueError: If PlayResX or PlayResY are not set in script_info.
+        """
+        # Get current resolution from script_info
+        current_x_str = self.script_info.get("PlayResX")
+        current_y_str = self.script_info.get("PlayResY")
+
+        if not current_x_str or not current_y_str:
+            raise ValueError("PlayResX and PlayResY must be set in script_info to resample resolution")
+
+        try:
+            current_x = int(current_x_str)
+            current_y = int(current_y_str)
+        except ValueError as e:
+            raise ValueError(f"Invalid PlayResX or PlayResY value: {e}") from e
+
+        # Negative resolution values are permitted at this stage to allow later normalization to valid values.
+        if current_x == 0 or current_y == 0:
+            raise ValueError("PlayResX and PlayResY must be non-zero to resample resolution")
+
+        if target_y <= 0 or target_x <= 0:
+            raise ValueError("Target resolution must be positive non-zero values")
+
+        # Calculate scale factors
+        scale_x = target_x / current_x
+        scale_y = target_y / current_y
+
+        # Update script_info
+        self.script_info["PlayResX"] = str(target_x)
+        self.script_info["PlayResY"] = str(target_y)
+
+        # Scale all segments
+        for segment in self.segments:
+            # Scale margins
+            segment.margin_l = int(round(segment.margin_l * scale_x))
+            segment.margin_r = int(round(segment.margin_r * scale_x))
+            segment.margin_v = int(round(segment.margin_v * scale_y))
+
+            # Scale all word styles
+            for word in segment.words:
+                for i, style_range in enumerate(word.styles):
+                    scaled_tag_block = style_range.tag_block.scale(scale_x, scale_y)
+                    word.styles[i] = WordStyleRange(
+                        start_char_index=style_range.start_char_index,
+                        end_char_index=style_range.end_char_index,
+                        tag_block=scaled_tag_block,
+                    )

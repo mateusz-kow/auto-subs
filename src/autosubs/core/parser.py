@@ -157,14 +157,44 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
 
     def _parse_pos(key_x: str, key_y: str) -> Callable[[str, dict[str, Any]], None]:
         def parser(value: str, kwargs: dict[str, Any]) -> None:
-            x, y = [float(v) for v in value.split(",")]
-            kwargs.update({key_x: x, key_y: y})
+            x_str, y_str = value.split(",")
+            kwargs.update(
+                {
+                    key_x: float(x_str),
+                    key_y: float(y_str),
+                }
+            )
 
         return parser
 
     def _parse_fad(value: str, kwargs: dict[str, Any]) -> None:
-        t1, t2 = [int(v) for v in value.split(",")]
+        t1, t2 = map(int, value.split(","))
         kwargs["fade"] = (t1, t2)
+
+    def _parse_move(value: str, kwargs: dict[str, Any]) -> None:
+        parts = [v.strip() for v in value.split(",")]
+
+        if len(parts) not in (4, 6):
+            raise ValueError(f"Expected 4 or 6 parameters, got {len(parts)}")
+
+        x1, y1, x2, y2 = map(float, parts[:4])
+        kwargs.update(
+            {
+                "move_x1": x1,
+                "move_y1": y1,
+                "move_x2": x2,
+                "move_y2": y2,
+            }
+        )
+
+        if len(parts) == 6:
+            t1, t2 = map(int, parts[4:])
+            kwargs.update(
+                {
+                    "move_t1": t1,
+                    "move_t2": t2,
+                }
+            )
 
     _dispatch_table = {
         # Boolean styles
@@ -186,6 +216,7 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         "an": _parse_int("alignment"),
         "pos": _parse_pos("position_x", "position_y"),
         "org": _parse_pos("origin_x", "origin_y"),
+        "move": _parse_move,
         # Spacing/Scaling
         "fsp": _parse_float("spacing"),
         "fscx": _parse_float("scale_x"),
@@ -229,8 +260,16 @@ def _parse_ass_tag_block(tag_content: str) -> AssTagBlock:
         if parser:
             try:
                 parser(value_str, kwargs)
-            except (ValueError, IndexError):
-                logger.warning(f"Could not parse ASS tag: \\{tag}{value_str}")
+            except (ValueError, IndexError) as exc:
+                logger.warning(f"Could not parse ASS tag: \\{tag}({value_str})")
+                logger.debug(
+                    "ASS tag parsing failed",
+                    extra={
+                        "tag": tag,
+                        "value": value_str,
+                    },
+                    exc_info=exc,
+                )
         else:
             unknown_tags.append(match.group(0).lstrip("\\"))
 
