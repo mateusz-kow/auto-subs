@@ -39,7 +39,7 @@ jobs:
 
       - name: Install built wheel and smoke test
         run: |
-          uv pip install --system dist/*.whl
+          uv pip install dist/*.whl
           python - << 'EOF'
           import autosubs
           print("autosubs OK, version:", getattr(autosubs, "__version__", "unknown"))
