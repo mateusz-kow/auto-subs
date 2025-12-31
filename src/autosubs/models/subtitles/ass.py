@@ -170,7 +170,7 @@ class AssTagBlock:
             outline_color=self.outline_color,
             shadow_color=self.shadow_color,
             alpha=self.alpha,
-            # Spacing and Scaling - unchanged (these are percentages, not absolute)
+            # Spacing (absolute, scaled) and font scaling percentages (unchanged)
             spacing=self.spacing * scale_x if self.spacing is not None else None,
             scale_x=self.scale_x,
             scale_y=self.scale_y,
