@@ -1,6 +1,5 @@
 """Tests for parsing and preserving custom ASS sections."""
 
-
 from autosubs.core.generator import to_ass
 from autosubs.core.parser import parse_ass
 
@@ -187,7 +186,7 @@ Dialogue: 0:00:00.00,0:00:05.00,Test
     assert "[Events]" in output
 
 
-def test_custom_section_with_empty_lines() -> None:
+def test_custom_section_skips_empty_lines() -> None:
     """Test that custom sections can contain empty lines."""
     content = """[Script Info]
 Title: Test

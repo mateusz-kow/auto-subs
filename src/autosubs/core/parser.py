@@ -309,6 +309,11 @@ def parse_ass(file_content: str) -> AssSubtitles:
                 subs.custom_sections[current_section] = []
             continue
 
+        if current_section and current_section in subs.custom_sections:
+            # Store raw line for custom sections
+            subs.custom_sections[current_section].append(raw_line.rstrip())
+            continue
+
         key, _, value = line.partition(":")
         value = value.strip()
 
@@ -359,9 +364,6 @@ def parse_ass(file_content: str) -> AssSubtitles:
                 except (ValueError, IndexError) as e:
                     logger.warning(f"Skipping malformed ASS Dialogue line: {line} ({e})")
                     continue
-        elif current_section and current_section in subs.custom_sections:
-            # Store raw line for custom sections
-            subs.custom_sections[current_section].append(raw_line.rstrip())
     return subs
 
 
