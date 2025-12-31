@@ -186,8 +186,8 @@ Dialogue: 0:00:00.00,0:00:05.00,Test
     assert "[Events]" in output
 
 
-def test_custom_section_skips_empty_lines() -> None:
-    """Test that custom sections can contain empty lines."""
+def test_custom_section_empty_lines_are_skipped() -> None:
+    """Test that empty lines in custom sections are skipped and not stored."""
     content = """[Script Info]
 Title: Test
 
