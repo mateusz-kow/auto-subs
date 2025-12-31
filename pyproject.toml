@@ -57,7 +57,17 @@ build-backend = "hatchling.build"
 # --- Tool Configurations ---
 
 [tool.hatch.build]
-packages = ["src/autosubs"]
+sources = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["autosubs"]
+
+[tool.hatch.build.targets.editable]
+packages = ["autosubs"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.ruff]
 fix = true

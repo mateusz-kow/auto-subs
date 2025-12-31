@@ -318,18 +318,51 @@ def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitl
 
 
 def parse_ass(file_content: str) -> AssSubtitles:
-    """Parses content from an ASS file into a rich AssSubtitles object."""
+    """Parses content from an ASS file into a rich AssSubtitles object.
+
+    This parser handles standard ASS sections ([Script Info], [V4+ Styles], [Events])
+    as well as custom sections (e.g., [Fonts], [Graphics], [Aegisub Project Garbage]).
+
+    Parsing behavior:
+        - Empty lines are skipped in all sections
+        - Comment lines (starting with semicolon) are skipped in all sections
+        - Custom sections store raw line content with trailing whitespace stripped
+        - Leading whitespace is preserved in custom sections
+
+    Note: UUEncoded data in custom sections (like [Fonts] and [Graphics]) that
+    happens to start with a semicolon on a line will be skipped. While rare in
+    practice (UUEncoded lines typically start with 'M' or other characters), users
+    should be aware that custom sections follow the same parsing rules as standard
+    sections.
+
+    Args:
+        file_content: The complete text content of an ASS file.
+
+    Returns:
+        AssSubtitles object with parsed content including custom sections.
+    """
     logger.info("Parsing ASS file content.")
     subs = AssSubtitles()
     current_section = ""
 
     for raw_line in file_content.replace("\r\n", "\n").splitlines():
         line = raw_line.strip()
+        # Skip empty lines and comments (lines starting with semicolon) in all sections.
+        # This applies to standard sections and custom sections alike.
         if not line or line.startswith(";"):
             continue
 
         if line.startswith("[") and line.endswith("]"):
             current_section = line
+            # Initialize custom section storage if it's not a standard section
+            if current_section not in ["[Script Info]", "[V4+ Styles]", "[Events]"]:
+                subs.custom_sections[current_section] = []
+            continue
+
+        if current_section and current_section in subs.custom_sections:
+            # Store raw line for custom sections (with trailing whitespace stripped).
+            # Leading whitespace is preserved to maintain formatting of UUEncoded data.
+            subs.custom_sections[current_section].append(raw_line.rstrip())
             continue
 
         key, _, value = line.partition(":")

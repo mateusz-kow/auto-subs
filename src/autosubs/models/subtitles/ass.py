@@ -245,6 +245,7 @@ class AssSubtitles(Subtitles):
     segments: list[AssSubtitleSegment] = field(default_factory=list)  # type: ignore[assignment]
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)
+    custom_sections: dict[str, list[str]] = field(default_factory=dict)
 
     def resample_resolution(self, target_x: int, target_y: int) -> None:
         """Resample subtitle coordinates and sizes to match a new resolution.
@@ -293,3 +294,4 @@ class AssSubtitles(Subtitles):
                         end_char_index=style_range.end_char_index,
                         tag_block=scaled_tag_block,
                     )
+                    
