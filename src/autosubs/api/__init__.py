@@ -22,6 +22,7 @@ _format_map: dict[SubtitleFormat, Callable[..., str]] = {
     SubtitleFormat.JSON: generator.to_json,
     SubtitleFormat.MICRODVD: generator.to_microdvd,
     SubtitleFormat.MPL2: generator.to_mpl2,
+    SubtitleFormat.TTML: generator.to_ttml,
 }
 
 _DEFAULT_STYLE_CONFIG = StyleEngineConfigSchema(
@@ -200,6 +201,8 @@ def load(
         subtitles = parser.parse_ass(content)
     elif suffix == ".sub":
         subtitles = Subtitles(segments=parser.parse_microdvd(content, fps=fps))
+    elif suffix in (".xml", ".ttml"):
+        subtitles = Subtitles(segments=parser.parse_ttml(content))
     elif suffix == ".txt":
         first_line = content.split("\n", 1)[0].strip()
         if parser.MPL2_TIMESTAMP_REGEX.match(first_line):
@@ -213,7 +216,7 @@ def load(
         supported = ", ".join(
             f".{fmt}" for fmt in SubtitleFormat if fmt not in [SubtitleFormat.JSON, SubtitleFormat.MPL2]
         )
-        supported += ", .txt (MPL2)"
+        supported += ", .txt (MPL2), .ttml"
         raise ValueError(f"Unsupported format: {suffix}. Supported: {supported}.")
 
     if generate_word_timings and not isinstance(subtitles, AssSubtitles):

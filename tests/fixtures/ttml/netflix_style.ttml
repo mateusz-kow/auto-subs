@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml" xmlns:tts="http://www.w3.org/ns/ttml#styling" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" ttp:timeBase="media" ttp:frameRate="24" ttp:frameRateMultiplier="1000 1001">
+  <head>
+    <styling>
+      <style xml:id="s1" tts:color="#FFFFFF" tts:fontFamily="Arial, Helvetica, sans-serif" tts:fontSize="100%" tts:fontStyle="normal" tts:fontWeight="normal" tts:textAlign="center"/>
+      <style xml:id="s2" tts:color="#FFFF00" tts:fontFamily="Arial" tts:fontSize="110%" tts:fontWeight="bold"/>
+    </styling>
+    <layout>
+      <region xml:id="bottom" tts:origin="10% 80%" tts:extent="80% 15%" tts:displayAlign="after" tts:textAlign="center"/>
+      <region xml:id="top" tts:origin="10% 10%" tts:extent="80% 15%" tts:displayAlign="before" tts:textAlign="center"/>
+    </layout>
+  </head>
+  <body>
+    <div>
+      <p begin="00:00:01.000" end="00:00:03.500" region="bottom" style="s1">Welcome to the video.</p>
+      <p begin="00:00:04.000" end="00:00:06.500" region="bottom" style="s1">This is a Netflix-style TTML subtitle.</p>
+      <p begin="00:00:07.000" end="00:00:10.000" region="top" style="s2">Important message at the top<br/>with multiple lines</p>
+      <p begin="00:00:11.000" end="00:00:14.500" region="bottom" style="s1">Back to regular subtitles<br/>at the bottom of the screen.</p>
+    </div>
+  </body>
+</tt>

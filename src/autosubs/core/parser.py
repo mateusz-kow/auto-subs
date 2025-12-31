@@ -1,6 +1,7 @@
 """Core module for parsing subtitle file formats."""
 
 import dataclasses
+import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from logging import getLogger
 from typing import Any
@@ -25,6 +26,7 @@ ASS_TIMESTAMP_REGEX = re.compile(r"(\d+):(\d{2}):(\d{2})\.(\d{2})")
 MPL2_TIMESTAMP_REGEX = re.compile(r"\[(\d+)]\[(\d+)](.+)")
 ASS_STYLE_TAG_REGEX = re.compile(r"{[^}]+}")
 MICRODVD_TIMESTAMP_REGEX = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
+TTML_TIMESTAMP_REGEX = re.compile(r"(\d{2,}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?")  # HH:MM:SS.mmm
 
 
 def srt_timestamp_to_seconds(timestamp: str) -> float:
@@ -437,4 +439,83 @@ def parse_mpl2(file_content: str) -> list[SubtitleSegment]:
         except (ValueError, IndexError) as e:
             logger.warning(f"Skipping malformed MPL2 line: {line} ({e})")
             continue
+    return segments
+
+
+def ttml_timestamp_to_seconds(timestamp: str) -> float:
+    """Converts a TTML timestamp string to seconds.
+
+    Supports formats like HH:MM:SS.mmm or HH:MM:SS
+    """
+    match = TTML_TIMESTAMP_REGEX.match(timestamp)
+    if not match:
+        raise ValueError(f"Invalid TTML timestamp format: {timestamp}")
+    h, m, s, ms_str = match.groups()
+    ms = int(ms_str) if ms_str else 0
+    # Pad or truncate milliseconds to 3 digits
+    if ms_str:
+        if len(ms_str) == 1:
+            ms = ms * 100
+        elif len(ms_str) == 2:
+            ms = ms * 10
+    return int(h) * 3600 + int(m) * 60 + int(s) + ms / 1000
+
+
+def parse_ttml(file_content: str) -> list[SubtitleSegment]:
+    """Parses content from a TTML/IMSC1 file into subtitle segments."""
+    logger.info("Parsing TTML file content.")
+    segments: list[SubtitleSegment] = []
+
+    try:
+        root = ET.fromstring(file_content)
+    except ET.ParseError as e:
+        logger.error(f"Failed to parse TTML XML: {e}")
+        return segments
+
+    # Define TTML namespaces
+    namespaces = {
+        'tt': 'http://www.w3.org/ns/ttml',
+        'tts': 'http://www.w3.org/ns/ttml#styling',
+    }
+
+    # Find all <p> elements (paragraphs/cues) in the body
+    # Handle both namespaced and non-namespaced elements
+    for p_elem in root.findall('.//{http://www.w3.org/ns/ttml}p', namespaces):
+        try:
+            # Get timing attributes
+            begin = p_elem.get('begin')
+            end = p_elem.get('end')
+
+            if not begin or not end:
+                logger.warning("Skipping TTML <p> element without begin/end attributes.")
+                continue
+
+            start_time = ttml_timestamp_to_seconds(begin)
+            end_time = ttml_timestamp_to_seconds(end)
+
+            if start_time > end_time:
+                logger.warning(f"Skipping TTML element with invalid timestamp (start > end): {begin} -> {end}")
+                continue
+
+            # Extract text content, handling <br/> elements
+            text_parts = []
+            if p_elem.text:
+                text_parts.append(p_elem.text)
+
+            for child in p_elem:
+                if child.tag.endswith('br'):
+                    text_parts.append('\n')
+                if child.tail:
+                    text_parts.append(child.tail)
+
+            text = ''.join(text_parts).strip()
+            if not text:
+                continue
+
+            word = SubtitleWord(text=text, start=start_time, end=end_time)
+            segments.append(SubtitleSegment(words=[word]))
+        except (ValueError, AttributeError) as e:
+            logger.warning(f"Skipping malformed TTML element: {e}")
+            continue
+
     return segments
