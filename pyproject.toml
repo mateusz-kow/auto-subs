@@ -60,10 +60,10 @@ build-backend = "hatchling.build"
 sources = ["src"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["autosubs"]
+packages = ["src/autosubs"]
 
 [tool.hatch.build.targets.editable]
-packages = ["autosubs"]
+packages = ["src/autosubs"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
