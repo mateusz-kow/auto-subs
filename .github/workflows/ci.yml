@@ -37,12 +37,12 @@ jobs:
           uv build
           uvx twine check dist/*
 
-      - name: Install built wheel and smoke test
+      - name: Install built wheel and test import
         run: |
           uv pip install dist/*.whl
-          python - << 'EOF'
+          uv run python - << 'EOF'
           import autosubs
-          print("autosubs OK, version:", getattr(autosubs, "__version__", "unknown"))
+          print("autosubs OK, version:", getattr(autosubs, '__version__', 'unknown'))
           EOF
 
   test:
