@@ -40,9 +40,9 @@ jobs:
       - name: Install built wheel and test import
         run: |
           set -e
-          uv pip install dist/*.whl
           source .venv/bin/activate
-          python - << 'EOF'
+          uv pip install --force-reinstall --no-deps dist/*.whl
+          uv run python - << 'EOF'
           import autosubs
           print("autosubs OK, version:", getattr(autosubs, '__version__', 'unknown'))
           EOF
