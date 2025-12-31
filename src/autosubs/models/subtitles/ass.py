@@ -263,11 +263,8 @@ class AssSubtitles(Subtitles):
         if not current_x_str or not current_y_str:
             raise ValueError("PlayResX and PlayResY must be set in script_info to resample resolution")
 
-        try:
-            current_x = int(current_x_str)
-            current_y = int(current_y_str)
-        except ValueError as e:
-            raise ValueError(f"Invalid PlayResX or PlayResY value: {e}") from e
+        current_x = int(current_x_str)
+        current_y = int(current_y_str)
 
         # Calculate scale factors
         scale_x = target_x / current_x

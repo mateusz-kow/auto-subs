@@ -298,18 +298,152 @@ Dialogue: 00:00:10.00,00:00:15.00,Default,NTP,30,40,15,{\pos(300,300)}Line 3
         assert style.position_y == pytest.approx(expected_y)
 
 
-def test_resample_resolution_with_invalid_playres() -> None:
-    """Test that resampling fails gracefully with invalid PlayRes values."""
+def test_resample_resolution_real_world_sample9(sample9_ass_content: str) -> None:
+    """Test resampling with real-world sample9.ass which has move tags."""
+    subs = parse_ass(sample9_ass_content)
+
+    # Original resolution is 1280x720
+    assert subs.script_info["PlayResX"] == "1280"
+    assert subs.script_info["PlayResY"] == "720"
+
+    # Check original move tag values (from line 16: Dialogue 00:00:40.00-00:00:50.00)
+    seg_with_move = subs.segments[4]  # 5th dialogue line
+    move_tag = seg_with_move.words[0].styles[0].tag_block
+    assert move_tag.move_x1 == pytest.approx(60.0)
+    assert move_tag.move_y1 == pytest.approx(100.0)
+    assert move_tag.move_x2 == pytest.approx(150.0)
+    assert move_tag.move_y2 == pytest.approx(250.0)
+    assert move_tag.move_t1 == 0
+    assert move_tag.move_t2 == 5000
+
+    # Resample to 1080p
+    subs.resample_resolution(1920, 1080)
+
+    assert subs.script_info["PlayResX"] == "1920"
+    assert subs.script_info["PlayResY"] == "1080"
+
+    # Check scaled move tag (1.5x horizontal, 1.5x vertical)
+    move_tag = subs.segments[4].words[0].styles[0].tag_block
+    assert move_tag.move_x1 == pytest.approx(90.0)  # 60 * 1.5
+    assert move_tag.move_y1 == pytest.approx(150.0)  # 100 * 1.5
+    assert move_tag.move_x2 == pytest.approx(225.0)  # 150 * 1.5
+    assert move_tag.move_y2 == pytest.approx(375.0)  # 250 * 1.5
+    # Time values should remain unchanged
+    assert move_tag.move_t1 == 0
+    assert move_tag.move_t2 == 5000
+
+    # Check pos tag is also scaled (from line 12: first dialogue)
+    pos_tag = subs.segments[0].words[0].styles[0].tag_block
+    assert pos_tag.position_x == pytest.approx(90.0)  # 60 * 1.5
+    assert pos_tag.position_y == pytest.approx(150.0)  # 100 * 1.5
+
+
+def test_resample_resolution_real_world_sample2(sample2_ass_content: str) -> None:
+    """Test resampling with real-world sample2.ass which has pos tags and margins."""
+    subs = parse_ass(sample2_ass_content)
+
+    # Original resolution (only PlayResY is set, PlayResX is missing)
+    # This should fail because PlayResX is not set
+    with pytest.raises(ValueError, match="PlayResX and PlayResY must be set"):
+        subs.resample_resolution(1920, 1080)
+
+
+def test_resample_resolution_move_tag_without_time() -> None:
+    """Test resampling move tags without time parameters."""
     content = r"""[Script Info]
-PlayResX: invalid
+PlayResX: 1280
 PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize
+Style: Default,Arial,48
 
 [Events]
 Format: Start, End, Style, Text
-Dialogue: 00:00:00.00,00:00:10.00,Default,Test
+Dialogue: 00:00:00.00,00:00:10.00,Default,{\move(100,200,300,400)}Test without time
 """
 
     subs = parse_ass(content)
+    subs.resample_resolution(1920, 1080)
 
-    with pytest.raises(ValueError, match="Invalid PlayResX or PlayResY value"):
-        subs.resample_resolution(1920, 1080)
+    # Check move tag scaled correctly
+    move_tag = subs.segments[0].words[0].styles[0].tag_block
+    assert move_tag.move_x1 == pytest.approx(150.0)  # 100 * 1.5
+    assert move_tag.move_y1 == pytest.approx(300.0)  # 200 * 1.5
+    assert move_tag.move_x2 == pytest.approx(450.0)  # 300 * 1.5
+    assert move_tag.move_y2 == pytest.approx(600.0)  # 400 * 1.5
+    # Time values should be None
+    assert move_tag.move_t1 is None
+    assert move_tag.move_t2 is None
+
+
+def test_resample_resolution_multiple_move_tags() -> None:
+    """Test resampling with multiple move tags in the same file."""
+    content = r"""[Script Info]
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize
+Style: Default,Arial,48
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 00:00:00.00,00:00:05.00,Default,{\move(0,0,1280,720,0,5000)}Diagonal move
+Dialogue: 00:00:05.00,00:00:10.00,Default,{\move(640,0,640,720)}Vertical move
+Dialogue: 00:00:10.00,00:00:15.00,Default,{\move(0,360,1280,360,1000,4000)}Horizontal move with time
+"""
+
+    subs = parse_ass(content)
+    subs.resample_resolution(1920, 1080)
+
+    # Check first move (diagonal)
+    move1 = subs.segments[0].words[0].styles[0].tag_block
+    assert move1.move_x1 == pytest.approx(0.0)
+    assert move1.move_y1 == pytest.approx(0.0)
+    assert move1.move_x2 == pytest.approx(1920.0)  # 1280 * 1.5
+    assert move1.move_y2 == pytest.approx(1080.0)  # 720 * 1.5
+
+    # Check second move (vertical)
+    move2 = subs.segments[1].words[0].styles[0].tag_block
+    assert move2.move_x1 == pytest.approx(960.0)  # 640 * 1.5
+    assert move2.move_y1 == pytest.approx(0.0)
+    assert move2.move_x2 == pytest.approx(960.0)  # 640 * 1.5
+    assert move2.move_y2 == pytest.approx(1080.0)  # 720 * 1.5
+
+    # Check third move (horizontal with time)
+    move3 = subs.segments[2].words[0].styles[0].tag_block
+    assert move3.move_x1 == pytest.approx(0.0)
+    assert move3.move_y1 == pytest.approx(540.0)  # 360 * 1.5
+    assert move3.move_x2 == pytest.approx(1920.0)  # 1280 * 1.5
+    assert move3.move_y2 == pytest.approx(540.0)  # 360 * 1.5
+    assert move3.move_t1 == 1000
+    assert move3.move_t2 == 4000
+
+
+def test_resample_resolution_combined_pos_and_move() -> None:
+    """Test resampling when both pos and move tags are present."""
+    content = r"""[Script Info]
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize
+Style: Default,Arial,48
+
+[Events]
+Format: Start, End, Style, Text
+Dialogue: 00:00:00.00,00:00:05.00,Default,{\pos(640,360)}{\move(100,100,200,200,0,2000)}Combined tags
+"""
+
+    subs = parse_ass(content)
+    subs.resample_resolution(1920, 1080)
+
+    # Both pos and move should be scaled
+    tag = subs.segments[0].words[0].styles[0].tag_block
+    assert tag.position_x == pytest.approx(960.0)  # 640 * 1.5
+    assert tag.position_y == pytest.approx(540.0)  # 360 * 1.5
+    assert tag.move_x1 == pytest.approx(150.0)  # 100 * 1.5
+    assert tag.move_y1 == pytest.approx(150.0)  # 100 * 1.5
+    assert tag.move_x2 == pytest.approx(300.0)  # 200 * 1.5
+    assert tag.move_y2 == pytest.approx(300.0)  # 200 * 1.5
