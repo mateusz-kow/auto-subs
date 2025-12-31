@@ -37,6 +37,16 @@ jobs:
           uv build
           uvx twine check dist/*
 
+      - name: Install built wheel and test import
+        run: |
+          set -e
+          source .venv/bin/activate
+          uv pip install --force-reinstall --no-deps dist/*.whl
+          python - << 'EOF'
+          import autosubs
+          print("autosubs OK, version:", getattr(autosubs, '__version__', 'unknown'))
+          EOF
+
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     needs: quality_checks
