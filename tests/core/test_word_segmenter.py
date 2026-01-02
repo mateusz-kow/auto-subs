@@ -81,11 +81,12 @@ def test_segment_words_handles_empty_word_text() -> None:
 def test_segment_words_max_lines_combines_short_lines(
     sample_words: list[SubtitleWord],
 ) -> None:
-    """Test that max_lines combines short lines into multi-line segments."""
+    """Test that max_lines combines short lines into multi-line segments with balanced breaks."""
     segments = segment_words(sample_words, max_chars=35, max_lines=2)
     assert len(segments) == 2
-    assert segments[0].text == "This is a test transcription for\nthe auto-subs library."
-    assert segments[1].text == "It includes punctuation!\nAnd a final line."
+    # The balanced wrapping algorithm uses \N (ASS format) instead of \n
+    assert segments[0].text == "This is a test transcription\\Nfor the auto-subs library."
+    assert segments[1].text == "It includes punctuation!\\NAnd a final line."
     assert segments[0].start == pytest.approx(0.1)
     assert segments[0].end == pytest.approx(4.2)
     assert segments[1].start == pytest.approx(5.1)

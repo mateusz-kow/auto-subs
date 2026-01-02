@@ -1,12 +1,47 @@
 from logging import getLogger
 
+from autosubs.core.text_utils import balance_lines_with_timing
 from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
 
 logger = getLogger(__name__)
 
 
-def _combine_segments(segments: list[SubtitleSegment], max_lines: int) -> list[SubtitleSegment]:
-    """Combines single-line segments into multi-line segments up to a limit."""
+def _balance_segment_lines(words: list[SubtitleWord], max_chars: int) -> str | None:
+    r"""Balance lines within a segment using temporal cost function.
+
+    Args:
+        words: The words in the segment.
+        max_chars: The maximum number of characters per line.
+
+    Returns:
+        The balanced text with \N line breaks, or None if no balancing needed.
+    """
+    if not words:
+        return None
+
+    # Use the temporal balancing algorithm
+    balanced_lines = balance_lines_with_timing(words, max_width_chars=max_chars)
+
+    # If only one line, no balancing needed
+    if len(balanced_lines) == 1:
+        return None
+
+    # Convert word lists to text with \\N line breaks
+    text_lines = [" ".join(word.text for word in line) for line in balanced_lines]
+    return "\\N".join(text_lines)
+
+
+def _combine_segments(segments: list[SubtitleSegment], max_lines: int, max_chars: int) -> list[SubtitleSegment]:
+    """Combines single-line segments into multi-line segments with balanced line breaks.
+
+    Args:
+        segments: The list of segments to combine.
+        max_lines: The maximum number of lines to combine into a single segment.
+        max_chars: The maximum number of characters per line.
+
+    Returns:
+        The combined segments with balanced line breaks applied.
+    """
     if not segments or max_lines <= 1:
         return segments
 
@@ -17,12 +52,19 @@ def _combine_segments(segments: list[SubtitleSegment], max_lines: int) -> list[S
         all_words = [word for seg in group for word in seg.words]
 
         new_segment = SubtitleSegment(words=all_words)
-        new_segment.text_override = "\n".join(seg.text for seg in group)
+
+        # Apply temporal balancing to the combined segment
+        balanced_text = _balance_segment_lines(all_words, max_chars)
+        if balanced_text:
+            new_segment.text_override = balanced_text
+        else:
+            # Fallback to simple newline joining if no balancing
+            new_segment.text_override = "\n".join(seg.text for seg in group)
 
         combined.append(new_segment)
         i += len(group)
 
-    logger.info(f"Combined {len(segments)} lines into {len(combined)} multi-line segments.")
+    logger.info(f"Combined {len(segments)} lines into {len(combined)} multi-line segments with balanced breaks.")
     return combined
 
 
@@ -76,6 +118,6 @@ def segment_words(
 
     logger.info(f"Segmentation created {len(lines)} raw subtitle lines.")
 
-    final_segments = _combine_segments(lines, max_lines)
+    final_segments = _combine_segments(lines, max_lines, max_chars)
     logger.info(f"Segmentation complete: {len(final_segments)} final subtitle segments created.")
     return final_segments

@@ -1,7 +1,112 @@
 """Tests for text processing utilities, specifically line balancing."""
 
+import pytest
 
-from autosubs.core.text_utils import balance_lines
+from autosubs.core.text_utils import balance_lines, balance_lines_with_timing
+from autosubs.models.subtitles import SubtitleWord
+
+
+def test_balance_lines_with_timing_basic() -> None:
+    """Test temporal balancing with word timings."""
+    words = [
+        SubtitleWord(text="The", start=0.0, end=0.2),
+        SubtitleWord(text="quick", start=0.2, end=0.4),
+        SubtitleWord(text="brown", start=0.4, end=0.6),
+        SubtitleWord(text="fox", start=0.6, end=0.8),
+        SubtitleWord(text="jumps", start=0.8, end=1.0),
+        SubtitleWord(text="over", start=1.5, end=1.7),  # Note: 0.5s gap (silence)
+        SubtitleWord(text="the", start=1.7, end=1.9),
+        SubtitleWord(text="lazy", start=1.9, end=2.1),
+        SubtitleWord(text="dog.", start=2.1, end=2.3),
+    ]
+
+    result = balance_lines_with_timing(words, max_width_chars=42)
+
+    # Should split into 2 lines
+    assert len(result) == 2
+    # Should prefer breaking at the silence gap (after "jumps")
+    line1_text = " ".join(w.text for w in result[0])
+    line2_text = " ".join(w.text for w in result[1])
+    assert "jumps" in line1_text
+    assert "over" in line2_text
+
+
+def test_balance_lines_with_timing_punctuation_and_silence() -> None:
+    """Test that silence gaps are preferred over punctuation."""
+    words = [
+        SubtitleWord(text="Hello,", start=0.0, end=0.3),
+        SubtitleWord(text="world", start=0.3, end=0.6),
+        SubtitleWord(text="how", start=0.6, end=0.8),
+        SubtitleWord(text="are", start=0.8, end=1.0),
+        SubtitleWord(text="you", start=1.0, end=1.2),
+        SubtitleWord(text="this", start=2.0, end=2.2),  # Large gap (0.8s silence)
+        SubtitleWord(text="is", start=2.2, end=2.3),
+        SubtitleWord(text="a", start=2.3, end=2.4),
+        SubtitleWord(text="longer", start=2.4, end=2.6),
+        SubtitleWord(text="test", start=2.6, end=2.8),
+        SubtitleWord(text="sentence.", start=2.8, end=3.0),
+    ]
+
+    result = balance_lines_with_timing(words, max_width_chars=35)
+
+    # Should break at the silence gap
+    assert len(result) == 2
+    line1_text = " ".join(w.text for w in result[0])
+    line2_text = " ".join(w.text for w in result[1])
+    # First line should end before the silence gap
+    assert "you" in line1_text
+    assert "this" in line2_text
+    assert "this" not in line1_text
+
+
+def test_balance_lines_with_timing_short_text() -> None:
+    """Test that short text is not broken."""
+    words = [
+        SubtitleWord(text="Hello", start=0.0, end=0.5),
+        SubtitleWord(text="world!", start=0.5, end=1.0),
+    ]
+
+    result = balance_lines_with_timing(words, max_width_chars=42)
+
+    # Should return single line
+    assert len(result) == 1
+    assert result[0] == words
+
+
+def test_balance_lines_with_timing_duration_balance() -> None:
+    """Test that duration balance is considered in the cost function."""
+    words = [
+        SubtitleWord(text="Word", start=0.0, end=0.1),
+        SubtitleWord(text="Longer", start=0.1, end=0.2),
+        SubtitleWord(text="Speech", start=0.2, end=2.0),  # Long word (1.8s)
+        SubtitleWord(text="Short", start=2.0, end=2.1),
+        SubtitleWord(text="Fast", start=2.1, end=2.2),
+        SubtitleWord(text="Quick", start=2.2, end=2.3),
+        SubtitleWord(text="Words", start=2.3, end=2.4),
+        SubtitleWord(text="Here", start=2.4, end=2.5),
+    ]
+
+    result = balance_lines_with_timing(words, max_width_chars=40)
+
+    # With duration_weight > char_weight, the algorithm considers duration
+    # The algorithm should split considering both character and duration balance
+    assert len(result) == 2
+    # Just verify it created two lines and didn't crash
+    assert len(result[0]) > 0
+    assert len(result[1]) > 0
+
+
+def test_balance_lines_input_normalization() -> None:
+    """Test that existing line breaks are normalized."""
+    text = "Hello\\Nworld this is a test"
+    result = balance_lines(text, max_width_chars=20)
+
+    # Should normalize and re-balance
+    assert isinstance(result, str)
+    # Original \\N should be removed and text re-balanced
+    lines = result.split("\\N")
+    # Should have reasonable line breaks
+    assert all(len(line) <= 20 or len(line.split()) == 1 for line in lines)
 
 
 def test_balance_lines_basic_example() -> None:
