@@ -345,7 +345,7 @@ class AssVector:
             return cls(commands=())
 
         # Normalize separators: replace commas and multiple spaces with single spaces
-        vector_str = re.sub(r'[,\s]+', ' ', vector_str)
+        vector_str = re.sub(r"[,\s]+", " ", vector_str)
 
         # Tokenize the input string into command letters and numbers
         # Use a more precise regex that only matches valid decimal numbers or command letters

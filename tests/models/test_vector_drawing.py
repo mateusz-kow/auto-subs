@@ -1,7 +1,5 @@
 """Tests for ASS vector drawing parsing and transformation."""
 
-import math
-
 import pytest
 
 from autosubs.models.subtitles.vector import (
@@ -20,7 +18,7 @@ class TestVectorCommandSerialization:
 
     def test_move_command_to_string(self) -> None:
         """Test MoveCommand serialization."""
-        cmd = MoveCommand(x=0, y=0)
+        cmd = MoveCommand(x=0.0, y=0.0)
         assert cmd.to_string() == "m 0 0"
 
         cmd = MoveCommand(x=10.5, y=20.5)
@@ -32,7 +30,7 @@ class TestVectorCommandSerialization:
 
     def test_line_command_to_string(self) -> None:
         """Test LineCommand serialization."""
-        cmd = LineCommand(x=100, y=200)
+        cmd = LineCommand(x=100.0, y=200.0)
         assert cmd.to_string() == "l 100 200"
 
         cmd = LineCommand(x=10.5, y=20.5)
@@ -40,7 +38,7 @@ class TestVectorCommandSerialization:
 
     def test_bezier_command_to_string(self) -> None:
         """Test BezierCommand serialization."""
-        cmd = BezierCommand(x1=10, y1=20, x2=30, y2=40, x3=50, y3=60)
+        cmd = BezierCommand(x1=10.0, y1=20.0, x2=30.0, y2=40.0, x3=50.0, y3=60.0)
         assert cmd.to_string() == "b 10 20 30 40 50 60"
 
         cmd = BezierCommand(x1=10.5, y1=20.5, x2=30.5, y2=40.5, x3=50.5, y3=60.5)
@@ -60,36 +58,45 @@ class TestVectorParsing:
         """Test parsing simple move and line commands."""
         vector = AssVector.from_string("m 0 0 l 10 10")
         assert len(vector.commands) == 2
-        assert isinstance(vector.commands[0], MoveCommand)
-        assert isinstance(vector.commands[1], LineCommand)
-        assert vector.commands[0].x == 0
-        assert vector.commands[0].y == 0
-        assert vector.commands[1].x == 10
-        assert vector.commands[1].y == 10
+
+        cmd0 = vector.commands[0]
+        cmd1 = vector.commands[1]
+
+        assert isinstance(cmd0, MoveCommand)
+        assert isinstance(cmd1, LineCommand)
+        assert cmd0.x == pytest.approx(0.0)
+        assert cmd0.y == pytest.approx(0.0)
+        assert cmd1.x == pytest.approx(10.0)
+        assert cmd1.y == pytest.approx(10.0)
 
     def test_parse_with_floats(self) -> None:
         """Test parsing vector string with float coordinates."""
         vector = AssVector.from_string("m 0.5 1.5 l 10.25 20.75")
         assert len(vector.commands) == 2
-        assert vector.commands[0].x == 0.5
-        assert vector.commands[0].y == 1.5
-        assert vector.commands[1].x == 10.25
-        assert vector.commands[1].y == 20.75
+
+        cmd0 = vector.commands[0]
+        cmd1 = vector.commands[1]
+
+        assert isinstance(cmd0, MoveCommand)
+        assert isinstance(cmd1, LineCommand)
+        assert cmd0.x == pytest.approx(0.5)
+        assert cmd0.y == pytest.approx(1.5)
+        assert cmd1.x == pytest.approx(10.25)
+        assert cmd1.y == pytest.approx(20.75)
 
     def test_parse_bezier_command(self) -> None:
         """Test parsing bezier curve command."""
         vector = AssVector.from_string("m 0 0 b 10 20 30 40 50 60")
         assert len(vector.commands) == 2
-        assert isinstance(vector.commands[0], MoveCommand)
-        assert isinstance(vector.commands[1], BezierCommand)
-        bezier = vector.commands[1]
-        assert isinstance(bezier, BezierCommand)
-        assert bezier.x1 == 10
-        assert bezier.y1 == 20
-        assert bezier.x2 == 30
-        assert bezier.y2 == 40
-        assert bezier.x3 == 50
-        assert bezier.y3 == 60
+
+        cmd1 = vector.commands[1]
+        assert isinstance(cmd1, BezierCommand)
+        assert cmd1.x1 == pytest.approx(10.0)
+        assert cmd1.y1 == pytest.approx(20.0)
+        assert cmd1.x2 == pytest.approx(30.0)
+        assert cmd1.y2 == pytest.approx(40.0)
+        assert cmd1.x3 == pytest.approx(50.0)
+        assert cmd1.y3 == pytest.approx(60.0)
 
     def test_parse_complex_vector(self) -> None:
         """Test parsing a complex vector with multiple command types."""
@@ -100,10 +107,16 @@ class TestVectorParsing:
     def test_parse_negative_coordinates(self) -> None:
         """Test parsing vector with negative coordinates."""
         vector = AssVector.from_string("m -10 -20 l 30 -40")
-        assert vector.commands[0].x == -10
-        assert vector.commands[0].y == -20
-        assert vector.commands[1].x == 30
-        assert vector.commands[1].y == -40
+
+        cmd0 = vector.commands[0]
+        cmd1 = vector.commands[1]
+
+        assert isinstance(cmd0, MoveCommand)
+        assert isinstance(cmd1, LineCommand)
+        assert cmd0.x == pytest.approx(-10.0)
+        assert cmd0.y == pytest.approx(-20.0)
+        assert cmd1.x == pytest.approx(30.0)
+        assert cmd1.y == pytest.approx(-40.0)
 
     def test_parse_case_insensitive(self) -> None:
         """Test that parsing is case insensitive."""
@@ -129,7 +142,6 @@ class TestVectorParsing:
 
     def test_parse_unknown_command_raises_error(self) -> None:
         """Test that numbers without a command raise ValueError."""
-        # Starting with a number is invalid
         with pytest.raises(ValueError, match="without a command"):
             AssVector.from_string("10 10 m 0 0")
 
@@ -202,19 +214,19 @@ class TestVectorTranslation:
     def test_translate_simple(self) -> None:
         """Test simple translation of vector."""
         vector = AssVector.from_string("m 0 0 l 10 10")
-        translated = vector.translate(5, 5)
+        translated = vector.translate(5.0, 5.0)
         assert translated.to_string() == "m 5 5 l 15 15"
 
     def test_translate_negative(self) -> None:
         """Test translation with negative values."""
         vector = AssVector.from_string("m 10 10 l 20 20")
-        translated = vector.translate(-5, -5)
+        translated = vector.translate(-5.0, -5.0)
         assert translated.to_string() == "m 5 5 l 15 15"
 
     def test_translate_bezier(self) -> None:
         """Test translation of bezier curve."""
         vector = AssVector.from_string("m 0 0 b 10 20 30 40 50 60")
-        translated = vector.translate(10, 10)
+        translated = vector.translate(10.0, 10.0)
         assert translated.to_string() == "m 10 10 b 20 30 40 50 60 70"
 
 
@@ -224,43 +236,42 @@ class TestVectorRotation:
     def test_rotate_90_degrees(self) -> None:
         """Test 90-degree rotation around origin."""
         vector = AssVector.from_string("m 0 0 l 10 0")
-        rotated = vector.rotate(90)
+        rotated = vector.rotate(90.0)
 
-        # After 90-degree rotation, (10, 0) should become approximately (0, 10)
-        assert isinstance(rotated.commands[1], LineCommand)
-        assert math.isclose(rotated.commands[1].x, 0, abs_tol=1e-10)
-        assert math.isclose(rotated.commands[1].y, 10, abs_tol=1e-10)
+        cmd1 = rotated.commands[1]
+        assert isinstance(cmd1, LineCommand)
+        assert cmd1.x == pytest.approx(0.0, abs=1e-10)
+        assert cmd1.y == pytest.approx(10.0, abs=1e-10)
 
     def test_rotate_180_degrees(self) -> None:
         """Test 180-degree rotation around origin."""
         vector = AssVector.from_string("m 0 0 l 10 10")
-        rotated = vector.rotate(180)
+        rotated = vector.rotate(180.0)
 
-        # After 180-degree rotation, (10, 10) should become approximately (-10, -10)
-        assert isinstance(rotated.commands[1], LineCommand)
-        assert math.isclose(rotated.commands[1].x, -10, abs_tol=1e-10)
-        assert math.isclose(rotated.commands[1].y, -10, abs_tol=1e-10)
+        cmd1 = rotated.commands[1]
+        assert isinstance(cmd1, LineCommand)
+        assert cmd1.x == pytest.approx(-10.0, abs=1e-10)
+        assert cmd1.y == pytest.approx(-10.0, abs=1e-10)
 
     def test_rotate_with_custom_origin(self) -> None:
         """Test rotation around a custom origin point."""
         vector = AssVector.from_string("m 10 10 l 20 10")
-        rotated = vector.rotate(90, origin_x=10, origin_y=10)
+        rotated = vector.rotate(90.0, origin_x=10.0, origin_y=10.0)
 
-        # Rotating (20, 10) around (10, 10) by 90 degrees should give approximately (10, 20)
-        assert isinstance(rotated.commands[1], LineCommand)
-        assert math.isclose(rotated.commands[1].x, 10, abs_tol=1e-10)
-        assert math.isclose(rotated.commands[1].y, 20, abs_tol=1e-10)
+        cmd1 = rotated.commands[1]
+        assert isinstance(cmd1, LineCommand)
+        assert cmd1.x == pytest.approx(10.0, abs=1e-10)
+        assert cmd1.y == pytest.approx(20.0, abs=1e-10)
 
     def test_rotate_bezier(self) -> None:
         """Test rotation of bezier curve."""
         vector = AssVector.from_string("m 0 0 b 10 0 20 0 30 0")
-        rotated = vector.rotate(90)
+        rotated = vector.rotate(90.0)
 
-        # All points should rotate 90 degrees
-        assert isinstance(rotated.commands[1], BezierCommand)
-        bezier = rotated.commands[1]
-        assert math.isclose(bezier.x1, 0, abs_tol=1e-10)
-        assert math.isclose(bezier.y1, 10, abs_tol=1e-10)
+        cmd1 = rotated.commands[1]
+        assert isinstance(cmd1, BezierCommand)
+        assert cmd1.x1 == pytest.approx(0.0, abs=1e-10)
+        assert cmd1.y1 == pytest.approx(10.0, abs=1e-10)
 
 
 class TestVectorImmutability:
@@ -277,7 +288,7 @@ class TestVectorImmutability:
     def test_translate_returns_new_object(self) -> None:
         """Test that translation returns a new AssVector."""
         original = AssVector.from_string("m 0 0 l 10 10")
-        translated = original.translate(5, 5)
+        translated = original.translate(5.0, 5.0)
         assert original is not translated
         assert original.to_string() == "m 0 0 l 10 10"
         assert translated.to_string() == "m 5 5 l 15 15"
@@ -285,7 +296,7 @@ class TestVectorImmutability:
     def test_rotate_returns_new_object(self) -> None:
         """Test that rotation returns a new AssVector."""
         original = AssVector.from_string("m 0 0 l 10 0")
-        rotated = original.rotate(90)
+        rotated = original.rotate(90.0)
         assert original is not rotated
         assert original.to_string() == "m 0 0 l 10 0"
 
@@ -315,16 +326,20 @@ class TestImplicitCommands:
         """Test: m 0 0 l 10 10 20 20 30 30 (implicit repeated line commands)."""
         vector = AssVector.from_string("m 0 0 l 10 10 20 20 30 30")
         assert len(vector.commands) == 4
-        assert isinstance(vector.commands[0], MoveCommand)
-        assert isinstance(vector.commands[1], LineCommand)
-        assert isinstance(vector.commands[2], LineCommand)
-        assert isinstance(vector.commands[3], LineCommand)
-        assert vector.commands[1].x == 10
-        assert vector.commands[1].y == 10
-        assert vector.commands[2].x == 20
-        assert vector.commands[2].y == 20
-        assert vector.commands[3].x == 30
-        assert vector.commands[3].y == 30
+
+        cmd1 = vector.commands[1]
+        cmd2 = vector.commands[2]
+        cmd3 = vector.commands[3]
+
+        assert isinstance(cmd1, LineCommand)
+        assert isinstance(cmd2, LineCommand)
+        assert isinstance(cmd3, LineCommand)
+        assert cmd1.x == pytest.approx(10.0)
+        assert cmd1.y == pytest.approx(10.0)
+        assert cmd2.x == pytest.approx(20.0)
+        assert cmd2.y == pytest.approx(20.0)
+        assert cmd3.x == pytest.approx(30.0)
+        assert cmd3.y == pytest.approx(30.0)
 
     def test_implicit_bezier_commands(self) -> None:
         """Test implicit repeated bezier commands."""
@@ -342,17 +357,26 @@ class TestMixedSeparators:
         """Test parsing with comma separators."""
         vector = AssVector.from_string("m 0,0 l 10,10")
         assert len(vector.commands) == 2
-        assert vector.commands[0].x == 0
-        assert vector.commands[0].y == 0
-        assert vector.commands[1].x == 10
-        assert vector.commands[1].y == 10
+
+        cmd0 = vector.commands[0]
+        cmd1 = vector.commands[1]
+
+        assert isinstance(cmd0, MoveCommand)
+        assert isinstance(cmd1, LineCommand)
+        assert cmd0.x == pytest.approx(0.0)
+        assert cmd0.y == pytest.approx(0.0)
+        assert cmd1.x == pytest.approx(10.0)
+        assert cmd1.y == pytest.approx(10.0)
 
     def test_mixed_comma_and_space_separators(self) -> None:
         """Test parsing with mixed comma and space separators."""
         vector = AssVector.from_string("m 0,0 l 10 10,20 20")
         assert len(vector.commands) == 3
-        assert vector.commands[2].x == 20
-        assert vector.commands[2].y == 20
+
+        cmd2 = vector.commands[2]
+        assert isinstance(cmd2, LineCommand)
+        assert cmd2.x == pytest.approx(20.0)
+        assert cmd2.y == pytest.approx(20.0)
 
     def test_no_spaces_after_commands(self) -> None:
         """Test parsing with no spaces after command letters."""
@@ -388,8 +412,6 @@ class TestNewCommands:
 
     def test_close_spline_command(self) -> None:
         """Test parsing and serialization of close spline commands."""
-        vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
-
         vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
         assert len(vector.commands) == 4
         assert isinstance(vector.commands[3], CloseSplineCommand)
@@ -443,37 +465,37 @@ class TestBoundingBox:
         """Test bounding box for a simple square."""
         vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 l 0 10")
         bbox = vector.get_bounding_box()
-        assert bbox == (0, 0, 10, 10)
+        assert bbox == (pytest.approx(0.0), pytest.approx(0.0), pytest.approx(10.0), pytest.approx(10.0))  # type: ignore[comparison-overlap]
 
     def test_bounding_box_offset_shape(self) -> None:
         """Test bounding box for an offset shape."""
         vector = AssVector.from_string("m 5 5 l 15 5 l 15 15 l 5 15")
         bbox = vector.get_bounding_box()
-        assert bbox == (5, 5, 15, 15)
+        assert bbox == (pytest.approx(5.0), pytest.approx(5.0), pytest.approx(15.0), pytest.approx(15.0))  # type: ignore[comparison-overlap]
 
     def test_bounding_box_with_bezier(self) -> None:
         """Test bounding box with bezier curves."""
         vector = AssVector.from_string("m 0 0 b 10 20 30 40 50 60")
         bbox = vector.get_bounding_box()
-        assert bbox == (0, 0, 50, 60)
+        assert bbox == (pytest.approx(0.0), pytest.approx(0.0), pytest.approx(50.0), pytest.approx(60.0))  # type: ignore[comparison-overlap]
 
     def test_bounding_box_negative_coords(self) -> None:
         """Test bounding box with negative coordinates."""
         vector = AssVector.from_string("m -10 -10 l 10 10")
         bbox = vector.get_bounding_box()
-        assert bbox == (-10, -10, 10, 10)
+        assert bbox == (pytest.approx(-10.0), pytest.approx(-10.0), pytest.approx(10.0), pytest.approx(10.0))  # type: ignore[comparison-overlap]
 
     def test_bounding_box_empty_vector(self) -> None:
         """Test bounding box for empty vector."""
         vector = AssVector.from_string("")
         bbox = vector.get_bounding_box()
-        assert bbox == (0, 0, 0, 0)
+        assert bbox == (pytest.approx(0.0), pytest.approx(0.0), pytest.approx(0.0), pytest.approx(0.0))  # type: ignore[comparison-overlap]
 
     def test_bounding_box_close_command_ignored(self) -> None:
         """Test that close command doesn't affect bounding box."""
         vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
         bbox = vector.get_bounding_box()
-        assert bbox == (0, 0, 10, 10)
+        assert bbox == (pytest.approx(0.0), pytest.approx(0.0), pytest.approx(10.0), pytest.approx(10.0))  # type: ignore[comparison-overlap]
 
 
 class TestEdgeCases:
@@ -482,30 +504,29 @@ class TestEdgeCases:
     def test_scale_zero(self) -> None:
         """Test scaling by zero."""
         vector = AssVector.from_string("m 10 10 l 20 20")
-        scaled = vector.scale(0)
+        scaled = vector.scale(0.0)
         assert scaled.to_string() == "m 0 0 l 0 0"
 
     def test_scale_negative(self) -> None:
         """Test scaling by negative value (flip)."""
         vector = AssVector.from_string("m 10 10 l 20 20")
-        scaled = vector.scale(-1)
+        scaled = vector.scale(-1.0)
         assert scaled.to_string() == "m -10 -10 l -20 -20"
 
     def test_large_numbers(self) -> None:
         """Test with large coordinate values."""
         vector = AssVector.from_string("m 0 0 l 10000 10000")
-        scaled = vector.scale(2)
+        scaled = vector.scale(2.0)
         assert scaled.to_string() == "m 0 0 l 20000 20000"
 
     def test_very_small_numbers(self) -> None:
         """Test with very small coordinate values."""
         vector = AssVector.from_string("m 0 0 l 0.001 0.001")
-        scaled = vector.scale(2)
+        scaled = vector.scale(2.0)
         assert scaled.to_string() == "m 0 0 l 0.002 0.002"
 
-    def test_dangling_coordinates_ignored(self) -> None:
-        """Test that incomplete coordinate pairs at the end are handled."""
-        # This should process what it can and stop
+    def test_dangling_coordinates_raises_error(self) -> None:
+        """Test that incomplete coordinate pairs at the end raise error."""
         with pytest.raises(ValueError, match="Incomplete"):
             AssVector.from_string("m 0 0 l 10 10 15")
 
@@ -513,8 +534,9 @@ class TestEdgeCases:
         """Test precision after multiple rotations."""
         vector = AssVector.from_string("m 0 0 l 100 0")
         # Rotate 360 degrees in 4 steps
-        rotated = vector.rotate(90).rotate(90).rotate(90).rotate(90)
-        # Should be back to approximately the original position
-        assert isinstance(rotated.commands[1], LineCommand)
-        assert math.isclose(rotated.commands[1].x, 100, abs_tol=1e-9)
-        assert math.isclose(rotated.commands[1].y, 0, abs_tol=1e-9)
+        rotated = vector.rotate(90.0).rotate(90.0).rotate(90.0).rotate(90.0)
+
+        cmd1 = rotated.commands[1]
+        assert isinstance(cmd1, LineCommand)
+        assert cmd1.x == pytest.approx(100.0, abs=1e-9)
+        assert cmd1.y == pytest.approx(0.0, abs=1e-9)
