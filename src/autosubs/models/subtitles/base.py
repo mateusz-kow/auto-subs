@@ -390,7 +390,11 @@ class Subtitles:
 
         Args:
             other: The Subtitles object to append.
-            offset: The time in seconds to shift the appended subtitles by.
+            offset: The time in seconds to shift the appended subtitles by. A positive
+                value delays the appended subtitles, while a negative value shifts
+                them earlier in time. This method does not clamp or otherwise adjust
+                timestamps that become negative as a result of the offset; any such
+                negative timestamps are preserved in the returned object.
 
         Returns:
             A new instance of the same class containing the merged segments.
