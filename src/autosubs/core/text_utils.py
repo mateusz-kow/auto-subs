@@ -61,7 +61,7 @@ def balance_lines(text: str, max_width_chars: int = 42) -> str:
         # Prefer breaks after punctuation marks
         # Check if the last word of line1 ends with punctuation
         punctuation_bonus = 0
-        if line1_words[-1][-1] in ".,!?;:":
+        if line1_words and line1_words[-1] and line1_words[-1][-1] in ".,!?;:":
             punctuation_bonus = -5  # Lower raggedness score for punctuation breaks
 
         adjusted_raggedness = raggedness + punctuation_bonus
