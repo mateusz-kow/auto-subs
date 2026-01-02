@@ -1,6 +1,6 @@
 [project]
 name = "auto-subs"
-version = "0.7.1"
+version = "0.8.0"
 description = "A powerful, local-first library and CLI for video transcription and subtitle generation using Whisper."
 authors = [
     { name = "Mateusz Kowalski", email = "kowalski.mateusz.1lo1@gmail.com" },
@@ -19,8 +19,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "pydantic~=2.12.0",
-    "regex~=2025.7.34"
+    "pydantic~=2.12.5",
+    "regex~=2025.11.3"
 ]
 
 [project.urls]
@@ -32,7 +32,7 @@ auto-subs = "autosubs.cli.main:app"
 
 [project.optional-dependencies]
 cli = [
-    "typer~=0.20.0"
+    "typer~=0.21.0"
 ]
 transcribe = [
     "openai-whisper"
@@ -41,10 +41,10 @@ encoding = [
     "charset-normalizer~=3.4.0"
 ]
 dev = [
-    "ruff~=0.14.0",
-    "mypy~=1.18.2",
-    "pytest~=8.4.2",
-    "pre-commit~=4.3.0",
+    "ruff~=0.14.10",
+    "mypy~=1.19.1",
+    "pytest~=9.0.2",
+    "pre-commit~=4.5.1",
     "pytest-cov~=7.0.0",
     "types-regex"
 ]
@@ -60,7 +60,7 @@ build-backend = "hatchling.build"
 sources = ["src"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["autosubs"]
+packages = ["src/autosubs"]
 
 [tool.hatch.build.targets.editable]
 packages = ["autosubs"]

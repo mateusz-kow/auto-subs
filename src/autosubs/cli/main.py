@@ -55,7 +55,7 @@ else:
             typer.echo(f"auto-subs version: {__version__}")
             raise typer.Exit()
 
-    @app.callback()  # type: ignore[misc]
+    @app.callback()  # type: ignore[untyped-decorator]
     def main(
         version: Annotated[
             bool,
