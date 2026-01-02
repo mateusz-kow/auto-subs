@@ -438,10 +438,8 @@ class AssVector:
             elif last_cmd == "c":
                 # Close spline command: c (no coordinates, no repetition)
                 commands.append(CloseSplineCommand())
-                # After close, we need an explicit new command before more coordinates
-                # But we don't want to break if there are more explicit commands
-                # So we keep processing but require explicit command letters
-
+                # Reset last_cmd to prevent implicit repetition after close
+                last_cmd = None
         return cls(commands=tuple(commands))
 
     def to_string(self) -> str:
