@@ -376,10 +376,10 @@ class AssSubtitles(Subtitles):
             if i in processed_indices:
                 continue
 
-            # Find all segments that overlap with this one
+            # Find all unprocessed segments that overlap with this one
             overlapping = [(i, segment)]
             for j, other in enumerate(bottom_segments):
-                if i != j and overlaps(segment, other):
+                if i != j and j not in processed_indices and overlaps(segment, other):
                     overlapping.append((j, other))
 
             # If there are overlaps, adjust margins based on layer
@@ -401,10 +401,10 @@ class AssSubtitles(Subtitles):
             if i in processed_indices:
                 continue
 
-            # Find all segments that overlap with this one
+            # Find all unprocessed segments that overlap with this one
             overlapping = [(i, segment)]
             for j, other in enumerate(top_segments):
-                if i != j and overlaps(segment, other):
+                if i != j and j not in processed_indices and overlaps(segment, other):
                     overlapping.append((j, other))
 
             # If there are overlaps, adjust margins based on layer
