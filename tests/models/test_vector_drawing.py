@@ -4,7 +4,15 @@ import math
 
 import pytest
 
-from autosubs.models.subtitles.vector import AssVector, BezierCommand, LineCommand, MoveCommand
+from autosubs.models.subtitles.vector import (
+    AssVector,
+    BezierCommand,
+    CloseSplineCommand,
+    ExtendSplineCommand,
+    LineCommand,
+    MoveCommand,
+    SplineCommand,
+)
 
 
 class TestVectorCommandSerialization:
@@ -366,8 +374,6 @@ class TestNewCommands:
 
     def test_spline_command(self) -> None:
         """Test parsing and serialization of spline commands."""
-        from autosubs.models.subtitles.vector import SplineCommand
-
         vector = AssVector.from_string("m 0 0 s 10 20 30 40 50 60")
         assert len(vector.commands) == 2
         assert isinstance(vector.commands[1], SplineCommand)
@@ -375,8 +381,6 @@ class TestNewCommands:
 
     def test_extend_spline_command(self) -> None:
         """Test parsing and serialization of extend spline commands."""
-        from autosubs.models.subtitles.vector import ExtendSplineCommand
-
         vector = AssVector.from_string("m 0 0 p 10 20")
         assert len(vector.commands) == 2
         assert isinstance(vector.commands[1], ExtendSplineCommand)
@@ -384,7 +388,7 @@ class TestNewCommands:
 
     def test_close_spline_command(self) -> None:
         """Test parsing and serialization of close spline commands."""
-        from autosubs.models.subtitles.vector import CloseSplineCommand
+        vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
 
         vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
         assert len(vector.commands) == 4
