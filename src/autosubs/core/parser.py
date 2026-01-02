@@ -387,7 +387,13 @@ def parse_ass(file_content: str) -> AssSubtitles:
             if key.lower() == "format":
                 subs.style_format_keys = [k.strip() for k in value.split(",")]
             elif key.lower() == "style":
-                logger.warning("Parsing of [V4+ Styles] is deprecated and will be removed.")
+                if not subs.style_format_keys:
+                    logger.warning("Skipping Style line found before Format line.")
+                    continue
+
+                style_values = [v.strip() for v in value.split(",", len(subs.style_format_keys) - 1)]
+                style_dict = dict(zip(subs.style_format_keys, style_values, strict=False))
+                subs.styles.append(style_dict)
         elif current_section == "[Events]":
             if key.lower() == "format":
                 subs.events_format_keys = [k.strip() for k in value.split(",")]

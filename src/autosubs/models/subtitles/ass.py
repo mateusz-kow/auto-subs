@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -242,6 +243,7 @@ class AssSubtitles(Subtitles):
     """Represents a complete ASS file, including headers, styles, and events."""
 
     script_info: dict[str, str] = field(default_factory=dict)
+    styles: list[dict[str, Any]] = field(default_factory=list)
     segments: list[AssSubtitleSegment] = field(default_factory=list)  # type: ignore[assignment]
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)
@@ -301,3 +303,30 @@ class AssSubtitles(Subtitles):
                         end_char_index=style_range.end_char_index,
                         tag_block=scaled_tag_block,
                     )
+
+    def concatenate(self, other: Subtitles, offset: float = 0.0) -> AssSubtitles:
+        """Concatenates subtitles while preserving ASS-specific metadata.
+
+        Metadata (styles, info, custom sections) is inherited from 'self'.
+        """
+        new_obj = super().concatenate(other, offset)
+
+        if isinstance(new_obj, AssSubtitles):
+            # 1. Inherit master metadata
+            new_obj.script_info = copy.deepcopy(self.script_info)
+            new_obj.style_format_keys = copy.deepcopy(self.style_format_keys)
+            new_obj.events_format_keys = copy.deepcopy(self.events_format_keys)
+            new_obj.custom_sections = copy.deepcopy(self.custom_sections)
+
+            # 2. Merge Style lists (Self's styles take precedence on name collision)
+            merged_styles = copy.deepcopy(self.styles)
+            existing_names = {s.get("Name") for s in merged_styles if "Name" in s}
+
+            if isinstance(other, AssSubtitles):
+                for style in other.styles:
+                    if style.get("Name") not in existing_names:
+                        merged_styles.append(copy.deepcopy(style))
+
+            new_obj.styles = merged_styles
+
+        return new_obj  # type: ignore[return-value]

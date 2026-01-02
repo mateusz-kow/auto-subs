@@ -79,14 +79,6 @@ def test_parse_srt_success(sample_srt_content: str) -> None:
     assert str(segments[1].text) == "This is a test."
 
 
-def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
-    """Test that ASS Style lines are now skipped with a warning."""
-    content = "[V4+ Styles]\nStyle: Bad,Arial,20\nFormat: Name,Fontname,Fontsize\n"
-    subs = parser.parse_ass(content)
-    assert not hasattr(subs, "styles")
-    assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
-
-
 def test_parse_ass_handles_nested_transform_tag() -> None:
     """Test that ASS parser correctly handles transform tags with nested parentheses."""
     content = (
