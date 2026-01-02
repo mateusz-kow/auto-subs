@@ -99,7 +99,7 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
                 lines.append(f"Style: {','.join(values)}")
         else:
             logger.warning("No styles found in model or styler; [V4+ Styles] section will be empty.")
-
+        lines.append("")
         lines.append("[Events]")
         if subtitles.segments:
             events_format_keys = subtitles.events_format_keys
