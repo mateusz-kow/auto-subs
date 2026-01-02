@@ -311,22 +311,21 @@ class AssSubtitles(Subtitles):
         """
         new_obj = super().concatenate(other, offset)
 
-        if isinstance(new_obj, AssSubtitles):
-            # 1. Inherit master metadata
-            new_obj.script_info = copy.deepcopy(self.script_info)
-            new_obj.style_format_keys = copy.deepcopy(self.style_format_keys)
-            new_obj.events_format_keys = copy.deepcopy(self.events_format_keys)
-            new_obj.custom_sections = copy.deepcopy(self.custom_sections)
+        # 1. Inherit master metadata from self to the concatenated result
+        new_obj.script_info = copy.deepcopy(self.script_info)
+        new_obj.style_format_keys = copy.deepcopy(self.style_format_keys)
+        new_obj.events_format_keys = copy.deepcopy(self.events_format_keys)
+        new_obj.custom_sections = copy.deepcopy(self.custom_sections)
 
-            # 2. Merge Style lists (Self's styles take precedence on name collision)
-            merged_styles = copy.deepcopy(self.styles)
-            existing_names = {s.get("Name") for s in merged_styles if "Name" in s}
+        # 2. Merge Style lists (self's styles take precedence on name collision)
+        merged_styles = copy.deepcopy(self.styles)
+        existing_names = {s.get("Name") for s in merged_styles if "Name" in s}
 
-            if isinstance(other, AssSubtitles):
-                for style in other.styles:
-                    if style.get("Name") not in existing_names:
-                        merged_styles.append(copy.deepcopy(style))
+        if isinstance(other, AssSubtitles):
+            for style in other.styles:
+                if style.get("Name") not in existing_names:
+                    merged_styles.append(copy.deepcopy(style))
 
-            new_obj.styles = merged_styles
+        new_obj.styles = merged_styles
 
         return new_obj  # type: ignore[return-value]
