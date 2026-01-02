@@ -65,6 +65,43 @@ def _format_ass_number(value: Any) -> str:
     return str(value)
 
 
+def _merge_comments_into_lines(content_lines: list[str], comments: list[tuple[int, str]]) -> list[str]:
+    """Merge comment lines into content lines at their original positions.
+
+    Args:
+        content_lines: List of non-comment content lines.
+        comments: List of tuples (position, comment_text) where position indicates where to insert.
+
+    Returns:
+        Merged list with comments inserted at appropriate positions.
+    """
+    if not comments:
+        return content_lines
+
+    result: list[str] = []
+    content_index = 0
+
+    # Sort comments by position
+    sorted_comments = sorted(comments, key=lambda x: x[0])
+    comment_index = 0
+
+    line_position = 0
+    while content_index < len(content_lines) or comment_index < len(sorted_comments):
+        # Add all comments that should come before this line
+        while comment_index < len(sorted_comments) and sorted_comments[comment_index][0] <= line_position:
+            result.append(sorted_comments[comment_index][1])
+            comment_index += 1
+
+        # Add the content line if available
+        if content_index < len(content_lines):
+            result.append(content_lines[content_index])
+            content_index += 1
+
+        line_position += 1
+
+    return result
+
+
 @overload
 def to_ass(subtitles: AssSubtitles) -> str: ...
 
@@ -79,23 +116,36 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
         logger.info("Regenerating ASS file from AssSubtitles object...")
         lines: list[str] = []
 
+        # [Script Info] section with comments
         lines.append("[Script Info]")
-        lines.extend(f"{key}: {value}" for key, value in sorted(subtitles.script_info.items()))
+        script_info_lines: list[str] = [f"{key}: {value}" for key, value in sorted(subtitles.script_info.items())]
+
+        # Merge comments into script info
+        merged_script_info = _merge_comments_into_lines(script_info_lines, subtitles.script_info_comments)
+        lines.extend(merged_script_info)
         lines.append("")
 
+        # [V4+ Styles] section with comments
         lines.append("[V4+ Styles]")
+        styles_lines: list[str] = []
         if styler_engine and styler_engine.config.styles:
             config = styler_engine.config
             style_format_keys = list(config.styles[0].keys())
-            lines.append(f"Format: {', '.join(style_format_keys)}")
+            styles_lines.append(f"Format: {', '.join(style_format_keys)}")
             for style_dict in config.styles:
                 values = [_format_ass_number(style_dict.get(key, "")) for key in style_format_keys]
-                lines.append(f"Style: {','.join(values)}")
+                styles_lines.append(f"Style: {','.join(values)}")
         else:
             logger.warning("No AssStyler or styles provided; [V4+ Styles] section will be empty.")
+
+        # Merge comments into styles
+        merged_styles = _merge_comments_into_lines(styles_lines, subtitles.styles_comments)
+        lines.extend(merged_styles)
         lines.append("")
 
+        # [Events] section with comments
         lines.append("[Events]")
+        events_lines: list[str] = []
         if subtitles.segments:
             events_format_keys = subtitles.events_format_keys
             if not events_format_keys:
@@ -111,7 +161,7 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
                     "Effect",
                     "Text",
                 ]
-            lines.append(f"Format: {', '.join(events_format_keys)}")
+            events_lines.append(f"Format: {', '.join(events_format_keys)}")
 
             for segment in subtitles.segments:
                 dialogue_data = {
@@ -127,7 +177,12 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
                     "Text": _reconstruct_dialogue_text(segment),
                 }
                 values = [str(dialogue_data.get(key, "")) for key in events_format_keys]
-                lines.append(f"Dialogue: {','.join(values)}")
+                line_type = "Comment" if segment.is_comment else "Dialogue"
+                events_lines.append(f"{line_type}: {','.join(values)}")
+
+        # Merge comments into events
+        merged_events = _merge_comments_into_lines(events_lines, subtitles.events_comments)
+        lines.extend(merged_events)
 
         # Add custom sections
         for section_name, section_lines in subtitles.custom_sections.items():

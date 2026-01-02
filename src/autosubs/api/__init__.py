@@ -164,6 +164,7 @@ def load(
     timing_strategy: TimingDistribution = TimingDistribution.BY_CHAR_COUNT,
     encoding: str | None = None,
     fps: float | None = None,
+    include_comments: bool = True,
 ) -> Subtitles:
     """Load and parse a subtitle file into a Subtitles object.
 
@@ -175,6 +176,8 @@ def load(
                   then falls back to automatic detection using 'charset-normalizer' if installed.
         fps: The framerate to use for frame-based subtitle formats like MicroDVD.
              If not provided for MicroDVD, it will be inferred from the file if possible.
+        include_comments: If True, preserves comment lines in ASS files for later generation.
+                         Only applicable to ASS format.
 
     Returns:
         A parsed Subtitles object.
@@ -197,7 +200,7 @@ def load(
     elif suffix == ".vtt":
         subtitles = Subtitles(segments=parser.parse_vtt(content))
     elif suffix == ".ass":
-        subtitles = parser.parse_ass(content)
+        subtitles = parser.parse_ass(content, include_comments=include_comments)
     elif suffix == ".sub":
         subtitles = Subtitles(segments=parser.parse_microdvd(content, fps=fps))
     elif suffix == ".txt":

@@ -103,11 +103,13 @@ def test_parser_weird_tags(weird_ass_content: str) -> None:
     """Test that unusual but valid formatting is parsed correctly and gracefully."""
     subs = parse_ass(weird_ass_content)
 
-    # The parser should ignore 'Comment:' lines and handle extra commas gracefully.
-    assert len(subs.segments) == 2
-    assert subs.segments[0].text == "Line 1"
+    # The parser should now parse 'Comment:' lines with is_comment flag set.
+    assert len(subs.segments) == 3
+    assert subs.segments[0].is_comment
+    assert subs.segments[0].text == "This is a comment line, it should be ignored"
+    assert subs.segments[1].text == "Line 1"
     # The text field is the last one, so it consumes the rest of the line.
-    assert subs.segments[1].text == ",Some text with extra fields,"
+    assert subs.segments[2].text == ",Some text with extra fields,"
 
 
 def test_parser_handles_invalid_move_tag_parameter_count() -> None:

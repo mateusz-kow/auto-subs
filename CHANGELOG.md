@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+-   **ASS Comment Support**: Implemented comprehensive support for preserving comments in ASS subtitle files:
+    -   Header comments (`;` lines) in `[Script Info]` and `[V4+ Styles]` sections are now stored and regenerated
+    -   Event comments (`;` lines) in `[Events]` section are preserved with position tracking
+    -   `Comment:` dialogue lines are parsed and marked with `is_comment=True` flag
+    -   Custom sections (e.g., `[Fonts]`, `[Aegisub Project Garbage]`) preserve `;` lines when `include_comments=True` to handle UUE-encoded data
+    -   Added `include_comments` parameter to `parse_ass()` function (defaults to `True`)
+    -   Added `include_comments` parameter to `load()` API function
+    -   Full round-trip support: parse → generate → parse preserves all comment types
+
 ## [0.5.0] - 2024-05-28
 
 ### Added
