@@ -301,3 +301,121 @@ class AssSubtitles(Subtitles):
                         end_char_index=style_range.end_char_index,
                         tag_block=scaled_tag_block,
                     )
+
+    def resolve_collisions(self, resolution_x: int, resolution_y: int) -> None:
+        """Resolve temporal collisions by adjusting vertical margins.
+
+        When subtitle segments overlap in time, this method adjusts their MarginV
+        values to stack them vertically, preventing visual overlap. Segments are
+        grouped by alignment (top vs bottom) and processed separately.
+
+        Args:
+            resolution_x: Horizontal resolution (PlayResX) for calculations.
+            resolution_y: Vertical resolution (PlayResY) for calculations.
+
+        Raises:
+            ValueError: If resolution values are invalid.
+        """
+        if resolution_x <= 0 or resolution_y <= 0:
+            raise ValueError("Resolution must be positive non-zero values")
+
+        if not self.segments:
+            return
+
+        # Helper function to get effective alignment
+        def get_alignment(segment: AssSubtitleSegment) -> int:
+            # Check for alignment override in first word's style tags
+            for word in segment.words:
+                for style_range in word.styles:
+                    if style_range.tag_block.alignment is not None:
+                        return style_range.tag_block.alignment
+            # Default alignment (bottom center)
+            return 2
+
+        # Helper function to get effective font size
+        def get_font_size(segment: AssSubtitleSegment) -> float:
+            # Check for font size override in first word's style tags
+            for word in segment.words:
+                for style_range in word.styles:
+                    if style_range.tag_block.font_size is not None:
+                        return float(style_range.tag_block.font_size)
+            # Default font size
+            return 48.0
+
+        # Helper function to calculate bounding box height
+        def calculate_height(segment: AssSubtitleSegment) -> int:
+            font_size = get_font_size(segment)
+            # Count number of lines in the text
+            text = segment.text
+            line_count = text.count("\n") + 1
+            # Height is approximately font_size * line_count with some padding
+            return int(font_size * line_count * 1.2)
+
+        # Helper function to check if alignment is top-aligned (7, 8, 9)
+        def is_top_aligned(alignment: int) -> bool:
+            return alignment >= 7
+
+        # Helper function to check if segments overlap in time
+        def overlaps(seg1: AssSubtitleSegment, seg2: AssSubtitleSegment) -> bool:
+            return seg1.start < seg2.end and seg2.start < seg1.end
+
+        # Group segments by alignment type
+        top_segments: list[AssSubtitleSegment] = []
+        bottom_segments: list[AssSubtitleSegment] = []
+
+        for segment in self.segments:
+            alignment = get_alignment(segment)
+            if is_top_aligned(alignment):
+                top_segments.append(segment)
+            else:
+                bottom_segments.append(segment)
+
+        # Process bottom-aligned segments (stack upwards from bottom)
+        processed_indices = set()
+        for i, segment in enumerate(bottom_segments):
+            if i in processed_indices:
+                continue
+
+            # Find all unprocessed segments that overlap with this one
+            overlapping = [(i, segment)]
+            for j, other in enumerate(bottom_segments):
+                if i != j and j not in processed_indices and overlaps(segment, other):
+                    overlapping.append((j, other))
+
+            # If there are overlaps, adjust margins based on layer
+            if len(overlapping) > 1:
+                # Sort by layer (lower layer at bottom)
+                overlapping.sort(key=lambda x: x[1].layer)
+                # Assign margins: lower layers stay at bottom, higher layers stack up
+                cumulative_offset = 0
+                for idx, seg in overlapping:
+                    seg.margin_v += cumulative_offset
+                    cumulative_offset += calculate_height(seg)
+                    processed_indices.add(idx)
+            else:
+                processed_indices.add(i)
+
+        # Process top-aligned segments (stack downwards from top)
+        processed_indices = set()
+        for i, segment in enumerate(top_segments):
+            if i in processed_indices:
+                continue
+
+            # Find all unprocessed segments that overlap with this one
+            overlapping = [(i, segment)]
+            for j, other in enumerate(top_segments):
+                if i != j and j not in processed_indices and overlaps(segment, other):
+                    overlapping.append((j, other))
+
+            # If there are overlaps, adjust margins based on layer
+            if len(overlapping) > 1:
+                # Sort by layer (lower layer at top)
+                overlapping.sort(key=lambda x: x[1].layer)
+                # Assign margins: lower layers stay at top, higher layers stack down
+                cumulative_offset = 0
+                for idx, seg in overlapping:
+                    seg.margin_v += cumulative_offset
+                    cumulative_offset += calculate_height(seg)
+                    processed_indices.add(idx)
+            else:
+                processed_indices.add(i)
