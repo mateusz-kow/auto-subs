@@ -524,6 +524,12 @@ class AssVector:
         Returns:
             Tuple of (min_x, min_y, max_x, max_y) representing the bounding box.
             Returns (0, 0, 0, 0) if the vector has no coordinates.
+
+        Note:
+            For Bezier and spline curves, this method only considers control
+            points (as returned by each command's ``get_coords()``), not the
+            actual curve paths. The true curve may extend beyond this bounding
+            box for such commands.
         """
         all_coords: list[tuple[float, float]] = []
         for cmd in self.commands:
