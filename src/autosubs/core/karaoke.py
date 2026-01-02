@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -50,7 +49,8 @@ class KaraokeParser:
     """
 
     # Match karaoke tags: \k, \kf, \ko, \K followed by optional duration
-    KARAOKE_TAG_PATTERN = re.compile(r"\\(k[fo]?|K)(\d*)")
+    # Using regex library for better Unicode and pattern support
+    KARAOKE_TAG_PATTERN = regex.compile(r"\\(k[fo]?|K)(\d*)")
 
     @classmethod
     def parse_syllables(cls, text: str) -> list[Syllable]:
