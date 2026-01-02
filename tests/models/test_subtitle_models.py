@@ -176,25 +176,6 @@ def test_ass_subtitles_concatenation_metadata_winner() -> None:
     assert result.custom_sections["[Fonts]"] == ["Arial.ttf"]
 
 
-# def test_ass_subtitles_concatenation_style_preservation() -> None:
-#     """Verify that style names from the second set are preserved on segments."""
-#     # s1 uses "Default" style
-#     seg1 = AssSubtitleSegment(words=[AssSubtitleWord("A", 0, 1)], style_name="Default")
-#     s1 = AssSubtitles(segments=[seg1], script_info={"Title": "Main"})
-#
-#     # s2 uses "Fancy" style which is not mentioned in s1 metadata
-#     seg2 = AssSubtitleSegment(words=[AssSubtitleWord("B", 0, 1)], style_name="Fancy")
-#     s2 = AssSubtitles(segments=[seg2], script_info={"Title": "Other"})
-#
-#     result = s1 + s2
-#
-#     assert isinstance(result, AssSubtitles)
-#     assert result.segments[0].style_name == "Default"
-#     assert result.segments[1].style_name == "Fancy"
-#     # Result inherits s1's title
-#     assert result.script_info["Title"] == "Main"
-
-
 def test_ass_subtitles_style_merging() -> None:
     """Verify that concatenation merges unique styles from both operands."""
     s1 = AssSubtitles(
