@@ -197,3 +197,10 @@ def test_ass_subtitles_style_merging() -> None:
     assert any(s["Name"] == "Default" and s["Fontsize"] == "48" for s in result.styles)
     # "Fancy" must be added
     assert any(s["Name"] == "Fancy" for s in result.styles)
+
+
+def test_subtitles_concatenate_invalid_type() -> None:
+    """Verify that concatenation raises TypeError when adding non-Subtitle objects."""
+    subs = Subtitles(segments=[])
+    with pytest.raises(TypeError, match="Cannot concatenate Subtitles with <class 'str'>"):
+        subs.concatenate("invalid_type")  # type: ignore[arg-type]

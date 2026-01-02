@@ -385,7 +385,10 @@ def parse_ass(file_content: str) -> AssSubtitles:
             subs.script_info[key.strip()] = value
         elif current_section == "[V4+ Styles]":
             if key.lower() == "format":
-                subs.style_format_keys = [k.strip() for k in value.split(",")]
+                keys = [k.strip() for k in value.split(",") if k.strip()]
+                if not keys:
+                    raise ValueError(f"Malformed or empty Format line in [V4+ Styles] section: {line}")
+                subs.style_format_keys = keys
             elif key.lower() == "style":
                 if not subs.style_format_keys:
                     logger.warning("Skipping Style line found before Format line.")
