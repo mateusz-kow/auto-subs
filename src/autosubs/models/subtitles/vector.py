@@ -36,6 +36,13 @@ class AssVectorCommand(ABC):
         """Return a new command with rotated coordinates around a given origin."""
         pass
 
+    @staticmethod
+    def _format_coord(value: float) -> str:
+        """Format a coordinate value, dropping .0 for whole numbers."""
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
+
 
 @dataclass(frozen=True)
 class MoveCommand(AssVectorCommand):
@@ -47,13 +54,6 @@ class MoveCommand(AssVectorCommand):
     def to_string(self) -> str:
         """Convert the command back to ASS vector string format."""
         return f"m {self._format_coord(self.x)} {self._format_coord(self.y)}"
-
-    @staticmethod
-    def _format_coord(value: float) -> str:
-        """Format a coordinate value, dropping .0 for whole numbers."""
-        if isinstance(value, float) and value.is_integer():
-            return str(int(value))
-        return str(value)
 
     def scale(self, scale_x: float, scale_y: float) -> MoveCommand:
         """Return a new command with scaled coordinates."""
@@ -91,13 +91,6 @@ class LineCommand(AssVectorCommand):
     def to_string(self) -> str:
         """Convert the command back to ASS vector string format."""
         return f"l {self._format_coord(self.x)} {self._format_coord(self.y)}"
-
-    @staticmethod
-    def _format_coord(value: float) -> str:
-        """Format a coordinate value, dropping .0 for whole numbers."""
-        if isinstance(value, float) and value.is_integer():
-            return str(int(value))
-        return str(value)
 
     def scale(self, scale_x: float, scale_y: float) -> LineCommand:
         """Return a new command with scaled coordinates."""
@@ -141,13 +134,6 @@ class BezierCommand(AssVectorCommand):
         coords = [self.x1, self.y1, self.x2, self.y2, self.x3, self.y3]
         formatted = " ".join(self._format_coord(c) for c in coords)
         return f"b {formatted}"
-
-    @staticmethod
-    def _format_coord(value: float) -> str:
-        """Format a coordinate value, dropping .0 for whole numbers."""
-        if isinstance(value, float) and value.is_integer():
-            return str(int(value))
-        return str(value)
 
     def scale(self, scale_x: float, scale_y: float) -> BezierCommand:
         """Return a new command with scaled coordinates."""
@@ -215,7 +201,8 @@ class AssVector:
             return cls(commands=())
 
         # Tokenize the input string into command letters and numbers
-        tokens = re.findall(r"[mlb]|[-+]?\d*\.?\d+", vector_str, re.IGNORECASE)
+        # Use a more precise regex that only matches valid decimal numbers
+        tokens = re.findall(r"[mlb]|[-+]?(?:\d+\.?\d*|\d*\.\d+)", vector_str, re.IGNORECASE)
 
         commands: list[AssVectorCommand] = []
         i = 0
@@ -225,7 +212,7 @@ class AssVector:
 
             if cmd == "m":
                 # Move command: m x y
-                if i + 2 >= len(tokens):
+                if i + 3 > len(tokens):
                     raise ValueError(f"Incomplete move command at position {i}")
                 x = float(tokens[i + 1])
                 y = float(tokens[i + 2])
@@ -234,7 +221,7 @@ class AssVector:
 
             elif cmd == "l":
                 # Line command: l x y
-                if i + 2 >= len(tokens):
+                if i + 3 > len(tokens):
                     raise ValueError(f"Incomplete line command at position {i}")
                 x = float(tokens[i + 1])
                 y = float(tokens[i + 2])
@@ -243,7 +230,7 @@ class AssVector:
 
             elif cmd == "b":
                 # Bezier command: b x1 y1 x2 y2 x3 y3
-                if i + 6 >= len(tokens):
+                if i + 7 > len(tokens):
                     raise ValueError(f"Incomplete bezier command at position {i}")
                 x1 = float(tokens[i + 1])
                 y1 = float(tokens[i + 2])
