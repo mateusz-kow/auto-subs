@@ -74,3 +74,70 @@ def test_subtitles_string_representation() -> None:
     seg2 = SubtitleSegment(words=[SubtitleWord(text="Second line.", start=2.0, end=3.0)])
     subtitles = Subtitles(segments=[seg1, seg2])
     assert str(subtitles.text) == "First line.\nSecond line."
+
+
+def test_subtitle_segment_apply_balanced_wrapping() -> None:
+    """Test balanced line wrapping on SubtitleSegment."""
+    # Test with the exact example from the issue
+    words = [
+        SubtitleWord(text="The", start=0.0, end=0.2),
+        SubtitleWord(text="quick", start=0.2, end=0.4),
+        SubtitleWord(text="brown", start=0.4, end=0.6),
+        SubtitleWord(text="fox", start=0.6, end=0.8),
+        SubtitleWord(text="jumps", start=0.8, end=1.0),
+        SubtitleWord(text="over", start=1.0, end=1.2),
+        SubtitleWord(text="the", start=1.2, end=1.4),
+        SubtitleWord(text="lazy", start=1.4, end=1.6),
+        SubtitleWord(text="dog.", start=1.6, end=1.8),
+    ]
+    segment = SubtitleSegment(words=words)
+
+    # Apply balanced wrapping
+    result = segment.apply_balanced_wrapping(max_width_chars=42)
+
+    # Should return the segment itself for chaining
+    assert result is segment
+
+    # The text should now contain a line break
+    assert "\\N" in segment.text
+
+    # Verify the result is balanced
+    lines = segment.text.split("\\N")
+    assert len(lines) == 2
+    # The algorithm produces a well-balanced result
+    difference = abs(len(lines[0]) - len(lines[1]))
+    assert difference <= 10  # Well-balanced result
+
+
+def test_subtitle_segment_balanced_wrapping_short_text() -> None:
+    """Test that short text is not broken when applying balanced wrapping."""
+    words = [
+        SubtitleWord(text="Hello", start=0.0, end=0.5),
+        SubtitleWord(text="world!", start=0.5, end=1.0),
+    ]
+    segment = SubtitleSegment(words=words)
+
+    segment.apply_balanced_wrapping(max_width_chars=42)
+
+    # Short text should not be broken
+    assert "\\N" not in segment.text
+    assert segment.text == "Hello world!"
+
+
+def test_subtitle_segment_balanced_wrapping_chaining() -> None:
+    """Test that apply_balanced_wrapping supports method chaining."""
+    words = [
+        SubtitleWord(text="First", start=0.0, end=0.5),
+        SubtitleWord(text="segment", start=0.5, end=1.0),
+        SubtitleWord(text="with", start=1.0, end=1.5),
+        SubtitleWord(text="multiple", start=1.5, end=2.0),
+        SubtitleWord(text="words", start=2.0, end=2.5),
+    ]
+    segment = SubtitleSegment(words=words)
+
+    # Test method chaining with shift_by
+    result = segment.apply_balanced_wrapping(max_width_chars=20).shift_by(1.0)
+
+    assert result is segment
+    assert segment.start == pytest.approx(1.0)
+

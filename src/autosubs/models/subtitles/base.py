@@ -4,6 +4,7 @@ import bisect
 import logging
 from dataclasses import dataclass, field
 
+from autosubs.core.text_utils import balance_lines
 from autosubs.models.enums import TimingDistribution
 
 logger = logging.getLogger(__name__)
@@ -266,6 +267,29 @@ class SubtitleSegment:
         self.start = min(self.start, other.start)
         self.end = max(self.end, other.end)
         self.words.sort(key=lambda w: w.start)
+
+    def apply_balanced_wrapping(self, max_width_chars: int = 42) -> SubtitleSegment:
+        """Apply balanced line wrapping to the segment text.
+
+        Uses a Knuth-Plass-style minimum raggedness algorithm to create
+        balanced line breaks. The algorithm finds the optimal break point
+        that minimizes the difference in length between lines, preferring
+        breaks at punctuation marks over spaces when possible.
+
+        Args:
+            max_width_chars: Maximum width in characters per line (default: 42).
+
+        Returns:
+            The segment itself, for method chaining.
+        """
+        current_text = self.text
+        balanced_text = balance_lines(current_text, max_width_chars)
+
+        # Update the text_override with the balanced version
+        if balanced_text != current_text:
+            self.text_override = balanced_text
+
+        return self
 
     @property
     def text(self) -> str:
