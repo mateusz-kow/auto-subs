@@ -4,7 +4,6 @@ import pytest
 
 from autosubs.core.generator import to_ass
 from autosubs.core.parser import parse_ass
-from autosubs.models import AssSubtitles
 
 
 def test_parse_ass_with_script_info_comments() -> None:
@@ -16,9 +15,9 @@ def test_parse_ass_with_script_info_comments() -> None:
         "; Another comment\n"
         "ScriptType: v4.00+\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.script_info_comments) == 2
     assert subs.script_info_comments[0] == (0, "; This is a header comment")
     assert subs.script_info_comments[1] == (2, "; Another comment")
@@ -34,9 +33,9 @@ def test_parse_ass_with_styles_comments() -> None:
         "Format: Name, Fontname, Fontsize\n"
         "; Default style\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.styles_comments) == 2
     assert subs.styles_comments[0] == (0, "; Style definitions below")
     assert subs.styles_comments[1] == (2, "; Default style")
@@ -53,9 +52,9 @@ def test_parse_ass_with_events_comments() -> None:
         "; Second dialogue\n"
         "Dialogue: 0:00:03.00,0:00:04.00,World\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.events_comments) == 3
     assert subs.events_comments[0] == (0, "; Event definitions")
     assert subs.events_comments[1] == (2, "; First dialogue")
@@ -72,9 +71,9 @@ def test_parse_ass_comment_dialogue_lines() -> None:
         "Comment: 0:00:02.50,0:00:03.00,Default,This is a comment line\n"
         "Dialogue: 0:00:03.00,0:00:04.00,Default,World\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.segments) == 3
     assert not subs.segments[0].is_comment
     assert subs.segments[1].is_comment
@@ -94,9 +93,9 @@ def test_parse_ass_without_comments() -> None:
         "Format: Start, End, Text\n"
         "Dialogue: 0:00:01.00,0:00:02.00,Hello\n"
     )
-    
+
     subs = parse_ass(content, include_comments=False)
-    
+
     assert len(subs.script_info_comments) == 0
     assert len(subs.events_comments) == 0
     assert subs.script_info["Title"] == "Test"
@@ -114,9 +113,9 @@ def test_parse_ass_custom_section_with_comments() -> None:
         "Some data\n"
         "; More content\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert "[Custom Section]" in subs.custom_sections
     assert len(subs.custom_sections["[Custom Section]"]) == 3
     assert subs.custom_sections["[Custom Section]"][0] == "; This looks like a comment but is content"
@@ -134,9 +133,9 @@ def test_parse_ass_custom_section_without_comments() -> None:
         "; This should be skipped\n"
         "Some data\n"
     )
-    
+
     subs = parse_ass(content, include_comments=False)
-    
+
     assert "[Custom Section]" in subs.custom_sections
     assert len(subs.custom_sections["[Custom Section]"]) == 1
     assert subs.custom_sections["[Custom Section]"][0] == "Some data"
@@ -157,10 +156,10 @@ def test_generate_ass_with_script_info_comments() -> None:
         "Format: Start, End, Text\n"
         "Dialogue: 0:00:01.00,0:00:02.00,Hello\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
     generated = to_ass(subs)
-    
+
     assert "; Comment at start" in generated
     assert "; Comment in middle" in generated
     # Check order is preserved
@@ -169,7 +168,7 @@ def test_generate_ass_with_script_info_comments() -> None:
     comment1_idx = next(i for i, line in enumerate(lines[script_section_start:]) if "; Comment at start" in line)
     title_idx = next(i for i, line in enumerate(lines[script_section_start:]) if "Title:" in line)
     comment2_idx = next(i for i, line in enumerate(lines[script_section_start:]) if "; Comment in middle" in line)
-    
+
     assert comment1_idx < title_idx < comment2_idx
 
 
@@ -187,10 +186,10 @@ def test_generate_ass_with_events_comments() -> None:
         "; Comment before dialogue\n"
         "Dialogue: 0:00:01.00,0:00:02.00,Hello\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
     generated = to_ass(subs)
-    
+
     assert "; Comment before format" in generated
     assert "; Comment before dialogue" in generated
 
@@ -209,10 +208,10 @@ def test_generate_ass_with_comment_dialogue_lines() -> None:
         "Comment: 0:00:02.50,0:00:03.00,Default,This is a comment\n"
         "Dialogue: 0:00:03.00,0:00:04.00,Default,World\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
     generated = to_ass(subs)
-    
+
     assert "Comment: " in generated
     assert "This is a comment" in generated
     # Verify it's generated as Comment: not Dialogue:
@@ -245,13 +244,13 @@ def test_roundtrip_ass_with_all_comment_types() -> None:
         "; Custom section data\n"
         "SomeData\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
     generated = to_ass(subs)
-    
+
     # Parse again to verify roundtrip
     subs2 = parse_ass(generated, include_comments=True)
-    
+
     assert len(subs2.script_info_comments) == len(subs.script_info_comments)
     assert len(subs2.styles_comments) == len(subs.styles_comments)
     assert len(subs2.events_comments) == len(subs.events_comments)
@@ -271,9 +270,9 @@ def test_parse_ass_empty_comments() -> None:
         "Format: Start, End, Text\n"
         "Dialogue: 0:00:01.00,0:00:02.00,Hello\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.script_info_comments) == 0
     assert len(subs.styles_comments) == 0
     assert len(subs.events_comments) == 0
@@ -289,9 +288,9 @@ def test_parse_ass_multiple_consecutive_comments() -> None:
         "; Comment 3\n"
         "Title: Test\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.script_info_comments) == 3
     assert subs.script_info_comments[0][1] == "; Comment 1"
     assert subs.script_info_comments[1][1] == "; Comment 2"
@@ -305,9 +304,9 @@ def test_comment_dialogue_with_complex_metadata() -> None:
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
         "Comment: 1,0:00:01.00,0:00:02.00,TestStyle,Actor,10,20,30,Effect,Comment text\n"
     )
-    
+
     subs = parse_ass(content, include_comments=True)
-    
+
     assert len(subs.segments) == 1
     segment = subs.segments[0]
     assert segment.is_comment

@@ -366,7 +366,7 @@ def parse_ass(file_content: str, include_comments: bool = True) -> AssSubtitles:
 
     for raw_line in file_content.replace("\r\n", "\n").splitlines():
         line = raw_line.strip()
-        
+
         # Skip empty lines
         if not line:
             continue

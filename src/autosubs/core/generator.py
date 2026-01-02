@@ -67,38 +67,38 @@ def _format_ass_number(value: Any) -> str:
 
 def _merge_comments_into_lines(content_lines: list[str], comments: list[tuple[int, str]]) -> list[str]:
     """Merge comment lines into content lines at their original positions.
-    
+
     Args:
         content_lines: List of non-comment content lines.
         comments: List of tuples (position, comment_text) where position indicates where to insert.
-    
+
     Returns:
         Merged list with comments inserted at appropriate positions.
     """
     if not comments:
         return content_lines
-    
+
     result: list[str] = []
     content_index = 0
-    
+
     # Sort comments by position
     sorted_comments = sorted(comments, key=lambda x: x[0])
     comment_index = 0
-    
+
     line_position = 0
     while content_index < len(content_lines) or comment_index < len(sorted_comments):
         # Add all comments that should come before this line
         while comment_index < len(sorted_comments) and sorted_comments[comment_index][0] <= line_position:
             result.append(sorted_comments[comment_index][1])
             comment_index += 1
-        
+
         # Add the content line if available
         if content_index < len(content_lines):
             result.append(content_lines[content_index])
             content_index += 1
-        
+
         line_position += 1
-    
+
     return result
 
 
@@ -119,7 +119,7 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
         # [Script Info] section with comments
         lines.append("[Script Info]")
         script_info_lines: list[str] = [f"{key}: {value}" for key, value in sorted(subtitles.script_info.items())]
-        
+
         # Merge comments into script info
         merged_script_info = _merge_comments_into_lines(script_info_lines, subtitles.script_info_comments)
         lines.extend(merged_script_info)
@@ -137,7 +137,7 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
                 styles_lines.append(f"Style: {','.join(values)}")
         else:
             logger.warning("No AssStyler or styles provided; [V4+ Styles] section will be empty.")
-        
+
         # Merge comments into styles
         merged_styles = _merge_comments_into_lines(styles_lines, subtitles.styles_comments)
         lines.extend(merged_styles)
@@ -179,7 +179,7 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
                 values = [str(dialogue_data.get(key, "")) for key in events_format_keys]
                 line_type = "Comment" if segment.is_comment else "Dialogue"
                 events_lines.append(f"{line_type}: {','.join(values)}")
-        
+
         # Merge comments into events
         merged_events = _merge_comments_into_lines(events_lines, subtitles.events_comments)
         lines.extend(merged_events)
