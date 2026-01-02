@@ -84,8 +84,8 @@ def test_subtitle_segment_boundary_calculation() -> None:
     ]
     segment = SubtitleSegment(words=words)
 
-    assert segment.start == 1.0
-    assert segment.end == 4.0
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(4.0)
 
 
 def test_subtitle_segment_add_word() -> None:
@@ -93,8 +93,8 @@ def test_subtitle_segment_add_word() -> None:
     segment = SubtitleSegment(words=[SubtitleWord(text="Existing", start=2.0, end=3.0)])
     segment.add_word(SubtitleWord(text="New", start=1.0, end=1.5))
 
-    assert segment.start == 1.0
-    assert segment.end == 3.0
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(3.0)
     assert segment.words[0].text == "New"
 
 
@@ -104,8 +104,8 @@ def test_subtitles_sorting() -> None:
     seg2 = SubtitleSegment(words=[SubtitleWord(text="Earlier", start=1.0, end=2.0)])
     subs = Subtitles(segments=[seg1, seg2])
 
-    assert subs.segments[0].start == 1.0
-    assert subs.segments[1].start == 5.0
+    assert subs.segments[0].start == pytest.approx(1.0)
+    assert subs.segments[1].start == pytest.approx(5.0)
 
 
 def test_subtitles_text_property() -> None:
