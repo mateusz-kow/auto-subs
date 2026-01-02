@@ -45,7 +45,7 @@ class AssVectorCommand(ABC):
     @staticmethod
     def _format_coord(value: float) -> str:
         """Format a coordinate value, dropping .0 for whole numbers."""
-        if isinstance(value, float) and value.is_integer():
+        if value.is_integer():
             return str(int(value))
         return str(value)
 
