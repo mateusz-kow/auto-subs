@@ -330,7 +330,7 @@ def _parse_dialogue_text(text: str, start: float, end: float) -> list[AssSubtitl
     return words
 
 
-def parse_ass(file_content: str) -> AssSubtitles:
+def parse_ass(file_content: str, include_comments: bool = True) -> AssSubtitles:
     """Parses content from an ASS file into a rich AssSubtitles object.
 
     This parser handles standard ASS sections ([Script Info], [V4+ Styles], [Events])
@@ -338,44 +338,70 @@ def parse_ass(file_content: str) -> AssSubtitles:
 
     Parsing behavior:
         - Empty lines are skipped in all sections
-        - Comment lines (starting with semicolon) are skipped in all sections
+        - Comment lines (starting with semicolon) handling depends on include_comments flag
         - Custom sections store raw line content with trailing whitespace stripped
         - Leading whitespace is preserved in custom sections
 
-    Note: UUEncoded data in custom sections (like [Fonts] and [Graphics]) that
-    happens to start with a semicolon on a line will be skipped. While rare in
-    practice (UUEncoded lines typically start with 'M' or other characters), users
-    should be aware that custom sections follow the same parsing rules as standard
-    sections.
+    When include_comments is True:
+        - Header comments (`;` lines in [Script Info] and [V4+ Styles]) are stored with position
+        - Event comments (`;` lines in [Events]) are stored with position
+        - Comment: dialogue lines are parsed and marked as comments
+        - Custom sections treat `;` lines as regular content (preserves UUEncoded data if it starts with `;`)
+
+    When include_comments is False:
+        - All `;` lines are skipped in standard sections
+        - Custom sections still skip `;` lines
 
     Args:
         file_content: The complete text content of an ASS file.
+        include_comments: If True, preserves comment lines for later generation.
 
     Returns:
         AssSubtitles object with parsed content including custom sections.
     """
-    logger.info("Parsing ASS file content.")
+    logger.info(f"Parsing ASS file content (include_comments={include_comments}).")
     subs = AssSubtitles()
     current_section = ""
+    line_index = 0
 
     for raw_line in file_content.replace("\r\n", "\n").splitlines():
         line = raw_line.strip()
-        # Skip empty lines and comments (lines starting with semicolon) in all sections.
-        # This applies to standard sections and custom sections alike.
-        if not line or line.startswith(";"):
+        
+        # Skip empty lines
+        if not line:
             continue
 
+        # Handle section headers
         if line.startswith("[") and line.endswith("]"):
             current_section = line
+            line_index = 0
             # Initialize custom section storage if it's not a standard section
             if current_section not in ["[Script Info]", "[V4+ Styles]", "[Events]"]:
                 subs.custom_sections[current_section] = []
             continue
 
+        # Handle comments (lines starting with semicolon)
+        if line.startswith(";"):
+            if include_comments:
+                if current_section == "[Script Info]":
+                    subs.script_info_comments.append((line_index, line))
+                elif current_section == "[V4+ Styles]":
+                    subs.styles_comments.append((line_index, line))
+                elif current_section == "[Events]":
+                    subs.events_comments.append((line_index, line))
+                elif current_section in subs.custom_sections:
+                    # In custom sections, treat `;` lines as normal content
+                    subs.custom_sections[current_section].append(raw_line.rstrip())
+            # When include_comments is False or not in a known section, skip the comment
+            line_index += 1
+            continue
+
+        # Handle custom section content
         if current_section and current_section in subs.custom_sections:
             # Store raw line for custom sections (with trailing whitespace stripped).
             # Leading whitespace is preserved to maintain formatting of UUEncoded data.
             subs.custom_sections[current_section].append(raw_line.rstrip())
+            line_index += 1
             continue
 
         key, _, value = line.partition(":")
@@ -383,17 +409,21 @@ def parse_ass(file_content: str) -> AssSubtitles:
 
         if current_section == "[Script Info]":
             subs.script_info[key.strip()] = value
+            line_index += 1
         elif current_section == "[V4+ Styles]":
             if key.lower() == "format":
                 subs.style_format_keys = [k.strip() for k in value.split(",")]
             elif key.lower() == "style":
                 logger.warning("Parsing of [V4+ Styles] is deprecated and will be removed.")
+            line_index += 1
         elif current_section == "[Events]":
             if key.lower() == "format":
                 subs.events_format_keys = [k.strip() for k in value.split(",")]
-            elif key.lower() == "dialogue":
+                line_index += 1
+            elif key.lower() in ("dialogue", "comment"):
                 if not subs.events_format_keys:
-                    logger.warning("Skipping Dialogue line found before Format line.")
+                    logger.warning(f"Skipping {key} line found before Format line.")
+                    line_index += 1
                     continue
 
                 required_fields = {"Start", "End", "Text"}
@@ -410,7 +440,8 @@ def parse_ass(file_content: str) -> AssSubtitles:
                     start_time = ass_timestamp_to_seconds(dialogue_dict["Start"])
                     end_time = ass_timestamp_to_seconds(dialogue_dict["End"])
                     if start_time > end_time:
-                        logger.warning(f"Skipping ASS Dialogue with invalid timestamp (start > end): {line}")
+                        logger.warning(f"Skipping ASS {key} with invalid timestamp (start > end): {line}")
+                        line_index += 1
                         continue
 
                     words = _parse_dialogue_text(dialogue_dict["Text"], start_time, end_time)
@@ -423,11 +454,16 @@ def parse_ass(file_content: str) -> AssSubtitles:
                         margin_r=int(dialogue_dict.get("MarginR", 0)),
                         margin_v=int(dialogue_dict.get("MarginV", 0)),
                         effect=dialogue_dict.get("Effect", ""),
+                        is_comment=(key.lower() == "comment"),
                     )
                     subs.segments.append(segment)
+                    line_index += 1
                 except (ValueError, IndexError) as e:
-                    logger.warning(f"Skipping malformed ASS Dialogue line: {line} ({e})")
+                    logger.warning(f"Skipping malformed ASS {key} line: {line} ({e})")
+                    line_index += 1
                     continue
+            else:
+                line_index += 1
     return subs
 
 

@@ -229,7 +229,7 @@ Dialogue: 0:00:00.00,0:00:05.00,Test
 
 
 def test_custom_section_skips_comment_lines() -> None:
-    """Test that comment lines (starting with semicolons) are skipped in custom sections."""
+    """Test that comment lines (starting with semicolons) are skipped in custom sections when include_comments=False."""
     content = """[Script Info]
 Title: Test
 
@@ -244,10 +244,10 @@ fontname: Arial.ttf
 M5&AE('-T>6QE/3-$)T9/3E0M1D%-24Q9
 ; End comment
 """
-    subs = parse_ass(content)
+    subs = parse_ass(content, include_comments=False)
 
     assert "[Fonts]" in subs.custom_sections
-    # Comment lines should be skipped (same behavior as standard sections)
+    # Comment lines should be skipped when include_comments=False
     assert len(subs.custom_sections["[Fonts]"]) == 2
     assert subs.custom_sections["[Fonts]"][0] == "fontname: Arial.ttf"
     assert subs.custom_sections["[Fonts]"][1] == "M5&AE('-T>6QE/3-$)T9/3E0M1D%-24Q9"

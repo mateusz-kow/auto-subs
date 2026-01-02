@@ -222,6 +222,7 @@ class AssSubtitleSegment(SubtitleSegment):
     margin_r: int = 0
     margin_v: int = 0
     effect: str = ""
+    is_comment: bool = False
 
     @classmethod
     def from_generic(cls, segment: SubtitleSegment) -> AssSubtitleSegment:
@@ -246,6 +247,9 @@ class AssSubtitles(Subtitles):
     style_format_keys: list[str] = field(default_factory=list)
     events_format_keys: list[str] = field(default_factory=list)
     custom_sections: dict[str, list[str]] = field(default_factory=dict)
+    script_info_comments: list[tuple[int, str]] = field(default_factory=list)
+    styles_comments: list[tuple[int, str]] = field(default_factory=list)
+    events_comments: list[tuple[int, str]] = field(default_factory=list)
 
     def resample_resolution(self, target_x: int, target_y: int) -> None:
         """Resample subtitle coordinates and sizes to match a new resolution.
