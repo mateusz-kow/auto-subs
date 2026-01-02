@@ -391,9 +391,17 @@ def parse_ass(file_content: str) -> AssSubtitles:
                     logger.warning("Skipping Style line found before Format line.")
                     continue
 
-                style_values = [v.strip() for v in value.split(",", len(subs.style_format_keys) - 1)]
-                style_dict = dict(zip(subs.style_format_keys, style_values, strict=False))
-                subs.styles.append(style_dict)
+                try:
+                    style_values = [v.strip() for v in value.split(",", len(subs.style_format_keys) - 1)]
+                    if len(style_values) != len(subs.style_format_keys):
+                        raise ValueError(
+                            f"Expected {len(subs.style_format_keys)} style values, got {len(style_values)}"
+                        )
+                    style_dict = dict(zip(subs.style_format_keys, style_values, strict=False))
+                    subs.styles.append(style_dict)
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Skipping malformed ASS Style line: {line} ({e})")
+                    continue
         elif current_section == "[Events]":
             if key.lower() == "format":
                 subs.events_format_keys = [k.strip() for k in value.split(",")]
