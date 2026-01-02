@@ -120,9 +120,10 @@ class TestVectorParsing:
             AssVector.from_string("m 0 0 b 10 20 30")
 
     def test_parse_unknown_command_raises_error(self) -> None:
-        """Test that unknown command raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown or unexpected token"):
-            AssVector.from_string("m 0 0 x 10 10")
+        """Test that numbers without a command raise ValueError."""
+        # Starting with a number is invalid
+        with pytest.raises(ValueError, match="without a command"):
+            AssVector.from_string("10 10 m 0 0")
 
 
 class TestVectorRoundTrip:
@@ -297,3 +298,219 @@ class TestAcceptanceCriteria:
         vector = AssVector.from_string("m 0 0 l 10 10")
         scaled = vector.scale(2.0)
         assert scaled.to_string() == "m 0 0 l 20 20"
+
+
+class TestImplicitCommands:
+    """Test parsing of implicit repeated commands."""
+
+    def test_implicit_line_commands(self) -> None:
+        """Test: m 0 0 l 10 10 20 20 30 30 (implicit repeated line commands)."""
+        vector = AssVector.from_string("m 0 0 l 10 10 20 20 30 30")
+        assert len(vector.commands) == 4
+        assert isinstance(vector.commands[0], MoveCommand)
+        assert isinstance(vector.commands[1], LineCommand)
+        assert isinstance(vector.commands[2], LineCommand)
+        assert isinstance(vector.commands[3], LineCommand)
+        assert vector.commands[1].x == 10
+        assert vector.commands[1].y == 10
+        assert vector.commands[2].x == 20
+        assert vector.commands[2].y == 20
+        assert vector.commands[3].x == 30
+        assert vector.commands[3].y == 30
+
+    def test_implicit_bezier_commands(self) -> None:
+        """Test implicit repeated bezier commands."""
+        vector = AssVector.from_string("m 0 0 b 10 10 20 20 30 30 40 40 50 50 60 60")
+        assert len(vector.commands) == 3
+        assert isinstance(vector.commands[0], MoveCommand)
+        assert isinstance(vector.commands[1], BezierCommand)
+        assert isinstance(vector.commands[2], BezierCommand)
+
+
+class TestMixedSeparators:
+    """Test parsing with different separator styles."""
+
+    def test_comma_separators(self) -> None:
+        """Test parsing with comma separators."""
+        vector = AssVector.from_string("m 0,0 l 10,10")
+        assert len(vector.commands) == 2
+        assert vector.commands[0].x == 0
+        assert vector.commands[0].y == 0
+        assert vector.commands[1].x == 10
+        assert vector.commands[1].y == 10
+
+    def test_mixed_comma_and_space_separators(self) -> None:
+        """Test parsing with mixed comma and space separators."""
+        vector = AssVector.from_string("m 0,0 l 10 10,20 20")
+        assert len(vector.commands) == 3
+        assert vector.commands[2].x == 20
+        assert vector.commands[2].y == 20
+
+    def test_no_spaces_after_commands(self) -> None:
+        """Test parsing with no spaces after command letters."""
+        vector = AssVector.from_string("m0 0l10 10b20 20 30 30 40 40")
+        assert len(vector.commands) == 3
+        assert isinstance(vector.commands[0], MoveCommand)
+        assert isinstance(vector.commands[1], LineCommand)
+        assert isinstance(vector.commands[2], BezierCommand)
+
+    def test_multiple_spaces(self) -> None:
+        """Test parsing with multiple consecutive spaces."""
+        vector = AssVector.from_string("m   0    0   l   10   10")
+        assert len(vector.commands) == 2
+        assert vector.to_string() == "m 0 0 l 10 10"
+
+
+class TestNewCommands:
+    """Test the new spline-related commands."""
+
+    def test_spline_command(self) -> None:
+        """Test parsing and serialization of spline commands."""
+        from autosubs.models.subtitles.vector import SplineCommand
+
+        vector = AssVector.from_string("m 0 0 s 10 20 30 40 50 60")
+        assert len(vector.commands) == 2
+        assert isinstance(vector.commands[1], SplineCommand)
+        assert vector.to_string() == "m 0 0 s 10 20 30 40 50 60"
+
+    def test_extend_spline_command(self) -> None:
+        """Test parsing and serialization of extend spline commands."""
+        from autosubs.models.subtitles.vector import ExtendSplineCommand
+
+        vector = AssVector.from_string("m 0 0 p 10 20")
+        assert len(vector.commands) == 2
+        assert isinstance(vector.commands[1], ExtendSplineCommand)
+        assert vector.to_string() == "m 0 0 p 10 20"
+
+    def test_close_spline_command(self) -> None:
+        """Test parsing and serialization of close spline commands."""
+        from autosubs.models.subtitles.vector import CloseSplineCommand
+
+        vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
+        assert len(vector.commands) == 4
+        assert isinstance(vector.commands[3], CloseSplineCommand)
+        assert vector.to_string() == "m 0 0 l 10 0 l 10 10 c"
+
+    def test_implicit_spline_commands(self) -> None:
+        """Test implicit repeated spline commands."""
+        vector = AssVector.from_string("m 0 0 s 10 20 30 40 50 60 70 80 90 100 110 120")
+        assert len(vector.commands) == 3
+        assert all(cmd.__class__.__name__ in ("MoveCommand", "SplineCommand") for cmd in vector.commands)
+
+
+class TestFlipTransformation:
+    """Test the flip transformation."""
+
+    def test_flip_horizontal(self) -> None:
+        """Test horizontal flip (along Y-axis)."""
+        vector = AssVector.from_string("m 10 0 l 20 10")
+        flipped = vector.flip("h")
+        assert flipped.to_string() == "m -10 0 l -20 10"
+
+    def test_flip_vertical(self) -> None:
+        """Test vertical flip (along X-axis)."""
+        vector = AssVector.from_string("m 0 10 l 10 20")
+        flipped = vector.flip("v")
+        assert flipped.to_string() == "m 0 -10 l 10 -20"
+
+    def test_flip_x_axis(self) -> None:
+        """Test flip along X-axis (same as vertical)."""
+        vector = AssVector.from_string("m 0 10 l 10 20")
+        flipped = vector.flip("x")
+        assert flipped.to_string() == "m 0 -10 l 10 -20"
+
+    def test_flip_y_axis(self) -> None:
+        """Test flip along Y-axis (same as horizontal)."""
+        vector = AssVector.from_string("m 10 0 l 20 10")
+        flipped = vector.flip("y")
+        assert flipped.to_string() == "m -10 0 l -20 10"
+
+    def test_flip_invalid_axis_raises_error(self) -> None:
+        """Test that invalid axis raises ValueError."""
+        vector = AssVector.from_string("m 0 0 l 10 10")
+        with pytest.raises(ValueError, match="Invalid axis"):
+            vector.flip("z")
+
+
+class TestBoundingBox:
+    """Test the get_bounding_box method."""
+
+    def test_bounding_box_simple_square(self) -> None:
+        """Test bounding box for a simple square."""
+        vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 l 0 10")
+        bbox = vector.get_bounding_box()
+        assert bbox == (0, 0, 10, 10)
+
+    def test_bounding_box_offset_shape(self) -> None:
+        """Test bounding box for an offset shape."""
+        vector = AssVector.from_string("m 5 5 l 15 5 l 15 15 l 5 15")
+        bbox = vector.get_bounding_box()
+        assert bbox == (5, 5, 15, 15)
+
+    def test_bounding_box_with_bezier(self) -> None:
+        """Test bounding box with bezier curves."""
+        vector = AssVector.from_string("m 0 0 b 10 20 30 40 50 60")
+        bbox = vector.get_bounding_box()
+        assert bbox == (0, 0, 50, 60)
+
+    def test_bounding_box_negative_coords(self) -> None:
+        """Test bounding box with negative coordinates."""
+        vector = AssVector.from_string("m -10 -10 l 10 10")
+        bbox = vector.get_bounding_box()
+        assert bbox == (-10, -10, 10, 10)
+
+    def test_bounding_box_empty_vector(self) -> None:
+        """Test bounding box for empty vector."""
+        vector = AssVector.from_string("")
+        bbox = vector.get_bounding_box()
+        assert bbox == (0, 0, 0, 0)
+
+    def test_bounding_box_close_command_ignored(self) -> None:
+        """Test that close command doesn't affect bounding box."""
+        vector = AssVector.from_string("m 0 0 l 10 0 l 10 10 c")
+        bbox = vector.get_bounding_box()
+        assert bbox == (0, 0, 10, 10)
+
+
+class TestEdgeCases:
+    """Test edge cases and robustness."""
+
+    def test_scale_zero(self) -> None:
+        """Test scaling by zero."""
+        vector = AssVector.from_string("m 10 10 l 20 20")
+        scaled = vector.scale(0)
+        assert scaled.to_string() == "m 0 0 l 0 0"
+
+    def test_scale_negative(self) -> None:
+        """Test scaling by negative value (flip)."""
+        vector = AssVector.from_string("m 10 10 l 20 20")
+        scaled = vector.scale(-1)
+        assert scaled.to_string() == "m -10 -10 l -20 -20"
+
+    def test_large_numbers(self) -> None:
+        """Test with large coordinate values."""
+        vector = AssVector.from_string("m 0 0 l 10000 10000")
+        scaled = vector.scale(2)
+        assert scaled.to_string() == "m 0 0 l 20000 20000"
+
+    def test_very_small_numbers(self) -> None:
+        """Test with very small coordinate values."""
+        vector = AssVector.from_string("m 0 0 l 0.001 0.001")
+        scaled = vector.scale(2)
+        assert scaled.to_string() == "m 0 0 l 0.002 0.002"
+
+    def test_dangling_coordinates_ignored(self) -> None:
+        """Test that incomplete coordinate pairs at the end are handled."""
+        # This should process what it can and stop
+        with pytest.raises(ValueError, match="Incomplete"):
+            AssVector.from_string("m 0 0 l 10 10 15")
+
+    def test_multiple_rotations_precision(self) -> None:
+        """Test precision after multiple rotations."""
+        vector = AssVector.from_string("m 0 0 l 100 0")
+        # Rotate 360 degrees in 4 steps
+        rotated = vector.rotate(90).rotate(90).rotate(90).rotate(90)
+        # Should be back to approximately the original position
+        assert isinstance(rotated.commands[1], LineCommand)
+        assert math.isclose(rotated.commands[1].x, 100, abs_tol=1e-9)
+        assert math.isclose(rotated.commands[1].y, 0, abs_tol=1e-9)
