@@ -20,8 +20,8 @@ def sample_words(sample_transcription: dict[str, Any]) -> list[SubtitleWord]:
     ]
 
 
-def test_segment_words_deterministic_output(sample_words: list[SubtitleWord]) -> None:
-    """Test that segmentation creates separate SubtitleSegment objects."""
+def test_segment_words_no_internal_newlines(sample_words: list[SubtitleWord]) -> None:
+    """Test that segmentation creates separate SubtitleSegment objects without newlines."""
     segments = segment_words(sample_words, max_chars=35, max_lines=1)
 
     assert len(segments) > 0
@@ -30,26 +30,29 @@ def test_segment_words_deterministic_output(sample_words: list[SubtitleWord]) ->
         assert "\n" not in segment.text
 
 
-def test_segment_words_max_lines_creates_more_segments(sample_words: list[SubtitleWord]) -> None:
-    """Test that max_lines > 1 results in multiple discrete segments, not newlines."""
-    # When max_lines is 2, it groups lines but then the DP passes and splits them
-    # back into optimal timed segments.
+def test_segment_words_max_lines_creates_independent_segments(sample_words: list[SubtitleWord]) -> None:
+    """Test that grouping logic still results in independent timed segments."""
     segments = segment_words(sample_words, max_chars=35, max_lines=2)
 
     assert len(segments) >= 2
-    # Verify absolute absence of newline control characters in the core output
     for seg in segments:
         assert "\\N" not in seg.text
         assert "\n" not in seg.text
 
 
-def test_segment_words_punctuation_breaks(sample_words: list[SubtitleWord]) -> None:
-    """Test that segments are correctly created at punctuation boundaries."""
-    segments = segment_words(sample_words, max_chars=100, max_lines=1)
+def test_segment_words_punctuation_breaks_explicit() -> None:
+    """Test that segments are correctly created at punctuation boundaries using explicit data."""
+    words = [
+        SubtitleWord(text="First", start=0.0, end=0.5),
+        SubtitleWord(text="sentence.", start=0.6, end=1.0),
+        SubtitleWord(text="Second", start=2.0, end=2.5),
+        SubtitleWord(text="part!", start=2.6, end=3.0),
+    ]
+    segments = segment_words(words, max_chars=100, max_lines=1)
 
-    # First sentence: "This is a test transcription for the auto-subs library."
-    assert segments[0].text.endswith(".")
-    assert "punctuation!" in segments[1].text
+    assert len(segments) == 2
+    assert segments[0].text == "First sentence."
+    assert segments[1].text == "Second part!"
 
 
 def test_segment_words_handles_empty_input() -> None:

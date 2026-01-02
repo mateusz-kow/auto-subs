@@ -27,27 +27,29 @@ def _calculate_cost(
 ) -> float:
     """Calculate the cost of creating a segment from words[i:j+1].
 
-    The cost function favors segments that:
-    1. Stay within max_chars.
-    2. End on punctuation.
-    3. Start/end at silence gaps.
-    4. Are not too fast to read (CPS control).
+    The cost function balances character length, speaking rate (CPS),
+    punctuation, and temporal silence gaps.
     """
     line_words = words[i : j + 1]
     line_text = " ".join(w.text for w in line_words)
     char_count = len(line_text)
 
+    # Handle oversized segments
     if char_count > max_chars:
+        # If it's a single word that exceeds the limit, allow it with a high penalty
+        # to prevent DP failure, otherwise return infinity.
+        if i == j:
+            return 10000.0 + (char_count - max_chars) * 10.0
         return float("inf")
 
-    # 1. Base cost for creating a segment.
+    # 1. Base cost for creating a segment to prevent unnecessary fragmentation.
     cost = 15.0
 
     # 2. Length Penalty: Prefer longer lines up to the limit to avoid flickering.
     cost += (max_chars - char_count) * 0.5
 
     # 3. Temporal Penalty: Characters Per Second (CPS).
-    # Professional limit is usually ~20-23 CPS. We only penalize if it's too fast.
+    # Typical limit is ~20 CPS. Penalize if reading speed is too high.
     duration = line_words[-1].end - line_words[0].start
     if duration > 0:
         cps = char_count / duration
@@ -57,17 +59,18 @@ def _calculate_cost(
     # 4. Punctuation Bonus (Negative Cost).
     last_word = line_words[-1].text.strip()
     if last_word:
-        # Check the last character of the last word in this potential segment.
         last_char = last_word[-1]
         cost += PUNCTUATION_BONUSES.get(last_char, 0.0)
 
-    # 5. Silence Bonus (Negative Cost).
-    # We reward splitting at a gap between the current segment and the next.
+    # 5. Silence Bonus (Negative Cost) and Flicker Penalty.
     if j < len(words) - 1:
         silence_gap = words[j + 1].start - words[j].end
         if silence_gap > 0.1:
-            # Bonus increases with gap size, capped at 1.0s.
+            # Reward splitting at clear pauses.
             cost -= min(silence_gap, 1.0) * 100.0
+        elif 0.0 < silence_gap <= 0.1:
+            # Penalize splitting at tiny gaps to prevent visual flickering.
+            cost += (0.1 - silence_gap) * 100.0
 
     return cost
 
@@ -103,6 +106,8 @@ def partition_words_optimal(
                 min_total_cost = total_cost
                 best_j = j + 1
 
+        # If it's impossible to fit even the single next word (handled by _calculate_cost),
+        # force a single-word break to ensure algorithm termination.
         if min_total_cost == float("inf"):
             dp[i] = 1e6
             best_j = i + 1
@@ -125,5 +130,5 @@ def balance_lines_with_timing(
     words: list[SubtitleWord],
     max_chars: int = 42,
 ) -> list[list[SubtitleWord]]:
-    """Alias for partition_words_optimal used by the segmentation engine."""
+    """Partition words into segments using temporal and visual heuristics."""
     return partition_words_optimal(words, max_chars=max_chars)

@@ -8,25 +8,22 @@ from autosubs.models.subtitles import SubtitleSegment, SubtitleWord
 logger = getLogger(__name__)
 
 
-def _partition_to_segments(words: list[SubtitleWord], max_chars: int) -> list[SubtitleSegment]:
+def _create_optimal_segments(words: list[SubtitleWord], max_chars: int) -> list[SubtitleSegment]:
     """Applies optimal partitioning to words and returns SubtitleSegment objects."""
     if not words:
         return []
 
     partitions = partition_words_optimal(words, max_chars=max_chars)
-    segments = []
-
-    for group in partitions:
-        segments.append(SubtitleSegment(words=group))
-
-    return segments
+    return [SubtitleSegment(words=group) for group in partitions]
 
 
-def _combine_segments(segments: list[SubtitleSegment], max_lines: int, max_chars: int) -> list[SubtitleSegment]:
-    """Groups potential word chunks and applies deterministic partitioning.
+def _refine_segment_boundaries(
+    segments: list[SubtitleSegment], max_lines: int, max_chars: int
+) -> list[SubtitleSegment]:
+    """Optimizes segmentation by re-partitioning grouped word chunks.
 
-    Instead of using newlines, this refactor splits multi-line candidates
-    into individual, perfectly timed segments.
+    Instead of using internal newlines, this process identifies optimal split
+    points to produce discrete, perfectly timed segments.
     """
     if not segments:
         return []
@@ -34,17 +31,16 @@ def _combine_segments(segments: list[SubtitleSegment], max_lines: int, max_chars
     final_segments: list[SubtitleSegment] = []
     i = 0
     while i < len(segments):
-        # Gather a group of candidate lines based on the requested max_lines limit
         group = segments[i : i + max_lines]
         all_words = [word for seg in group for word in seg.words]
 
-        # Use the DP Partitioner to break the chunk into 1...N deterministic segments
-        partitioned = _partition_to_segments(all_words, max_chars)
+        # Partition the word chunk into deterministic timed segments.
+        partitioned = _create_optimal_segments(all_words, max_chars)
         final_segments.extend(partitioned)
 
         i += len(group)
 
-    logger.info(f"Transformed {len(segments)} candidate blocks into {len(final_segments)} deterministic segments.")
+    logger.info(f"Optimized {len(segments)} blocks into {len(final_segments)} deterministic timed segments.")
     return final_segments
 
 
@@ -55,17 +51,17 @@ def segment_words(
     max_lines: int = 2,
     break_chars: tuple[str, ...] = (".", ",", "!", "?"),
 ) -> list[SubtitleSegment]:
-    """Segments word-level transcription data into subtitle segments.
+    """Segments word-level transcription data into discrete subtitle segments.
 
     Args:
         words: The list of words to include.
         max_chars: Max character limit for any resulting segment.
-        min_words: Min words per line before allowing a punctuation break.
-        max_lines: How many 'lines' of spoken text to consider per group.
+        min_words: Min words per block before allowing a punctuation break.
+        max_lines: How many 'logical lines' to group for optimization.
         break_chars: Punctuation forcing a candidate break.
 
     Returns:
-        A list of SubtitleSegment objects.
+        A list of optimally segmented SubtitleSegment objects.
     """
     logger.info("Starting deterministic word segmentation...")
 
@@ -80,7 +76,7 @@ def segment_words(
         if not word_text:
             continue
 
-        # Basic length heuristic for candidate creation
+        # Simple length check for preliminary candidate grouping.
         current_text_len = sum(len(w.text) + 1 for w in current_chunk)
 
         if current_chunk and current_text_len + len(word_text) > max_chars:
@@ -89,7 +85,7 @@ def segment_words(
 
         current_chunk.append(SubtitleWord(text=word_text, start=word_model.start, end=word_model.end))
 
-        # Punctuation break check
+        # Check for natural punctuation breaks.
         if word_text.endswith(break_chars) and len(current_chunk) >= min_words:
             candidates.append(SubtitleSegment(words=current_chunk.copy()))
             current_chunk = []
@@ -97,5 +93,5 @@ def segment_words(
     if current_chunk:
         candidates.append(SubtitleSegment(words=current_chunk.copy()))
 
-    # Apply the DP optimization pass
-    return _combine_segments(candidates, max_lines, max_chars)
+    # Optimize and refine candidates into final timed segments.
+    return _refine_segment_boundaries(candidates, max_lines, max_chars)
