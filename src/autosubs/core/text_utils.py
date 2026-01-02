@@ -1,4 +1,4 @@
-"""Text processing utilities for subtitle formatting."""
+"""Text processing utilities for deterministic subtitle segmentation."""
 
 from __future__ import annotations
 
@@ -7,243 +7,123 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from autosubs.models.subtitles import SubtitleWord
 
+# Punctuation hierarchy for splitting preference.
+PUNCTUATION_BONUSES = {
+    ".": -60.0,
+    "!": -60.0,
+    "?": -60.0,
+    ":": -30.0,
+    ";": -30.0,
+    ",": -25.0,
+    "-": -15.0,
+}
 
-def _normalize_text(text: str) -> str:
-    """Normalize text by removing existing line breaks.
 
-    Args:
-        text: The text to normalize.
+def _calculate_cost(
+    words: list[SubtitleWord],
+    i: int,
+    j: int,
+    max_chars: int,
+) -> float:
+    """Calculate the cost of creating a segment from words[i:j+1].
 
-    Returns:
-        The normalized text with line breaks replaced by spaces.
+    The cost function favors segments that:
+    1. Stay within max_chars.
+    2. End on punctuation.
+    3. Start/end at silence gaps.
+    4. Are not too fast to read (CPS control).
     """
-    return text.replace("\\N", " ").replace("\n", " ")
+    line_words = words[i : j + 1]
+    line_text = " ".join(w.text for w in line_words)
+    char_count = len(line_text)
+
+    if char_count > max_chars:
+        return float("inf")
+
+    # 1. Base cost for creating a segment.
+    cost = 15.0
+
+    # 2. Length Penalty: Prefer longer lines up to the limit to avoid flickering.
+    cost += (max_chars - char_count) * 0.5
+
+    # 3. Temporal Penalty: Characters Per Second (CPS).
+    # Professional limit is usually ~20-23 CPS. We only penalize if it's too fast.
+    duration = line_words[-1].end - line_words[0].start
+    if duration > 0:
+        cps = char_count / duration
+        if cps > 20:
+            cost += (cps - 20) * 50.0
+
+    # 4. Punctuation Bonus (Negative Cost).
+    last_word = line_words[-1].text.strip()
+    if last_word:
+        # Check the last character of the last word in this potential segment.
+        last_char = last_word[-1]
+        cost += PUNCTUATION_BONUSES.get(last_char, 0.0)
+
+    # 5. Silence Bonus (Negative Cost).
+    # We reward splitting at a gap between the current segment and the next.
+    if j < len(words) - 1:
+        silence_gap = words[j + 1].start - words[j].end
+        if silence_gap > 0.1:
+            # Bonus increases with gap size, capped at 1.0s.
+            cost -= min(silence_gap, 1.0) * 100.0
+
+    return cost
 
 
-def _calculate_line_duration(words: list[SubtitleWord]) -> float:
-    """Calculate the total duration of a line of words.
+def partition_words_optimal(
+    words: list[SubtitleWord],
+    max_chars: int = 42,
+) -> list[list[SubtitleWord]]:
+    """Partition words into segments using Dynamic Programming.
 
-    Args:
-        words: The words in the line.
-
-    Returns:
-        The duration in seconds, or 0 if no words.
+    Minimizes the cumulative cost across all generated segments to find the
+    globally optimal subtitle timing and layout.
     """
     if not words:
-        return 0.0
-    return words[-1].end - words[0].start
+        return []
 
+    n = len(words)
+    dp = [0.0] * (n + 1)
+    breaks = [0] * (n + 1)
 
-def _detect_silence_gap(word1: SubtitleWord, word2: SubtitleWord) -> float:
-    """Detect the silence gap between two consecutive words.
+    for i in range(n - 1, -1, -1):
+        min_total_cost = float("inf")
+        best_j = i + 1
 
-    Args:
-        word1: The first word.
-        word2: The second word.
+        for j in range(i, n):
+            cost = _calculate_cost(words, i, j, max_chars)
 
-    Returns:
-        The gap duration in seconds.
-    """
-    return word2.start - word1.end
+            if cost == float("inf"):
+                break
+
+            total_cost = cost + dp[j + 1]
+            if total_cost < min_total_cost:
+                min_total_cost = total_cost
+                best_j = j + 1
+
+        if min_total_cost == float("inf"):
+            dp[i] = 1e6
+            best_j = i + 1
+        else:
+            dp[i] = min_total_cost
+
+        breaks[i] = best_j
+
+    result = []
+    curr = 0
+    while curr < n:
+        next_break = breaks[curr]
+        result.append(words[curr:next_break])
+        curr = next_break
+
+    return result
 
 
 def balance_lines_with_timing(
     words: list[SubtitleWord],
-    max_width_chars: int = 42,
-    char_weight: float = 1.0,
-    duration_weight: float = 2.0,
-    silence_bonus: float = -10.0,
-    silence_threshold_ms: float = 200.0,
-    punctuation_bonus: float = -5.0,
+    max_chars: int = 42,
 ) -> list[list[SubtitleWord]]:
-    """Balance words across multiple lines using temporal and visual cost function.
-
-    This function implements a cost-minimization algorithm that considers:
-    - Character balance: Minimizes difference in line lengths
-    - Duration balance: Minimizes difference in speaking time
-    - Silence gaps: Prefers breaking at natural pauses
-    - Punctuation: Prefers breaking after punctuation marks
-
-    Cost Formula: Cost = (char_diff * char_weight) + (duration_diff * duration_weight)
-                        + (silence_bonus if gap > threshold) + (punctuation_bonus)
-
-    Args:
-        words: The list of SubtitleWord objects to balance.
-        max_width_chars: Maximum characters per line (default: 42).
-        char_weight: Weight for character balance in cost function (default: 1.0).
-        duration_weight: Weight for duration balance in cost function (default: 2.0).
-        silence_bonus: Bonus (negative cost) for breaking at silence gaps (default: -10.0).
-        silence_threshold_ms: Minimum gap in milliseconds to apply silence bonus (default: 200).
-        punctuation_bonus: Bonus for breaking after punctuation (default: -5.0).
-
-    Returns:
-        A list of lists, where each inner list represents a line of words.
-        Returns [words] (single line) if text fits or cannot be split properly.
-    """
-    if not words:
-        return [[]]
-
-    # Check if all text fits on one line
-    total_text = " ".join(word.text for word in words)
-    if len(total_text) <= max_width_chars:
-        return [words]
-
-    if len(words) == 1:
-        return [words]
-
-    # Find the optimal break point
-    best_break_idx = 0
-    min_cost = float("inf")
-
-    for i in range(1, len(words)):
-        line1_words = words[:i]
-        line2_words = words[i:]
-
-        line1_text = " ".join(word.text for word in line1_words)
-        line2_text = " ".join(word.text for word in line2_words)
-
-        # Skip if either line exceeds max width
-        if len(line1_text) > max_width_chars or len(line2_text) > max_width_chars:
-            continue
-
-        # Calculate character difference
-        char_diff = abs(len(line1_text) - len(line2_text))
-
-        # Calculate duration difference
-        line1_duration = _calculate_line_duration(line1_words)
-        line2_duration = _calculate_line_duration(line2_words)
-        duration_diff = abs(line1_duration - line2_duration)
-
-        # Base cost
-        cost = (char_diff * char_weight) + (duration_diff * duration_weight)
-
-        # Apply silence gap bonus
-        silence_gap = _detect_silence_gap(line1_words[-1], line2_words[0])
-        if silence_gap >= (silence_threshold_ms / 1000.0):
-            cost += silence_bonus
-
-        # Apply punctuation bonus
-        last_word_text = line1_words[-1].text
-        if last_word_text and last_word_text[-1] in ".,!?;:":
-            cost += punctuation_bonus
-
-        if cost < min_cost:
-            min_cost = cost
-            best_break_idx = i
-
-    # If no valid break found, try middle fallback
-    if best_break_idx == 0:
-        mid_point = len(words) // 2
-        for offset in range(len(words)):
-            for idx in [mid_point + offset, mid_point - offset]:
-                if 0 < idx < len(words):
-                    line1_text = " ".join(word.text for word in words[:idx])
-                    line2_text = " ".join(word.text for word in words[idx:])
-                    if len(line1_text) <= max_width_chars and len(line2_text) <= max_width_chars:
-                        best_break_idx = idx
-                        break
-            if best_break_idx != 0:
-                break
-
-    # If still no valid break, return as single line
-    if best_break_idx == 0:
-        return [words]
-
-    return [words[:best_break_idx], words[best_break_idx:]]
-
-
-def balance_lines(text: str, max_width_chars: int = 42) -> str:
-    r"""Balance text across multiple lines using minimum raggedness algorithm.
-
-    This is a text-only convenience function for backward compatibility.
-    For timing-aware balancing, use balance_lines_with_timing() instead.
-
-    Args:
-        text: The text to balance across lines.
-        max_width_chars: Maximum width in characters per line (default: 42).
-
-    Returns:
-        The text with balanced line breaks inserted using \N (ASS format newline).
-
-    Examples:
-        >>> balance_lines("The quick brown fox jumps over the lazy dog.")
-        'The quick brown fox jumps\\Nover the lazy dog.'
-        >>> balance_lines("Hello, world!")
-        'Hello, world!'
-    """
-    # Normalize input to handle pre-existing line breaks
-    text = _normalize_text(text)
-
-    if not text or not text.strip():
-        return text
-
-    # If the text fits on a single line, no wrapping needed
-    if len(text) <= max_width_chars:
-        return text
-
-    # Find all potential break points (spaces and punctuation)
-    words = text.split()
-    if len(words) <= 1:
-        # Cannot break a single word
-        return text
-
-    # Find the optimal break point that minimizes raggedness
-    # Raggedness is the difference in length between the two lines
-    best_break_idx = 0
-    min_raggedness = float("inf")
-
-    # Try breaking at each word boundary
-    for i in range(1, len(words)):
-        # Line 1: words[0:i], Line 2: words[i:]
-        line1_words = words[:i]
-        line2_words = words[i:]
-
-        line1 = " ".join(line1_words)
-        line2 = " ".join(line2_words)
-
-        # Skip if either line exceeds max width
-        if len(line1) > max_width_chars or len(line2) > max_width_chars:
-            continue
-
-        # Calculate raggedness: difference in lengths
-        raggedness = abs(len(line1) - len(line2))
-
-        # Prefer breaks after punctuation marks
-        # Check if the last word of line1 ends with punctuation
-        punctuation_bonus = 0
-        if line1_words and line1_words[-1] and line1_words[-1][-1] in ".,!?;:":
-            punctuation_bonus = -5  # Lower raggedness score for punctuation breaks
-
-        adjusted_raggedness = raggedness + punctuation_bonus
-
-        if adjusted_raggedness < min_raggedness:
-            min_raggedness = adjusted_raggedness
-            best_break_idx = i
-
-    # If no valid break point was found (all lines exceed max_width),
-    # fall back to breaking near the middle
-    if best_break_idx == 0:
-        # Try to break as close to the middle as possible
-        mid_point = len(words) // 2
-        for offset in range(len(words)):
-            # Try positions around the middle
-            for idx in [mid_point + offset, mid_point - offset]:
-                if 0 < idx < len(words):
-                    line1 = " ".join(words[:idx])
-                    line2 = " ".join(words[idx:])
-                    if len(line1) <= max_width_chars and len(line2) <= max_width_chars:
-                        best_break_idx = idx
-                        break
-            if best_break_idx != 0:
-                break
-
-    # If still no valid break (text cannot be balanced within max_width),
-    # return original text
-    if best_break_idx == 0:
-        return text
-
-    # Create the balanced result with \\N line break
-    line1 = " ".join(words[:best_break_idx])
-    line2 = " ".join(words[best_break_idx:])
-
-    return f"{line1}\\N{line2}"
+    """Alias for partition_words_optimal used by the segmentation engine."""
+    return partition_words_optimal(words, max_chars=max_chars)
