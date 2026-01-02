@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Protocol
+from typing import Protocol
 
 from autosubs.core.karaoke import Syllable, extract_syllables_from_segment
-from autosubs.models.subtitles.ass import AssSubtitleSegment, AssSubtitles
+from autosubs.models.subtitles.ass import AssSubtitles, AssSubtitleSegment
 
 
 @dataclass
 class EffectContext:
     """Context object passed to effect functions with segment/syllable data.
-    
+
     This provides easy access to segment properties and syllable-level data
     for effect functions to use when generating transformed segments.
-    
+
     Attributes:
         segment: The original subtitle segment being processed.
         index: The zero-based index of this segment in the subtitle list.
@@ -70,13 +71,13 @@ class EffectContext:
 
 class EffectFunction(Protocol):
     """Protocol for effect functions that transform segments.
-    
+
     An effect function takes an EffectContext and returns a list of
     AssSubtitleSegment objects. It may return:
     - An empty list to remove the line
     - A single segment to replace the line
     - Multiple segments to generate layered effects
-    
+
     Example:
         def duplicate_layer(ctx: EffectContext) -> list[AssSubtitleSegment]:
             # Create two copies with different layers
@@ -89,10 +90,10 @@ class EffectFunction(Protocol):
 
     def __call__(self, context: EffectContext) -> list[AssSubtitleSegment]:
         """Apply the effect transformation.
-        
+
         Args:
             context: Effect context with segment and syllable data.
-            
+
         Returns:
             List of transformed segments (may be empty, single, or multiple).
         """
@@ -102,7 +103,7 @@ class EffectFunction(Protocol):
 @dataclass
 class EffectDefinition:
     """Defines an effect transformation with selection criteria.
-    
+
     Attributes:
         effect_function: The function that transforms segments.
         selector: Optional function to filter which segments to apply to.
@@ -119,12 +120,12 @@ class EffectDefinition:
 
 class TemplateEngine:
     """Engine for applying templated effects to subtitle segments.
-    
+
     This class orchestrates the process of:
     1. Selecting segments based on criteria
     2. Applying effect transformations
     3. Replacing original segments with generated output
-    
+
     Example:
         >>> engine = TemplateEngine()
         >>> def glitch_effect(ctx: EffectContext) -> list[AssSubtitleSegment]:
@@ -143,14 +144,14 @@ class TemplateEngine:
         effect_definitions: list[EffectDefinition],
     ) -> AssSubtitles:
         """Applies effect definitions to subtitle segments.
-        
+
         Args:
             subtitles: The subtitle object to transform.
             effect_definitions: List of effect definitions to apply.
-            
+
         Returns:
             New AssSubtitles object with transformed segments.
-            
+
         Note:
             - Effects are applied in priority order (lower priority first)
             - Original subtitles object is not modified
@@ -158,36 +159,36 @@ class TemplateEngine:
         """
         # Sort effects by priority
         sorted_effects = sorted(effect_definitions, key=lambda e: e.priority)
-        
+
         # Start with the original segments
         current_segments = list(subtitles.segments)
-        
+
         # Apply each effect in order
         for effect_def in sorted_effects:
             new_segments = []
-            
+
             for index, segment in enumerate(current_segments):
                 # Check if this segment should be transformed
                 if effect_def.selector is None or effect_def.selector(segment):
                     # Extract syllables for this segment
                     syllables = extract_syllables_from_segment(segment)
-                    
+
                     # Create context
                     context = EffectContext(
                         segment=segment,
                         index=index,
                         syllables=syllables,
                     )
-                    
+
                     # Apply effect function
                     transformed = effect_def.effect_function(context)
                     new_segments.extend(transformed)
                 else:
                     # Keep original segment
                     new_segments.append(segment)
-            
+
             current_segments = new_segments
-        
+
         # Create new AssSubtitles with transformed segments
         # Preserve all metadata from original
         result = AssSubtitles(
@@ -198,7 +199,7 @@ class TemplateEngine:
             events_format_keys=list(subtitles.events_format_keys),
             custom_sections={k: list(v) for k, v in subtitles.custom_sections.items()},
         )
-        
+
         return result
 
     def apply_effect_to_selection(
@@ -208,25 +209,25 @@ class TemplateEngine:
         selected_segments: list[AssSubtitleSegment],
     ) -> AssSubtitles:
         """Applies an effect function to a pre-selected list of segments.
-        
+
         This is a convenience method for when you've already filtered segments
         using LineSelector and want to apply an effect to just those segments.
-        
+
         Args:
             subtitles: The subtitle object to transform.
             effect_function: The effect function to apply.
             selected_segments: Pre-filtered list of segments to transform.
-            
+
         Returns:
             New AssSubtitles object with transformed segments.
         """
         # Create a set of selected segment IDs for fast lookup
-        selected_ids = set(id(seg) for seg in selected_segments)
-        
+        selected_ids = {id(seg) for seg in selected_segments}
+
         # Create an effect definition with a selector based on segment identity
         effect_def = EffectDefinition(
             effect_function=effect_function,
             selector=lambda seg: id(seg) in selected_ids,
         )
-        
+
         return self.apply_effects(subtitles, [effect_def])

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from autosubs.models.subtitles.ass import AssSubtitleSegment
@@ -11,10 +12,10 @@ if TYPE_CHECKING:
 
 class LineSelector:
     """Filters subtitle segments based on metadata criteria.
-    
+
     This class provides methods to filter AssSubtitleSegment objects based on
     various criteria like actor name, style name, and text patterns.
-    
+
     Example:
         >>> selector = LineSelector()
         >>> filtered = selector.by_actor(segments, "Singer")
@@ -29,12 +30,12 @@ class LineSelector:
         case_sensitive: bool = False,
     ) -> list[AssSubtitleSegment]:
         """Filters segments by actor name.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             actor: Actor name to match.
             case_sensitive: Whether to perform case-sensitive matching.
-            
+
         Returns:
             List of segments where actor_name matches the specified actor.
         """
@@ -51,12 +52,12 @@ class LineSelector:
         case_sensitive: bool = False,
     ) -> list[AssSubtitleSegment]:
         """Filters segments by style name.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             style: Style name to match.
             case_sensitive: Whether to perform case-sensitive matching.
-            
+
         Returns:
             List of segments where style_name matches the specified style.
         """
@@ -72,17 +73,17 @@ class LineSelector:
         pattern: str | re.Pattern[str],
     ) -> list[AssSubtitleSegment]:
         """Filters segments by text content matching a regex pattern.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             pattern: Regex pattern to match against segment text.
-            
+
         Returns:
             List of segments where text matches the pattern.
         """
         if isinstance(pattern, str):
             pattern = re.compile(pattern)
-        
+
         return [seg for seg in segments if pattern.search(seg.text)]
 
     @staticmethod
@@ -91,11 +92,11 @@ class LineSelector:
         layer: int,
     ) -> list[AssSubtitleSegment]:
         """Filters segments by layer number.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             layer: Layer number to match.
-            
+
         Returns:
             List of segments with the specified layer.
         """
@@ -108,12 +109,12 @@ class LineSelector:
         case_sensitive: bool = False,
     ) -> list[AssSubtitleSegment]:
         """Filters segments by effect field.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             effect: Effect name to match.
             case_sensitive: Whether to perform case-sensitive matching.
-            
+
         Returns:
             List of segments where effect field matches.
         """
@@ -130,12 +131,12 @@ class LineSelector:
         end: float | None = None,
     ) -> list[AssSubtitleSegment]:
         """Filters segments by time range.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             start: Minimum start time (inclusive). None means no lower bound.
             end: Maximum end time (inclusive). None means no upper bound.
-            
+
         Returns:
             List of segments within the specified time range.
         """
@@ -152,11 +153,11 @@ class LineSelector:
         predicate: Callable[[AssSubtitleSegment], bool],
     ) -> list[AssSubtitleSegment]:
         """Filters segments using a custom predicate function.
-        
+
         Args:
             segments: List of subtitle segments to filter.
             predicate: Function that takes a segment and returns True to include it.
-            
+
         Returns:
             List of segments for which predicate returns True.
         """
@@ -167,21 +168,21 @@ class LineSelector:
         *filters: list[AssSubtitleSegment],
     ) -> list[AssSubtitleSegment]:
         """Combines multiple filter results using AND logic (intersection).
-        
+
         Args:
             *filters: Multiple filter result lists to combine.
-            
+
         Returns:
             List of segments present in all filter results.
         """
         if not filters:
             return []
-        
+
         # Use id() for comparison since segments are not hashable
-        result_ids = set(id(seg) for seg in filters[0])
+        result_ids = {id(seg) for seg in filters[0]}
         for filter_result in filters[1:]:
-            result_ids &= set(id(seg) for seg in filter_result)
-        
+            result_ids &= {id(seg) for seg in filter_result}
+
         # Maintain original order from first filter
         return [seg for seg in filters[0] if id(seg) in result_ids]
 
@@ -190,10 +191,10 @@ class LineSelector:
         *filters: list[AssSubtitleSegment],
     ) -> list[AssSubtitleSegment]:
         """Combines multiple filter results using OR logic (union).
-        
+
         Args:
             *filters: Multiple filter result lists to combine.
-            
+
         Returns:
             List of unique segments present in any filter result.
         """

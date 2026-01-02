@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import regex
+
+if TYPE_CHECKING:
+    from autosubs.models.subtitles.ass import AssSubtitleSegment
 
 
 @dataclass(frozen=True)
 class Syllable:
-    """Represents a single syllable with karaoke timing information.
-    
+    r"""Represents a single syllable with karaoke timing information.
+
     Attributes:
         text: The text content of the syllable.
         start: Start time in seconds relative to line start.
@@ -38,7 +42,7 @@ class Syllable:
 
 class KaraokeParser:
     r"""Parser for ASS karaoke timing tags.
-    
+
     Supports the following karaoke tags:
     - \k<duration>: Basic karaoke timing
     - \kf<duration> or \K<duration>: Fill karaoke (sweeping highlight)
@@ -51,13 +55,13 @@ class KaraokeParser:
     @classmethod
     def parse_syllables(cls, text: str) -> list[Syllable]:
         r"""Extracts syllables from text containing karaoke tags.
-        
+
         Args:
             text: Text with embedded ASS karaoke tags (e.g., "{\k50}hel{\k30}lo").
-            
+
         Returns:
             List of Syllable objects with timing information.
-            
+
         Example:
             >>> parser = KaraokeParser()
             >>> syllables = parser.parse_syllables("{\k50}Hel{\k30}lo {\k40}world")
@@ -70,17 +74,17 @@ class KaraokeParser:
         """
         syllables: list[Syllable] = []
         current_time = 0.0
-        
+
         # Remove newline tags
         cleaned_text = text.replace("\\N", " ").replace("\\n", " ")
-        
+
         # Pattern to match override blocks and text
         # This captures {override blocks} and text between them
         pattern = r"(\{[^}]*\})|([^{}]+)"
         tokens = regex.findall(pattern, cleaned_text)
-        
+
         pending_tag: tuple[str, int] | None = None
-        
+
         for override_block, text_content in tokens:
             if override_block:
                 # Extract karaoke tag if present
@@ -114,41 +118,35 @@ class KaraokeParser:
                             tag_type="k",
                         )
                     )
-        
+
         return syllables
 
     @classmethod
     def has_karaoke_tags(cls, text: str) -> bool:
         """Checks if text contains any karaoke timing tags.
-        
+
         Args:
             text: Text to check for karaoke tags.
-            
+
         Returns:
             True if text contains karaoke tags, False otherwise.
         """
         return bool(cls.KARAOKE_TAG_PATTERN.search(text))
 
 
-def extract_syllables_from_segment(segment: "AssSubtitleSegment") -> list[Syllable]:  # noqa: F821
+def extract_syllables_from_segment(segment: AssSubtitleSegment) -> list[Syllable]:  # noqa: F821
     """Extracts syllables with absolute timing from an AssSubtitleSegment.
-    
+
     This function parses karaoke tags from the segment text and converts
     relative timings to absolute timestamps.
-    
+
     Args:
         segment: The subtitle segment to extract syllables from.
-        
+
     Returns:
         List of Syllable objects. If no karaoke tags are found, returns
         an empty list.
     """
-    # Import here to avoid circular dependency
-    from autosubs.models.subtitles.ass import AssSubtitleSegment
-    
-    if not isinstance(segment, AssSubtitleSegment):
-        return []
-    
     # Reconstruct text with karaoke tags from words
     full_text_parts = []
     for word in segment.words:
@@ -158,15 +156,15 @@ def extract_syllables_from_segment(segment: "AssSubtitleSegment") -> list[Syllab
             if tag_str and KaraokeParser.has_karaoke_tags(tag_str):
                 full_text_parts.append(tag_str)
         full_text_parts.append(word.text)
-    
+
     full_text = "".join(full_text_parts)
-    
+
     if not KaraokeParser.has_karaoke_tags(full_text):
         return []
-    
+
     # Parse syllables and adjust timing to be absolute
     syllables = KaraokeParser.parse_syllables(full_text)
-    
+
     # Convert relative timing to absolute timing based on segment start
     result = []
     for syllable in syllables:
@@ -178,5 +176,5 @@ def extract_syllables_from_segment(segment: "AssSubtitleSegment") -> list[Syllab
                 tag_type=syllable.tag_type,
             )
         )
-    
+
     return result
