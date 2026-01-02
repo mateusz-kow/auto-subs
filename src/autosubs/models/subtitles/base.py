@@ -23,10 +23,10 @@ class SubtitleWord:
             raise ValueError(f"SubtitleWord has invalid timestamp: start ({self.start}) > end ({self.end})")
 
     def shift_by(self, offset: float) -> SubtitleWord:
-        """Shifts the entire segment and all its words by a time offset.
+        """Shifts the word timing by a time offset.
 
         Returns:
-            The segment itself, for method chaining.
+            The word itself, for method chaining.
         """
         self.start += offset
         self.end += offset

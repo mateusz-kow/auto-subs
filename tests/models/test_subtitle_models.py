@@ -74,3 +74,44 @@ def test_subtitles_string_representation() -> None:
     seg2 = SubtitleSegment(words=[SubtitleWord(text="Second line.", start=2.0, end=3.0)])
     subtitles = Subtitles(segments=[seg1, seg2])
     assert str(subtitles.text) == "First line.\nSecond line."
+
+
+def test_subtitle_segment_boundary_calculation() -> None:
+    """Test that segments correctly calculate start and end from words."""
+    words = [
+        SubtitleWord(text="First", start=1.0, end=2.0),
+        SubtitleWord(text="Last", start=3.0, end=4.0),
+    ]
+    segment = SubtitleSegment(words=words)
+
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(4.0)
+
+
+def test_subtitle_segment_add_word() -> None:
+    """Test adding a word to an existing segment."""
+    segment = SubtitleSegment(words=[SubtitleWord(text="Existing", start=2.0, end=3.0)])
+    segment.add_word(SubtitleWord(text="New", start=1.0, end=1.5))
+
+    assert segment.start == pytest.approx(1.0)
+    assert segment.end == pytest.approx(3.0)
+    assert segment.words[0].text == "New"
+
+
+def test_subtitles_sorting() -> None:
+    """Test that Subtitles object sorts segments by start time."""
+    seg1 = SubtitleSegment(words=[SubtitleWord(text="Later", start=5.0, end=6.0)])
+    seg2 = SubtitleSegment(words=[SubtitleWord(text="Earlier", start=1.0, end=2.0)])
+    subs = Subtitles(segments=[seg1, seg2])
+
+    assert subs.segments[0].start == pytest.approx(1.0)
+    assert subs.segments[1].start == pytest.approx(5.0)
+
+
+def test_subtitles_text_property() -> None:
+    """Test that Subtitles.text correctly joins segment text with newlines."""
+    seg1 = SubtitleSegment(words=[SubtitleWord(text="Line 1", start=1.0, end=2.0)])
+    seg2 = SubtitleSegment(words=[SubtitleWord(text="Line 2", start=3.0, end=4.0)])
+    subs = Subtitles(segments=[seg1, seg2])
+
+    assert subs.text == "Line 1\nLine 2"
