@@ -57,7 +57,6 @@ build-backend = "hatchling.build"
 # --- Tool Configurations ---
 
 [tool.hatch.build]
-sources = ["src"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autosubs"]
