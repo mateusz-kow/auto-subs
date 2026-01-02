@@ -421,7 +421,7 @@ class TestNewCommands:
         """Test implicit repeated spline commands."""
         vector = AssVector.from_string("m 0 0 s 10 20 30 40 50 60 70 80 90 100 110 120")
         assert len(vector.commands) == 3
-        assert all(cmd.__class__.__name__ in ("MoveCommand", "SplineCommand") for cmd in vector.commands)
+        assert all(isinstance(cmd, (MoveCommand, SplineCommand)) for cmd in vector.commands)
 
 
 class TestFlipTransformation:
