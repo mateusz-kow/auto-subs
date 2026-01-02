@@ -84,15 +84,27 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
         lines.append("")
 
         lines.append("[V4+ Styles]")
+        styles_to_use = []
+        format_keys = []
+
         if styler_engine and styler_engine.config.styles:
-            config = styler_engine.config
-            style_format_keys = list(config.styles[0].keys())
-            lines.append(f"Format: {', '.join(style_format_keys)}")
-            for style_dict in config.styles:
-                values = [_format_ass_number(style_dict.get(key, "")) for key in style_format_keys]
+            styles_to_use = styler_engine.config.styles
+            if styles_to_use and styles_to_use[0]:
+                format_keys = list(styles_to_use[0].keys())
+        elif subtitles.styles:
+            styles_to_use = subtitles.styles
+            if subtitles.style_format_keys:
+                format_keys = subtitles.style_format_keys
+            elif styles_to_use and styles_to_use[0]:
+                format_keys = list(styles_to_use[0].keys())
+
+        if styles_to_use and format_keys:
+            lines.append(f"Format: {', '.join(format_keys)}")
+            for style_dict in styles_to_use:
+                values = [_format_ass_number(style_dict.get(key, "")) for key in format_keys]
                 lines.append(f"Style: {','.join(values)}")
         else:
-            logger.warning("No AssStyler or styles provided; [V4+ Styles] section will be empty.")
+            logger.warning("No valid styles or format keys found; [V4+ Styles] section will be empty.")
         lines.append("")
 
         lines.append("[Events]")

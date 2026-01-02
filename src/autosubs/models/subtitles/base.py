@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import bisect
+import copy
 import logging
 from dataclasses import dataclass, field
 
@@ -380,6 +381,42 @@ class Subtitles:
         self.linear_sync(old_start=0.0, old_end=1.0, new_start=0.0, new_end=scale_factor)
 
         return self
+
+    def concatenate(self, other: Subtitles, offset: float = 0.0) -> Subtitles:
+        """Appends another Subtitles object to this one with a time offset.
+
+        The resulting object's type and metadata are determined by the
+        class of 'self' (the primary operand).
+
+        Args:
+            other: The Subtitles object to append.
+            offset: The time in seconds to shift the appended subtitles by. A positive
+                value delays the appended subtitles, while a negative value shifts
+                them earlier in time. This method does not clamp or otherwise adjust
+                timestamps that become negative as a result of the offset; any such
+                negative timestamps are preserved in the returned object.
+
+        Returns:
+            A new instance of the same class containing the merged segments.
+        """
+        if not isinstance(other, Subtitles):
+            raise TypeError(f"Cannot concatenate Subtitles with {type(other)}")
+
+        # Create deep copies to ensure operands remain immutable
+        base_segments = copy.deepcopy(self.segments)
+        other_segments = copy.deepcopy(other.segments)
+
+        # Apply the offset to the second set of segments
+        for segment in other_segments:
+            segment.shift_by(offset)
+
+        # Instantiate the new object using the current class type.
+        # This avoids circular imports by not explicitly naming AssSubtitles.
+        return self.__class__(segments=base_segments + other_segments)
+
+    def __add__(self, other: Subtitles) -> Subtitles:
+        """Syntactic shortcut for concatenate with 0.0s offset."""
+        return self.concatenate(other)
 
     @property
     def text(self) -> str:

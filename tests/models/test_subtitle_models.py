@@ -4,6 +4,7 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core.builder import create_dict_from_subtitles
+from autosubs.models import AssSubtitles
 from autosubs.models.subtitles import Subtitles, SubtitleSegment, SubtitleWord
 
 
@@ -115,3 +116,91 @@ def test_subtitles_text_property() -> None:
     subs = Subtitles(segments=[seg1, seg2])
 
     assert subs.text == "Line 1\nLine 2"
+
+
+def test_subtitles_concatenation_logic() -> None:
+    """Test that concatenation merges segments and applies offsets correctly."""
+    s1 = Subtitles(segments=[SubtitleSegment(words=[SubtitleWord("Part1", 0.0, 5.0)])])
+    s2 = Subtitles(segments=[SubtitleSegment(words=[SubtitleWord("Part2", 0.0, 5.0)])])
+
+    # Joining CD1 and CD2 where CD1 is 10s long
+    result = s1.concatenate(s2, offset=10.0)
+
+    assert len(result.segments) == 2
+    assert result.segments[0].start == pytest.approx(0.0)
+    assert result.segments[1].start == pytest.approx(10.0)
+    assert result.segments[1].end == pytest.approx(15.0)
+
+
+def test_mixed_type_concatenation() -> None:
+    """Verify behavior when mixing Subtitles and AssSubtitles."""
+    base = Subtitles(segments=[])
+    ass = AssSubtitles(segments=[], script_info={"Title": "Test"})
+
+    # Subtitles + AssSubtitles = Subtitles (Metadata lost)
+    res1 = base + ass
+    assert type(res1) is Subtitles
+
+    # AssSubtitles + Subtitles = AssSubtitles (Metadata preserved)
+    res2 = ass + base
+    assert isinstance(res2, AssSubtitles)
+    assert res2.script_info["Title"] == "Test"
+
+
+def test_concatenation_immutability() -> None:
+    """Ensure the original subtitle objects are not modified."""
+    s1 = Subtitles(segments=[SubtitleSegment(words=[SubtitleWord("A", 0, 1)])])
+    s2 = Subtitles(segments=[SubtitleSegment(words=[SubtitleWord("B", 0, 1)])])
+
+    _ = s1.concatenate(s2, offset=100.0)
+
+    # s2 should still start at 0
+    assert s2.segments[0].start == pytest.approx(0.0)
+
+
+def test_ass_subtitles_concatenation_metadata_winner() -> None:
+    """Ensure that metadata from the first AssSubtitles operand is preserved."""
+    s1 = AssSubtitles(
+        segments=[], script_info={"PlayResX": "1920", "Title": "Original"}, custom_sections={"[Fonts]": ["Arial.ttf"]}
+    )
+    s2 = AssSubtitles(
+        segments=[], script_info={"PlayResX": "1280", "Title": "Other"}, custom_sections={"[Fonts]": ["Impact.ttf"]}
+    )
+
+    result = s1 + s2
+
+    assert isinstance(result, AssSubtitles)
+    # Metadata from s1 must win
+    assert result.script_info["PlayResX"] == "1920"
+    assert result.script_info["Title"] == "Original"
+    assert result.custom_sections["[Fonts]"] == ["Arial.ttf"]
+
+
+def test_ass_subtitles_style_merging() -> None:
+    """Verify that concatenation merges unique styles from both operands."""
+    s1 = AssSubtitles(
+        segments=[], styles=[{"Name": "Default", "Fontsize": "48"}], style_format_keys=["Name", "Fontsize"]
+    )
+    s2 = AssSubtitles(
+        segments=[],
+        styles=[
+            {"Name": "Default", "Fontsize": "60"},  # Collision
+            {"Name": "Fancy", "Fontsize": "72"},  # New
+        ],
+    )
+
+    result = s1 + s2
+
+    assert isinstance(result, AssSubtitles)
+    assert len(result.styles) == 2
+    # s1's version of "Default" must win
+    assert any(s["Name"] == "Default" and s["Fontsize"] == "48" for s in result.styles)
+    # "Fancy" must be added
+    assert any(s["Name"] == "Fancy" for s in result.styles)
+
+
+def test_subtitles_concatenate_invalid_type() -> None:
+    """Verify that concatenation raises TypeError when adding non-Subtitle objects."""
+    subs = Subtitles(segments=[])
+    with pytest.raises(TypeError, match="Cannot concatenate Subtitles with <class 'str'>"):
+        subs.concatenate("invalid_type")  # type: ignore[arg-type]

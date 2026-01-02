@@ -70,14 +70,6 @@ def test_parse_malformed_ass_gracefully(malformed_ass_content: str, caplog: LogC
     assert "Skipping malformed ASS Dialogue line" in caplog.text
 
 
-def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
-    """Test that an ASS Style line is now skipped with a warning."""
-    content = "[V4+ Styles]\nStyle: Bad,Arial,20\nFormat: Name,Fontname,Fontsize\n"
-    subs = parse_ass(content)
-    assert not hasattr(subs, "styles")
-    assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
-
-
 def test_parse_ass_handles_inverted_timestamps(caplog: LogCaptureFixture) -> None:
     """Test that an ASS Dialogue line with start > end is skipped with a warning."""
     content = (

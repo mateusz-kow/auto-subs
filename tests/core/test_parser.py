@@ -1,7 +1,10 @@
+import logging
+
 import pytest
 from _pytest.logging import LogCaptureFixture
 
 from autosubs.core import parser
+from autosubs.core.parser import parse_ass
 
 
 @pytest.mark.parametrize(
@@ -79,14 +82,6 @@ def test_parse_srt_success(sample_srt_content: str) -> None:
     assert str(segments[1].text) == "This is a test."
 
 
-def test_parse_ass_skips_style_lines(caplog: LogCaptureFixture) -> None:
-    """Test that ASS Style lines are now skipped with a warning."""
-    content = "[V4+ Styles]\nStyle: Bad,Arial,20\nFormat: Name,Fontname,Fontsize\n"
-    subs = parser.parse_ass(content)
-    assert not hasattr(subs, "styles")
-    assert "Parsing of [V4+ Styles] is deprecated" in caplog.text
-
-
 def test_parse_ass_handles_nested_transform_tag() -> None:
     """Test that ASS parser correctly handles transform tags with nested parentheses."""
     content = (
@@ -159,3 +154,64 @@ def test_parse_vtt_handles_malformed_timestamps(caplog: LogCaptureFixture) -> No
     segments = parser.parse_vtt(content)
     assert not segments
     assert "Skipping malformed VTT block" in caplog.text
+
+
+def test_parse_ass_style_before_format(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify warning when a Style line appears before the Format line."""
+    content = (
+        "[V4+ Styles]\n"
+        "Style: Default,Arial,48\n"  # Style before Format
+        "Format: Name, Fontname, Fontsize\n"
+    )
+    with caplog.at_level(logging.WARNING):
+        subs = parse_ass(content)
+
+    assert "Skipping Style line found before Format line." in caplog.text
+    assert len(subs.styles) == 0
+
+
+def test_parse_ass_style_value_mismatch(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify warning when style values count doesn't match format keys count."""
+    content = (
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize\n"
+        "Style: Default, Arial\n"  # Missing 1 value
+    )
+    with caplog.at_level(logging.WARNING):
+        subs = parse_ass(content)
+
+    assert "Skipping malformed ASS Style line" in caplog.text
+    assert "Expected 3 style values, got 2" in caplog.text
+    assert len(subs.styles) == 0
+
+
+def test_parse_ass_style_malformed_line(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify resilience against malformed style lines causing ValueErrors."""
+    content = (
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname\n"  # Expects 2 values
+        "Style: Default\n"  # Only 1 value provided
+    )
+    with caplog.at_level(logging.WARNING):
+        parse_ass(content)
+
+    assert "Skipping malformed ASS Style line" in caplog.text
+
+
+def test_parse_ass_empty_style_format_raises_error() -> None:
+    """Verify that an empty Style Format line raises a ValueError."""
+    content = (
+        "[V4+ Styles]\n"
+        "Format: \n"  # Empty format
+        "Style: Default,Arial,48\n"
+    )
+    with pytest.raises(ValueError, match="Malformed or empty Format line"):
+        parse_ass(content)
+
+
+def test_parse_ass_one_column_format_success() -> None:
+    """Verify that a single-column format is still valid."""
+    content = "[V4+ Styles]\nFormat: Name\nStyle: Default\n"
+    subs = parse_ass(content)
+    assert subs.style_format_keys == ["Name"]
+    assert subs.styles[0]["Name"] == "Default"

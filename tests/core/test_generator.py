@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from autosubs.core import generator
@@ -128,3 +130,43 @@ def test_to_ass_regenerate_uses_default_events_format_keys() -> None:
 
     expected_format = "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
     assert expected_format in result
+
+
+def test_to_ass_infers_format_keys_from_style_dict() -> None:
+    """Verify that generator infers format keys if style_format_keys is missing."""
+    subs = AssSubtitles(segments=[])
+    # Model has styles but no explicit format keys
+    subs.styles = [{"Name": "Inferred", "Size": "20"}]
+    subs.style_format_keys = []
+
+    result = to_ass(subs)
+
+    assert "Format: Name, Size" in result
+    assert "Style: Inferred,20" in result
+
+
+def test_to_ass_styler_infers_format_keys() -> None:
+    """Verify that generator infers format keys from AssStyler config."""
+    from autosubs.core.styler import AssStyler
+    from autosubs.models.styles.domain import StyleEngineConfig
+
+    subs = AssSubtitles(segments=[])
+    config = StyleEngineConfig(styles=[{"Name": "StylerStyle", "Bold": "-1"}])
+    styler = AssStyler(config)
+
+    result = to_ass(subs, styler_engine=styler)
+
+    assert "Format: Name, Bold" in result
+    assert "Style: StylerStyle,-1" in result
+
+
+def test_to_ass_empty_styles_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify warning when no valid styles or format keys are available."""
+    subs = AssSubtitles(segments=[])
+    # No styles in model, no styler engine
+
+    with caplog.at_level(logging.WARNING):
+        result = to_ass(subs)
+
+    assert "No valid styles or format keys found" in caplog.text
+    assert "[V4+ Styles]\n\n" in result  # Section exists but is empty
