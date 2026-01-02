@@ -127,9 +127,9 @@ def test_subtitles_concatenation_logic() -> None:
     result = s1.concatenate(s2, offset=10.0)
 
     assert len(result.segments) == 2
-    assert result.segments[0].start == 0.0
-    assert result.segments[1].start == 10.0
-    assert result.segments[1].end == 15.0
+    assert result.segments[0].start == pytest.approx(0.0)
+    assert result.segments[1].start == pytest.approx(10.0)
+    assert result.segments[1].end == pytest.approx(15.0)
 
 
 def test_mixed_type_concatenation() -> None:
@@ -155,7 +155,7 @@ def test_concatenation_immutability() -> None:
     _ = s1.concatenate(s2, offset=100.0)
 
     # s2 should still start at 0
-    assert s2.segments[0].start == 0.0
+    assert s2.segments[0].start == pytest.approx(0.0)
 
 
 def test_ass_subtitles_concatenation_metadata_winner() -> None:

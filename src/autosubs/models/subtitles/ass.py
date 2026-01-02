@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from autosubs.models.subtitles.base import Subtitles, SubtitleSegment, SubtitleWord
 
@@ -309,7 +309,7 @@ class AssSubtitles(Subtitles):
 
         Metadata (styles, info, custom sections) is inherited from 'self'.
         """
-        new_obj = super().concatenate(other, offset)
+        new_obj = cast(AssSubtitles, super().concatenate(other, offset))
 
         # 1. Inherit master metadata from self to the concatenated result
         new_obj.script_info = copy.deepcopy(self.script_info)
@@ -328,4 +328,4 @@ class AssSubtitles(Subtitles):
 
         new_obj.styles = merged_styles
 
-        return new_obj  # type: ignore[return-value]
+        return new_obj

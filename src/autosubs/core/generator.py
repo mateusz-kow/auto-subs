@@ -85,21 +85,28 @@ def to_ass(subtitles: Subtitles, styler_engine: AssStyler | None = None) -> str:
 
         lines.append("[V4+ Styles]")
         styles_to_use = []
+        format_keys = []
+
         if styler_engine and styler_engine.config.styles:
             styles_to_use = styler_engine.config.styles
-            format_keys = list(styles_to_use[0].keys())
+            if styles_to_use and styles_to_use[0]:
+                format_keys = list(styles_to_use[0].keys())
         elif subtitles.styles:
             styles_to_use = subtitles.styles
-            format_keys = subtitles.style_format_keys or list(styles_to_use[0].keys())
+            if subtitles.style_format_keys:
+                format_keys = subtitles.style_format_keys
+            elif styles_to_use and styles_to_use[0]:
+                format_keys = list(styles_to_use[0].keys())
 
-        if styles_to_use:
+        if styles_to_use and format_keys:
             lines.append(f"Format: {', '.join(format_keys)}")
             for style_dict in styles_to_use:
                 values = [_format_ass_number(style_dict.get(key, "")) for key in format_keys]
                 lines.append(f"Style: {','.join(values)}")
         else:
-            logger.warning("No styles found in model or styler; [V4+ Styles] section will be empty.")
+            logger.warning("No valid styles or format keys found; [V4+ Styles] section will be empty.")
         lines.append("")
+
         lines.append("[Events]")
         if subtitles.segments:
             events_format_keys = subtitles.events_format_keys
