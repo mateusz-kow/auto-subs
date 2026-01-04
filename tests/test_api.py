@@ -17,11 +17,11 @@ def test_invalid_output_format(sample_transcription: dict[str, Any]) -> None:
 
 @pytest.mark.parametrize("output_format", ["srt", "vtt", "ass", "json"])
 def test_generate_valid_formats(output_format: str, sample_transcription: dict[str, Any]) -> None:
-    """Test generation for all supported subtitle formats with default settings."""
+    """Test generation for all supported subtitle formats with professional heuristics."""
     result = generate(
         transcription_source=sample_transcription,
         output_format=output_format,
-        max_chars=200,
+        char_limit=200,
     )
 
     assert isinstance(result, str)
@@ -50,13 +50,9 @@ def test_ass_output_with_style_config(sample_transcription: dict[str, Any], tmp_
     assert "Title: Styled by Auto Subs" in result
     assert "Style: Highlight,Impact,52" in result
 
-    # The rule targets "test" and "library" and applies both static overrides and transforms.
-    # Construct the expected tag block.
     expected_tags = r"{\b1\c&H0000FFFF\t(0,150,\fscx110\fscy110)\t(150,300,\fscx100\fscy100)}"
 
-    # Check that the styled word "test" is correctly formatted within the full line context.
     assert f"This is a {expected_tags}test{{\\r}} transcription for" in result
-    # Check that the styled word "library" is also correctly formatted.
     assert f"the auto-subs {expected_tags}library.{{\\r}}" in result
 
 
@@ -110,7 +106,7 @@ def test_load_api_unsupported_format(tmp_path: Path) -> None:
     """Test that `load` raises ValueError for unsupported file formats."""
     unsupported_file = tmp_path / "test.txt"
     unsupported_file.touch()
-    with pytest.raises(ValueError, match="Unsupported format"):
+    with pytest.raises(ValueError, match="does not appear to be in MPL2 format"):
         load(unsupported_file)
 
 

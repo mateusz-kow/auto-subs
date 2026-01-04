@@ -59,30 +59,14 @@ _DEFAULT_STYLE_CONFIG = StyleEngineConfigSchema(
 def generate(
     transcription_source: dict[str, Any] | str | Path,
     output_format: str,
-    max_chars: int = 35,
-    min_words: int = 1,
-    max_lines: int = 1,
+    char_limit: int = 80,
+    target_cps: float = 15.0,
     style_config_path: str | Path | None = None,
     encoding: str | None = None,
     fps: float | None = None,
+    **kwargs: Any,
 ) -> str:
-    """Generate subtitle content from a transcription dictionary.
-
-    Args:
-            transcription_source: A dictionary compatible with Whisper's output, or a path to
-    +            a Whisper-compatible JSON file.
-            output_format: The desired output format ("srt", "vtt", "ass", or "json").
-            max_chars: The maximum number of characters per subtitle line.
-            min_words: The minimum number of words per line before a punctuation break.
-            max_lines: The maximum number of lines per subtitle segment.
-            style_config_path: Optional path to a JSON file for the dynamic style engine.
-                               Required for ASS output.
-            encoding: The encoding of any input files. If None, attempts to auto-detect.
-            fps: The framerate to use for frame-based subtitle formats like MicroDVD.
-
-    Returns:
-            A string containing the generated subtitle content.
-    """
+    """Generate subtitle content from a transcription source."""
     if isinstance(transcription_source, (str, Path)):
         path = Path(transcription_source)
         if not path.is_file():
@@ -100,14 +84,13 @@ def generate(
         writer_func = _format_map[format_enum]
     except (ValueError, KeyError) as e:
         raise ValueError(
-            f"Invalid output format: {output_format}. Must be one of: {', '.join(_format_map.keys())}."
+            f"Invalid output format: {output_format}. Must be one of: {', '.join(f.value for f in _format_map)}."
         ) from e
 
     subtitles = create_subtitles_from_transcription(
         transcription_dict,
-        max_chars=max_chars,
-        min_words=min_words,
-        max_lines=max_lines,
+        char_limit=char_limit,
+        target_cps=target_cps,
     )
 
     if format_enum == SubtitleFormat.ASS:
@@ -133,13 +116,13 @@ def transcribe(
     media_file: str | Path,
     output_format: str,
     model_name: str = "base",
-    max_chars: int = 35,
-    min_words: int = 1,
-    max_lines: int = 2,
+    char_limit: int = 80,
+    target_cps: float = 15.0,
     style_config_path: str | Path | None = None,
     verbose: bool | None = None,
     encoding: str | None = None,
     fps: float | None = None,
+    **kwargs: Any,
 ) -> str:
     """Transcribe a media file and generate subtitle content."""
     media_path = Path(media_file)
@@ -149,12 +132,12 @@ def transcribe(
     return generate(
         transcription_dict,
         output_format,
-        max_chars=max_chars,
-        min_words=min_words,
-        max_lines=max_lines,
+        char_limit=char_limit,
+        target_cps=target_cps,
         style_config_path=style_config_path,
         encoding=encoding,
         fps=fps,
+        **kwargs,
     )
 
 
@@ -165,25 +148,7 @@ def load(
     encoding: str | None = None,
     fps: float | None = None,
 ) -> Subtitles:
-    """Load and parse a subtitle file into a Subtitles object.
-
-    Args:
-        file_path: Path to the subtitle file.
-        generate_word_timings: If True, splits segments into words with estimated timings.
-        timing_strategy: Strategy for generating word timings (by char or word count).
-        encoding: The encoding of the file. If None, attempts to read as UTF-8 first,
-                  then falls back to automatic detection using 'charset-normalizer' if installed.
-        fps: The framerate to use for frame-based subtitle formats like MicroDVD.
-             If not provided for MicroDVD, it will be inferred from the file if possible.
-
-    Returns:
-        A parsed Subtitles object.
-
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file format is unsupported or auto-detection confidence is low.
-        ImportError: If encoding detection is needed but 'charset-normalizer' is missing.
-    """
+    """Load and parse a subtitle file into a Subtitles object."""
     path = Path(file_path)
     if not path.is_file():
         raise FileNotFoundError(f"Subtitle file not found at: {path}")
@@ -205,16 +170,9 @@ def load(
         if parser.MPL2_TIMESTAMP_REGEX.match(first_line):
             subtitles = Subtitles(segments=parser.parse_mpl2(content))
         else:
-            raise ValueError(
-                f"Unsupported format: {suffix} file does not appear to be in MPL2 format. "
-                "Only MPL2 is supported for .txt files."
-            )
+            raise ValueError(f"File {suffix} does not appear to be in MPL2 format.")
     else:
-        supported = ", ".join(
-            f".{fmt}" for fmt in SubtitleFormat if fmt not in [SubtitleFormat.JSON, SubtitleFormat.MPL2]
-        )
-        supported += ", .txt (MPL2)"
-        raise ValueError(f"Unsupported format: {suffix}. Supported: {supported}.")
+        raise ValueError(f"Unsupported format: {suffix}.")
 
     if generate_word_timings and not isinstance(subtitles, AssSubtitles):
         for segment in subtitles.segments:

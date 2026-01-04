@@ -382,6 +382,18 @@ class Subtitles:
 
         return self
 
+    def get_full_word_list(self) -> list[SubtitleWord]:
+        """Extracts every word from all segments into a single flat list."""
+        return [word for segment in self.segments for word in segment.words]
+
+    def resegment(self, char_limit: int = 80, target_cps: float = 15.0) -> None:
+        """Intelligently re-partitions the entire subtitle stream based on linguistic cues."""
+        from autosubs.core.word_segmenter import segment_words
+
+        words = self.get_full_word_list()
+        self.segments = segment_words(words, char_limit=char_limit, target_cps=target_cps)
+        self._validate_overlaps()
+
     def concatenate(self, other: Subtitles, offset: float = 0.0) -> Subtitles:
         """Appends another Subtitles object to this one with a time offset.
 
@@ -406,12 +418,9 @@ class Subtitles:
         base_segments = copy.deepcopy(self.segments)
         other_segments = copy.deepcopy(other.segments)
 
-        # Apply the offset to the second set of segments
         for segment in other_segments:
             segment.shift_by(offset)
 
-        # Instantiate the new object using the current class type.
-        # This avoids circular imports by not explicitly naming AssSubtitles.
         return self.__class__(segments=base_segments + other_segments)
 
     def __add__(self, other: Subtitles) -> Subtitles:
@@ -420,5 +429,5 @@ class Subtitles:
 
     @property
     def text(self) -> str:
-        """Returns the segment text by concatenating the words."""
+        """Returns the full text by concatenating segment strings with newlines."""
         return "\n".join(segment.text for segment in self.segments)
