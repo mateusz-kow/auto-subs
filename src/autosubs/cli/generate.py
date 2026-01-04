@@ -43,15 +43,14 @@ def generate(
             help="Format for the output subtitles. Inferred from --output if not specified.",
         ),
     ] = None,
-    max_chars: Annotated[int, typer.Option(help="Maximum characters per subtitle line.")] = 35,
-    min_words: Annotated[
+    char_limit: Annotated[
         int,
-        typer.Option(help="Minimum words per line before allowing a punctuation break."),
-    ] = 1,
-    max_lines: Annotated[
-        int,
-        typer.Option(help="Maximum number of lines per subtitle segment."),
-    ] = 1,
+        typer.Option(help="Strict maximum characters per subtitle event."),
+    ] = 80,
+    target_cps: Annotated[
+        float,
+        typer.Option(help="Target Characters Per Second for readability."),
+    ] = 15.0,
     style_config: Annotated[
         Path | None,
         typer.Option(
@@ -88,7 +87,7 @@ def generate(
         ),
     ] = EncodingErrorStrategy.REPLACE,
 ) -> None:
-    """Generate subtitle file from a transcription JSON."""
+    """Generate professional subtitle files from transcription JSON."""
     target_format = determine_output_format(output_format, output_path, default=SubtitleFormat.SRT)
     typer.echo(f"Generating subtitles in {target_format.upper()} format...")
 
@@ -96,14 +95,13 @@ def generate(
 
     def _generate_single(in_file: Path, out_base: Path) -> None:
         typer.echo(f"Processing: {in_file.name}")
-        final_out = out_base.with_suffix(f".{target_format.value}")
+        final_out = out_base.with_suffix(f".{target_format}")
 
         content = generate_api(
             in_file,
             output_format=target_format,
-            max_chars=max_chars,
-            min_words=min_words,
-            max_lines=max_lines,
+            char_limit=char_limit,
+            target_cps=target_cps,
             style_config_path=style_config,
             encoding=encoding,
         )

@@ -57,15 +57,14 @@ def transcribe(
     model: Annotated[
         WhisperModel, typer.Option(case_sensitive=False, help="Whisper model to use.")
     ] = WhisperModel.BASE,
-    max_chars: Annotated[int, typer.Option(help="Maximum characters per subtitle line.")] = 35,
-    min_words: Annotated[
+    char_limit: Annotated[
         int,
-        typer.Option(help="Minimum words per line before allowing a punctuation break."),
-    ] = 1,
-    max_lines: Annotated[
-        int,
-        typer.Option(help="Maximum number of lines per subtitle segment."),
-    ] = 2,
+        typer.Option(help="Strict maximum characters per subtitle event."),
+    ] = 80,
+    target_cps: Annotated[
+        float,
+        typer.Option(help="Target Characters Per Second for readability."),
+    ] = 15.0,
     stream: Annotated[
         bool,
         typer.Option("--stream", help="Display a progress bar during transcription."),
@@ -82,7 +81,7 @@ def transcribe(
             file_okay=True,
             dir_okay=False,
             readable=True,
-            help="[ASS] Path to a JSON file with the style engine configuration.",
+            help="[ASS] Path to style engine JSON configuration.",
         ),
     ] = None,
     burn: Annotated[bool, typer.Option(help="Burn the subtitles directly into a video file.")] = False,
@@ -95,14 +94,12 @@ def transcribe(
         ),
     ] = None,
 ) -> None:
-    """Transcribe media and generate subtitles."""
+    """Transcribe media and generate semantic subtitle events."""
     if burn:
         check_ffmpeg_installed()
 
     target_format = determine_output_format(output_format, output_path, default=SubtitleFormat.SRT)
-
     verbose_level: bool | None = True if whisper_verbose else (False if stream else None)
-
     processor = PathProcessor(media_path, output_path, SupportedExtension.MEDIA)
 
     def _transcribe_single(in_file: Path, out_base: Path) -> None:
@@ -113,9 +110,8 @@ def transcribe(
             in_file,
             output_format=target_format,
             model_name=model,
-            max_chars=max_chars,
-            min_words=min_words,
-            max_lines=max_lines,
+            char_limit=char_limit,
+            target_cps=target_cps,
             style_config_path=style_config,
             verbose=verbose_level,
             encoding=encoding,

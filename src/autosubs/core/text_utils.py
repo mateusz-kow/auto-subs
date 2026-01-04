@@ -1,4 +1,4 @@
-"""Text processing utilities for deterministic subtitle segmentation."""
+"""Text processing utilities for professional subtitle segmentation."""
 
 from __future__ import annotations
 
@@ -7,15 +7,15 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from autosubs.models.subtitles import SubtitleWord
 
-# Punctuation hierarchy for splitting preference.
-PUNCTUATION_BONUSES = {
-    ".": -60.0,
-    "!": -60.0,
-    "?": -60.0,
-    ":": -30.0,
-    ";": -30.0,
-    ",": -25.0,
-    "-": -15.0,
+# Professional Linguistic Hierarchy for splitting preference.
+LINGUISTIC_WEIGHTS = {
+    ".": -150.0,  # Sentence boundary (Optimal split)
+    "!": -150.0,
+    "?": -150.0,
+    ":": -80.0,  # Clause boundary
+    ";": -80.0,
+    ",": -60.0,  # Phrase boundary
+    "-": -30.0,  # Hyphenated break
 }
 
 
@@ -23,67 +23,61 @@ def _calculate_cost(
     words: list[SubtitleWord],
     i: int,
     j: int,
-    max_chars: int,
+    char_limit: int,
+    target_cps: float = 15.0,
 ) -> float:
     """Calculate the cost of creating a segment from words[i:j+1].
 
-    The cost function balances character length, speaking rate (CPS),
-    punctuation, and temporal silence gaps.
+    Balances character length, reading speed (CPS), punctuation, and temporal silence.
     """
     line_words = words[i : j + 1]
     line_text = " ".join(w.text for w in line_words)
     char_count = len(line_text)
 
-    # Handle oversized segments
-    if char_count > max_chars:
-        # If it's a single word that exceeds the limit, allow it with a high penalty
-        # to prevent DP failure, otherwise return infinity.
-        if i == j:
-            return 10000.0 + (char_count - max_chars) * 10.0
+    # 1. HARD MAXIMUM CONSTRAINT
+    if char_count > char_limit:
         return float("inf")
 
-    # 1. Base cost for creating a segment to prevent unnecessary fragmentation.
-    cost = 15.0
+    # 2. Base Cost
+    # Fragmentation penalty to prevent unnecessary single-word segments.
+    cost = 20.0
 
-    # 2. Length Penalty: Prefer longer lines up to the limit to avoid flickering.
-    cost += (max_chars - char_count) * 0.5
-
-    # 3. Temporal Penalty: Characters Per Second (CPS).
-    # Typical limit is ~20 CPS. Penalize if reading speed is too high.
+    # 3. Readability: Characters Per Second (CPS)
+    # Penalize heavily if the text is moving too fast for human reading.
     duration = line_words[-1].end - line_words[0].start
     if duration > 0:
         cps = char_count / duration
-        if cps > 20:
-            cost += (cps - 20) * 50.0
+        if cps > 21.0:  # Industry hard limit for reading comfort
+            return float("inf")
+        if cps > target_cps:
+            cost += (cps - target_cps) ** 2 * 10.0
 
-    # 4. Punctuation Bonus (Negative Cost).
+    # 4. Linguistic Anchoring
     last_word = line_words[-1].text.strip()
     if last_word:
-        last_char = last_word[-1]
-        cost += PUNCTUATION_BONUSES.get(last_char, 0.0)
+        # Match the last char against weights; penalize "bad" breaks (no punctuation)
+        penalty = LINGUISTIC_WEIGHTS.get(last_word[-1], 25.0)
+        cost += penalty
 
-    # 5. Silence Bonus (Negative Cost) and Flicker Penalty.
+    # 5. Temporal Anchoring (Silence)
     if j < len(words) - 1:
-        silence_gap = words[j + 1].start - words[j].end
-        if silence_gap > 0.1:
-            # Reward splitting at clear pauses.
-            cost -= min(silence_gap, 1.0) * 100.0
-        elif 0.0 < silence_gap <= 0.1:
-            # Penalize splitting at tiny gaps to prevent visual flickering.
-            cost += (0.1 - silence_gap) * 100.0
+        gap = words[j + 1].start - words[j].end
+        if gap > 0.4:
+            # Major reward for splitting during natural pauses in speech.
+            cost -= min(gap, 2.0) * 100.0
+        elif gap < 0.1:
+            # "Flicker" penalty: avoid splitting if the next word is temporally too close.
+            cost += 40.0
 
     return cost
 
 
 def partition_words_optimal(
     words: list[SubtitleWord],
-    max_chars: int = 42,
+    char_limit: int = 80,
+    target_cps: float = 15.0,
 ) -> list[list[SubtitleWord]]:
-    """Partition words into segments using Dynamic Programming.
-
-    Minimizes the cumulative cost across all generated segments to find the
-    globally optimal subtitle timing and layout.
-    """
+    """Partition words into segments using Dynamic Programming to find global optima."""
     if not words:
         return []
 
@@ -96,7 +90,7 @@ def partition_words_optimal(
         best_j = i + 1
 
         for j in range(i, n):
-            cost = _calculate_cost(words, i, j, max_chars)
+            cost = _calculate_cost(words, i, j, char_limit, target_cps)
 
             if cost == float("inf"):
                 break
@@ -106,8 +100,6 @@ def partition_words_optimal(
                 min_total_cost = total_cost
                 best_j = j + 1
 
-        # If it's impossible to fit even the single next word (handled by _calculate_cost),
-        # force a single-word break to ensure algorithm termination.
         if min_total_cost == float("inf"):
             dp[i] = 1e6
             best_j = i + 1
@@ -124,11 +116,3 @@ def partition_words_optimal(
         curr = next_break
 
     return result
-
-
-def balance_lines_with_timing(
-    words: list[SubtitleWord],
-    max_chars: int = 42,
-) -> list[list[SubtitleWord]]:
-    """Partition words into segments using temporal and visual heuristics."""
-    return partition_words_optimal(words, max_chars=max_chars)
