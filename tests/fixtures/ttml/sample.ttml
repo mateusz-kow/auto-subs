@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml" xmlns:tts="http://www.w3.org/ns/ttml#styling" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" ttp:timeBase="media">
+  <head>
+    <styling>
+      <style xml:id="s1" tts:color="white" tts:fontFamily="Arial" tts:fontSize="100%"/>
+    </styling>
+    <layout>
+      <region xml:id="r1" tts:origin="10% 80%" tts:extent="80% 20%" tts:displayAlign="center" tts:textAlign="center"/>
+    </layout>
+  </head>
+  <body>
+    <div>
+      <p begin="00:00:01.000" end="00:00:05.000" region="r1" style="s1">Hello, world.</p>
+      <p begin="00:00:06.000" end="00:00:12.000" region="r1" style="s1">This is a test<br/>with multiple lines.</p>
+      <p begin="00:00:15.500" end="00:00:20.000" region="r1" style="s1">Another line here.</p>
+    </div>
+  </body>
+</tt>

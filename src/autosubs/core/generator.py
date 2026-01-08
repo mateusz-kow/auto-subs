@@ -1,4 +1,5 @@
 import json
+import xml.etree.ElementTree as ET
 from logging import getLogger
 from typing import Any, overload
 
@@ -232,3 +233,76 @@ def to_json(subtitles: Subtitles) -> str:
     """Generate a JSON representation of the subtitles."""
     logger.info("Generating subtitles in JSON format...")
     return json.dumps(create_dict_from_subtitles(subtitles), indent=4, ensure_ascii=False)
+
+
+def format_ttml_timestamp(seconds: float) -> str:
+    """Formats TTML timestamps in HH:MM:SS.mmm format."""
+    hrs = int(seconds // 3600)
+    mins = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int(round((seconds - int(seconds)) * 1000))
+    return f"{hrs:02}:{mins:02}:{secs:02}.{millis:03}"
+
+
+def to_ttml(subtitles: Subtitles) -> str:
+    """Generate the content for a TTML/IMSC1 subtitle file.
+
+    Generates a Netflix/IMSC1-compliant TTML file with basic positioning and styling.
+    """
+    logger.info("Generating subtitles in TTML format...")
+
+    # Create root element with namespaces
+    tt = ET.Element('tt', attrib={
+        'xmlns': 'http://www.w3.org/ns/ttml',
+        'xmlns:tts': 'http://www.w3.org/ns/ttml#styling',
+        'xmlns:ttp': 'http://www.w3.org/ns/ttml#parameter',
+        '{http://www.w3.org/ns/ttml#parameter}timeBase': 'media',
+    })
+
+    # Create head section with styling and layout
+    head = ET.SubElement(tt, 'head')
+
+    # Add styling section
+    styling = ET.SubElement(head, 'styling')
+    ET.SubElement(styling, 'style', attrib={
+        '{http://www.w3.org/XML/1998/namespace}id': 's1',
+        '{http://www.w3.org/ns/ttml#styling}color': 'white',
+        '{http://www.w3.org/ns/ttml#styling}fontFamily': 'Arial',
+        '{http://www.w3.org/ns/ttml#styling}fontSize': '100%',
+    })
+
+    # Add layout section with default region
+    layout = ET.SubElement(head, 'layout')
+    ET.SubElement(layout, 'region', attrib={
+        '{http://www.w3.org/XML/1998/namespace}id': 'r1',
+        '{http://www.w3.org/ns/ttml#styling}origin': '10% 80%',
+        '{http://www.w3.org/ns/ttml#styling}extent': '80% 20%',
+        '{http://www.w3.org/ns/ttml#styling}displayAlign': 'center',
+        '{http://www.w3.org/ns/ttml#styling}textAlign': 'center',
+    })
+
+    # Create body section
+    body = ET.SubElement(tt, 'body')
+    div = ET.SubElement(body, 'div')
+
+    # Add subtitle segments as <p> elements
+    for segment in subtitles.segments:
+        p = ET.SubElement(div, 'p', attrib={
+            'begin': format_ttml_timestamp(segment.start),
+            'end': format_ttml_timestamp(segment.end),
+            'region': 'r1',
+            'style': 's1',
+        })
+
+        # Handle multi-line text with <br/> elements
+        lines = segment.text.split('\n')
+        if lines:
+            p.text = lines[0]
+            for line in lines[1:]:
+                br = ET.SubElement(p, 'br')
+                br.tail = line
+
+    # Convert to string with XML declaration
+    ET.indent(tt, space='  ')
+    xml_str = ET.tostring(tt, encoding='unicode', method='xml')
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + xml_str + '\n'
