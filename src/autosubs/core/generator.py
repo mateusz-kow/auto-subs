@@ -1,3 +1,4 @@
+import html
 import json
 from logging import getLogger
 from typing import Any, overload
@@ -232,3 +233,56 @@ def to_json(subtitles: Subtitles) -> str:
     """Generate a JSON representation of the subtitles."""
     logger.info("Generating subtitles in JSON format...")
     return json.dumps(create_dict_from_subtitles(subtitles), indent=4, ensure_ascii=False)
+
+
+def to_sami(subtitles: Subtitles) -> str:
+    """Generate the content for a SAMI subtitle file.
+
+    SAMI (Synchronized Accessible Media Interchange) is an HTML/XML-based format
+    that uses <SYNC Start=milliseconds> tags for timing.
+
+    Args:
+        subtitles: The Subtitles object to convert to SAMI format.
+
+    Returns:
+        A string containing the generated SAMI file content.
+    """
+    logger.info("Generating subtitles in SAMI format...")
+
+    lines: list[str] = [
+        "<SAMI>",
+        "<HEAD>",
+        "<TITLE>Subtitles</TITLE>",
+        "<STYLE TYPE=\"text/css\">",
+        "<!--",
+        "P { margin-left: 8pt; margin-right: 8pt; margin-bottom: 2pt;",
+        "    margin-top: 2pt; text-align: center; font-size: 12pt;",
+        "    font-family: Arial, sans-serif; font-weight: normal;",
+        "    color: white; background-color: black; }",
+        ".ENCC { Name: English; lang: en-US; }",
+        "-->",
+        "</STYLE>",
+        "</HEAD>",
+        "<BODY>",
+    ]
+
+    # Add subtitle segments
+    for segment in subtitles.segments:
+        start_ms = int(round(segment.start * 1000))
+        # Escape HTML entities and convert newlines to <br> tags
+        text = html.escape(segment.text).replace("\n", "<br>")
+        lines.append(f"<SYNC Start={start_ms}>")
+        lines.append(f"  <P Class=ENCC>{text}")
+
+    # Add final empty SYNC to clear the last subtitle
+    if subtitles.segments:
+        last_end_ms = int(round(subtitles.segments[-1].end * 1000))
+        lines.append(f"<SYNC Start={last_end_ms}>")
+        lines.append("  <P Class=ENCC>&nbsp;")
+
+    lines.extend([
+        "</BODY>",
+        "</SAMI>",
+    ])
+
+    return "\n".join(lines) + "\n"
